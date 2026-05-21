@@ -1,0 +1,35 @@
+---
+description: Notion task board vs Git specs
+alwaysApply: true
+---
+
+# Notion task tracking
+
+**Git specs in `docs/mvp/` are canonical.** Notion is for tasks and status only.
+
+## Task fields
+
+Each Notion task should include:
+
+- **Title:** e.g. `Feature: Cheap Stocks — implement EY rank`
+- **Spec path:** `docs/mvp/features/<feature>.md`
+- **Notes:** copy acceptance criteria from the spec
+
+## Sync discipline
+
+1. Change MVP decisions in the Git spec first.
+2. Then create or update Notion tasks.
+3. On completion: update the Git spec (implementation status, acceptance criteria), then mark the Notion task done.
+
+## Default board
+
+**`Cursor Agent Tasks`** in this project's Notion workspace. Use Notion MCP `notion-search` with that name; do not require a board URL from the repo. See `AGENTS.md`.
+
+## Cursor skills (Notion MCP authenticated)
+
+- `spec-to-implementation` — break a spec into tasks
+- `create-task` — add a single task
+- `tasks-build` — implement from a Notion task URL
+- `tasks-explain-diff` — document completed work in Notion
+
+If Notion MCP calls fail with auth errors, ask the user to authenticate the Notion plugin in Cursor Settings.

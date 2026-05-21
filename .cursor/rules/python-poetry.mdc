@@ -1,0 +1,34 @@
+---
+description: Python 3.13 and Poetry conventions
+globs: "**/*.{py,toml}"
+alwaysApply: false
+---
+
+# Python and Poetry
+
+- Runtime: **Python 3.13+** via Poetry (`pyproject.toml`).
+- Run scripts: `poetry run python ...`
+- Add dependencies: `poetry add <package>` (not pip install into the global env).
+
+## Style
+
+- Prefer type hints on public functions.
+- Short English docstrings for non-obvious business logic.
+- Match existing module style when extending code.
+
+## Libraries
+
+Use dependencies declared in `pyproject.toml` (pandas, polars, yfinance, etc.) as directed by the **feature spec**, not by default habit.
+
+## Financial domain
+
+- **No look-ahead bias:** only data available on or before the decision `as_of_date`.
+- Document `as_of_date`, data sources, and formula versions in the feature spec when adding metrics.
+
+## Tooling
+
+No project-wide tests or linter unless configured in `pyproject.toml`. Do not add heavy CI scaffolding unless requested.
+
+## Network
+
+`yfinance` and external APIs require network access; handle failures explicitly in implementation specs.

@@ -1,0 +1,27 @@
+---
+description: SmartWealthAI MVP context and canonical docs paths
+alwaysApply: true
+---
+
+# SmartWealthAI project context
+
+SmartWealthAI is a modular **quantitative value investing** system (MVP): US equities, Greenblatt-style quality + cheapness ranking, point-in-time correctness, explainable decisions, paper trading only, AWS-oriented data lake design.
+
+## Current phase
+
+**MVP planning and spec refinement** in `docs/mvp/`. Prefer updating specs over writing code unless the user explicitly moves to implementation.
+
+## Canonical documentation
+
+- Architecture: `docs/mvp/architecture/architecture.md`
+- Features: `docs/mvp/features/*.md`
+- Requirements (historical): `docs/mvp/requirements/requirements.md`
+- Backlog: `docs/mvp/backlog/backlog.md`
+
+## Not canonical
+
+Do not use `src/` or `notebooks/` as reference architecture. Legacy exploration there does not define MVP boundaries.
+
+## Code changes
+
+Every implementation change must trace to a feature spec under `docs/mvp/features/`. Read the architecture doc for cross-cutting rules before proposing design or code.
