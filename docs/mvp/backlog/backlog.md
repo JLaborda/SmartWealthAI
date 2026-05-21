@@ -1,11 +1,16 @@
-1. Detectar cuando hay algún problema financiero con alguna de mis acciones en cartera. 
+# Product backlog (informal)
 
-2. Ver la evolución en el tiempo de mi portfolio y hacer distintas comparativas con otros portfolios como el s&p500. 
+Informal ideas from the product owner. Each item should eventually map to one or more [feature specs](features/) and [architecture.md](../architecture/architecture.md). Notion tasks should reference the relevant spec path.
 
-3. Crear un detector inteligente con IA de acciones que están infravalóradas para intentar comprar. Usar para ello filtros como los de peter lynch o la fórmula mágica 
+| # | Idea | Likely MVP feature(s) |
+| --- | --- | --- |
+| 1 | Detect financial problems with holdings in my portfolio | [sell-watch.md](features/sell-watch.md), [permanent-loss-filter.md](features/permanent-loss-filter.md), [dashboard-reporting.md](features/dashboard-reporting.md) |
+| 2 | Track portfolio evolution over time and compare to benchmarks (e.g. S&P 500) | [dashboard-reporting.md](features/dashboard-reporting.md), [backtesting.md](features/backtesting.md) |
+| 3 | AI-assisted detector for undervalued stocks (Peter Lynch filters, Magic Formula) | [cheap-stocks.md](features/cheap-stocks.md), [high-quality-stocks.md](features/high-quality-stocks.md), [universe-construction.md](features/universe-construction.md) |
+| 4 | Diversification analysis beyond sector labels (clustering in growth vs contraction regimes) | [corroborative-signals.md](features/corroborative-signals.md), [dashboard-reporting.md](features/dashboard-reporting.md) — may need a future spec |
+| 5 | Detect overvalued positions where selling or trimming may make sense | [sell-watch.md](features/sell-watch.md), [cheap-stocks.md](features/cheap-stocks.md) |
+| 6 | Rebalancing guidance (owner questions whether rebalance fits buy-cheap / sell-dear philosophy) | [architecture.md](../architecture/architecture.md) (annual rebalance decision), [broker-execution.md](features/broker-execution.md) |
 
-4. Analizar la diversificación realizada en un portfolio, no solo por sector, sino con análisis de clustering para ver si realmente estoy diversificado tanto en tiempos de crecimiento como en tiempos de contracción. 
+## Priority
 
-5. Analizar cuándo alguna de mis acciones está sobrevalorada, y quizás sea conveniente vender o ajustar. 
-
-6. Detectar cuándo hace flata hacer un rebalanceo para que el portfolio esté bien. (Aunque yo personalmente no entiendo muy bien la necesidad de esto si la idea es comprar barato y vender caro)
+Ordering is not fixed here. During MVP planning, promote items into feature specs with acceptance criteria before implementation.
