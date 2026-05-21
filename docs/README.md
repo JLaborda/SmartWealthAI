@@ -29,6 +29,7 @@ docs/mvp/
 | [unstructured-financial-data.md](mvp/features/unstructured-financial-data.md) | Unstructured data |
 | [backtesting.md](mvp/features/backtesting.md) | Backtesting |
 | [sell-watch.md](mvp/features/sell-watch.md) | Sell watch |
+| [portfolio-evolution.md](mvp/features/portfolio-evolution.md) | Portfolio evolution (model vs personal vs benchmarks) |
 | [dashboard-reporting.md](mvp/features/dashboard-reporting.md) | Dashboard and reporting |
 | [broker-execution.md](mvp/features/broker-execution.md) | Broker execution (paper) |
 
