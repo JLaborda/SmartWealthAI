@@ -1,26 +1,39 @@
-# REQUISITOS DEL SPRINT 0: MVP Screener Magic Formula
-Objetivo Principal: Crear un pipeline básico en Python que descargue datos financieros de un grupo muy reducido de acciones, calcule un ranking simple y lo muestre por consola.
+# Sprint 0 requirements: Magic Formula screener spike
 
-1. Requisitos Funcionales:
+> **Status:** Historical reference only. The full MVP is defined in [architecture.md](../architecture/architecture.md) and [features/](../features/). Do not treat this document as the current MVP scope.
 
-Input: El sistema partirá de una lista estática (hardcodeada) de solo 5 a 10 tickers conocidos (ej. ["AAPL", "MSFT", "GOOGL", "JNJ", "KO"]). Nota: No vamos a descargar todo el S&P 500 hoy para evitar bloqueos de la API y tiempos de espera.
+## Primary goal
 
-Procesamiento: El sistema se conectará a una API gratuita (recomiendo yfinance para empezar rápido) y descargará las dos métricas proxy para la Fórmula Mágica:
+Build a minimal Python pipeline that downloads financial data for a very small set of tickers, computes a simple ranking, and prints the result to the console.
 
-* Return on Capital (ROC) o en su defecto Return on Equity (ROE) / Return on Assets (ROA).
+## Functional requirements
 
-* Earnings Yield o en su defecto su inverso, el P/E Ratio (Price-to-Earnings).
+### Input
 
-* Lógica de Negocio: El sistema ordenará las acciones dándole una puntuación del 1 al N en cada métrica, y sumará ambas puntuaciones para obtener el "Magic Rank" final.
+- Start from a **static hardcoded list** of 5–10 known tickers (e.g. `["AAPL", "MSFT", "GOOGL", "JNJ", "KO"]`).
+- Do not download the full S&P 500 in this spike (API rate limits and runtime).
 
-Output: El sistema imprimirá por consola (con un simple print o usando Pandas) el ranking final ordenado de la mejor opción a la peor.
+### Processing
 
-2. Requisitos Técnicos:
+- Connect to a free API (recommended: `yfinance`).
+- Fetch proxy metrics for the Magic Formula:
+  - **Return on Capital (ROC)**, or fallback **ROE** / **ROA**
+  - **Earnings Yield**, or fallback inverse **P/E**
+- Rank each metric from 1 to N across the universe and **sum ranks** for a final Magic Rank.
 
-Lenguaje: Python 3.x
+### Output
 
-Librerías externas: yfinance (para datos) y pandas (para manejar el ranking fácilmente).
+- Print the final ranking to the console (plain `print` or a small pandas table), best to worst.
 
-Control de versiones: Git en local (un par de commits).
+## Technical requirements
 
-Prohibiciones absolutas para hoy: Nada de bases de datos, nada de interfaces gráficas (GUI), nada de Docker, nada de Machine Learning, nada de descargar miles de tickers. Todo eso es Versión 2.0.
+- **Language:** Python 3.x (project now standardizes on 3.13+ via Poetry)
+- **Libraries:** `yfinance`, `pandas`
+- **Version control:** Git with a few local commits
+
+## Explicitly out of scope for Sprint 0
+
+- Databases, GUI, Docker, machine learning
+- Downloading thousands of tickers
+
+Those belong to later MVP modules documented under `docs/mvp/features/`.

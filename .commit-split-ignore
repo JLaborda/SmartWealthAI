@@ -1,0 +1,8 @@
+# Paths never staged by /commit_split unless you override in chat.
+# Gitignore-style patterns (one per line).
+
+src/
+notebooks/
+pyproject.toml
+poetry.lock
+data/
