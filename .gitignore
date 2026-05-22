@@ -3,6 +3,16 @@ __pycache__/
 sw_requirements/*
 learning/*
 data/*
-*hacienda*
-*portfolio*
+
+# Local personal finance exports accidentally placed at the repository root.
+/*hacienda*.csv
+/*hacienda*.tsv
+/*hacienda*.xls
+/*hacienda*.xlsx
+/*hacienda*.pdf
+/*portfolio*.csv
+/*portfolio*.tsv
+/*portfolio*.xls
+/*portfolio*.xlsx
+/*portfolio*.pdf
 .DS_Store
