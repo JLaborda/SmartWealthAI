@@ -6,7 +6,7 @@ The **`commit_split`** agent skill (global: `~/.agents/skills/commit_split/`) sp
 
 Default out-of-scope paths are listed in [`.commit-split-ignore`](../../.commit-split-ignore) at the repo root:
 
-- `src/`, `notebooks/`, `pyproject.toml`, `poetry.lock`, `data/`
+- `src/`, `notebooks/`, `pyproject.toml`, `poetry.lock`, `data/*` except `data/reference/**`
 
 Override for a single run by telling the agent in chat (e.g. "include `src/preprocessing` this time").
 

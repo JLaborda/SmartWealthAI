@@ -5,4 +5,8 @@ src/
 notebooks/
 pyproject.toml
 poetry.lock
-data/
+
+# Keep personal/raw datasets out of split commits while allowing versioned reference CSVs.
+data/*
+!data/reference/
+!data/reference/**
