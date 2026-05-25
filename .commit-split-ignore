@@ -5,4 +5,8 @@ src/
 notebooks/
 pyproject.toml
 poetry.lock
-data/
+data/clean/
+data/raw/
+data/cache/
+data/local/
+data/tmp/

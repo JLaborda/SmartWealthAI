@@ -2,7 +2,26 @@
 __pycache__/
 sw_requirements/*
 learning/*
-data/*
-*hacienda*
-*portfolio*
+
+# Local or generated data. Keep small reference datasets versioned under
+# data/reference/ so PIT universe, benchmark, and ticker-map inputs travel with git.
+data/clean/
+data/raw/
+data/cache/
+data/local/
+data/tmp/
+!data/reference/
+!data/reference/**
+
+# Personal finance and tax exports accidentally dropped at the repo root.
+/*hacienda*.csv
+/*hacienda*.tsv
+/*hacienda*.xls
+/*hacienda*.xlsx
+/*hacienda*.pdf
+/*portfolio*.csv
+/*portfolio*.tsv
+/*portfolio*.xls
+/*portfolio*.xlsx
+/*portfolio*.pdf
 .DS_Store
