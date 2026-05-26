@@ -27,7 +27,7 @@ Build a minimal Python pipeline that downloads financial data for a very small s
 
 ## Technical requirements
 
-- **Language:** Python 3.x (project now standardizes on 3.13+ via Poetry)
+- **Language:** Python 3.x (project now standardizes on 3.11+ via Poetry)
 - **Libraries:** `yfinance`, `pandas`
 - **Version control:** Git with a few local commits
 

@@ -9,7 +9,7 @@ SmartWealthAI development currently depends on the developer's local machine con
 
 ## Solution
 
-Create a `.devcontainer/` configuration that packages the entire development toolchain (Python 3.13, Poetry, Docker, AWS CLI, GitHub CLI, system utilities, Cursor extensions) into a reproducible container. The developer opens the repo in Cursor (locally or via SSH to EC2), the container builds automatically, and all dependencies are ready.
+Create a `.devcontainer/` configuration that packages the entire development toolchain (Python 3.11, Poetry, Docker, AWS CLI, GitHub CLI, system utilities, Cursor extensions) into a reproducible container. The developer opens the repo in Cursor (locally or via SSH to EC2), the container builds automatically, and all dependencies are ready.
 
 This is a **development-only** image. A separate, minimal production Dockerfile will be created later for ECS Fargate tasks.
 
@@ -35,7 +35,7 @@ This is a **development-only** image. A separate, minimal production Dockerfile 
 ### Image strategy
 
 - **Dev-only container.** The devcontainer is not reused for CI/CD or production. A separate slim Dockerfile will be created later for ECS Fargate.
-- **Base image:** `mcr.microsoft.com/devcontainers/python:3.13`. Provides a non-root `vscode` user, common utilities (git, curl, ssh, sudo), and native Cursor/VS Code remote compatibility.
+- **Base image:** `mcr.microsoft.com/devcontainers/python:3.11`. Provides a non-root `vscode` user, common utilities (git, curl, ssh, sudo), and native Cursor/VS Code remote compatibility.
 
 ### Devcontainer features (pre-built add-ons)
 
