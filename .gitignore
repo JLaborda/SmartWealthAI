@@ -2,7 +2,20 @@
 __pycache__/
 sw_requirements/*
 learning/*
-data/*
-*hacienda*
-*portfolio*
+
+# Generated, downloaded, and personal finance data stays local.
+data/raw/
+data/clean/
+data/cache/
+
+# Reference fixtures are part of the reproducible MVP inputs.
+!data/reference/
+!data/reference/**
+
+# Root-level personal exports should not mask source/spec files.
+/*hacienda*
+/*portfolio*.csv
+/*portfolio*.xls
+/*portfolio*.xlsx
+/*portfolio*.parquet
 .DS_Store
