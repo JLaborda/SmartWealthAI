@@ -1,12 +1,12 @@
 ---
-description: Python 3.13 and Poetry conventions
+description: Python 3.11 and Poetry conventions
 globs: "**/*.{py,toml}"
 alwaysApply: false
 ---
 
 # Python and Poetry
 
-- Runtime: **Python 3.13+** via Poetry (`pyproject.toml`).
+- Runtime: **Python 3.11+** via Poetry (`pyproject.toml`).
 - Run scripts: `poetry run python ...`
 - Add dependencies: `poetry add <package>` (not pip install into the global env).
 

@@ -35,11 +35,11 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Runtime
 
-- **Python:** 3.13+ (`requires-python = "^3.13"` in `pyproject.toml`)
+- **Python:** 3.11+ (`requires-python = "^3.11"` in `pyproject.toml`)
 - **Dependencies:** Poetry
 
 ```bash
-poetry env use python3.13
+poetry env use python3.11
 poetry install          # use `poetry install --no-root` if install fails without a package layout
 poetry run python <script.py>
 ```
