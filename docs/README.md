@@ -4,7 +4,7 @@ All MVP architecture and feature specifications live here. This tree is the **ve
 
 ## Ubiquitous language
 
-Domain vocabulary lives in [`CONTEXT.md`](../CONTEXT.md) at the repo root (Matt Pocock [single-context](https://github.com/mattpocock/skills) pattern). Extend it with `/grill-with-docs`; see [`docs/agents/domain.md`](agents/domain.md).
+Domain vocabulary lives in [`CONTEXT.md`](../CONTEXT.md) at the repo root (Matt Pocock [single-context](https://github.com/mattpocock/skills) pattern). Extend it with `/grill-with-docs`; agent consumption rules are in [`.cursor/rules/domain.md`](../.cursor/rules/domain.md).
 
 ## Layout
 
