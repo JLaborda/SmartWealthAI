@@ -1,0 +1,84 @@
+---
+description: Git conventions and workflow using Conventional Commits
+alwaysApply: false
+---
+
+# Git conventions and workflow
+
+## Language
+
+All git-related text must be in **English** (see also `english-language.mdc`): commits, branches, PR titles/descriptions, issues, and review comments.
+
+## Commit messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org):
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type | Use |
+| --- | --- |
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, no logic change |
+| `refactor` | Neither feat nor fix |
+| `perf` | Performance |
+| `test` | Tests |
+| `chore` | Build, tooling, deps |
+| `ci` | CI config and scripts |
+
+### Scope and description
+
+- Scope: affected component (e.g. `feat(auth): add login with Google`).
+- Imperative, present tense; lowercase first word; no trailing period.
+
+### Repo tooling
+
+- Split multi-topic work: invoke project skill `.cursor/skills/commit-split/` (`/commit_split`); respects `.gitignore`.
+- Do not commit unless the user asks; do not push unless asked.
+
+## Branch names
+
+```
+<type>/<short-description>
+<type>/<ticket>-<short-description>   # when tracked in issue tracker
+```
+
+Examples: `feat/add-google-auth`, `fix/PROJ-456-handle-null-responses`.
+
+## Workflow
+
+1. **Protected branches:** `main` (or `master`) — no direct commits; merge via PR.
+2. **Feature work:** branch from `main`, commit with conventional messages, rebase on `origin/main` before push.
+3. **Pull requests:** target `main`; clear title/body; tests green; resolve conflicts; prefer squash merge when appropriate.
+4. **Releases:** `release/vX.Y.Z` from `main`, merge via PR, then tag on `main` (e.g. `v1.0.0`).
+
+## Examples
+
+```bash
+# Good
+feat(auth): implement JWT authentication
+fix(api): handle null response from server
+docs(mvp): align cheap-stocks spec with architecture
+
+# Bad
+Fixed stuff
+WIP
+Quick fix
+```
+
+## MCP Git
+
+When using MCP Git tools (not the default shell workflow in this repo):
+
+- Check branch before commit; never commit on `main`/`master` without a feature branch.
+- Review diffs before staging and committing.
+- Normalize `repo_path` per **`mcp-git-path-encoding.mdc`** (forward slashes, absolute path, no URL encoding).

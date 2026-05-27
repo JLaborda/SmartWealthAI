@@ -69,7 +69,7 @@ Each task should reference a spec path (e.g. `docs/mvp/features/universe-constru
 
 **Skills (after MCP auth):** `spec-to-implementation`, `create-task`, `tasks-build`, `tasks-explain-diff`. For `tasks-build`, the user supplies a single task URL in chat (not in this file).
 
-**Commit workflow:** `/commit_split` — split changes into conventional commits; respects [`.commit-split-ignore`](.commit-split-ignore). See [`docs/agents/commit-split.md`](docs/agents/commit-split.md).
+**Commit workflow:** `/commit_split` — project skill [`.cursor/skills/commit-split/SKILL.md`](.cursor/skills/commit-split/SKILL.md); splits into conventional commits; out-of-scope paths follow [`.gitignore`](.gitignore).
 
 ## Agent skills
 

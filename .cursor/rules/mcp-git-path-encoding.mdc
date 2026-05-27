@@ -1,0 +1,60 @@
+---
+description: Path format for MCP Git repo_path on Windows and cross-platform
+alwaysApply: false
+---
+
+# MCP Git path encoding
+
+Use these rules for the `repo_path` argument in MCP Git commands.
+
+## Required format
+
+```
+C:/Users/path/to/repo    # correct
+```
+
+- Absolute path with drive letter on Windows.
+- Forward slashes (`/`), not backslashes.
+- No URL encoding (`%3A` for `:`).
+- No duplicate drive letters (`C:\c%3A\...`).
+- No leading slash before the drive letter.
+
+## Forbidden
+
+```
+/c%3A/Users/path/to/repo     # URL-encoded
+C:\c%3A\Users\path\to\repo   # duplicated drive
+\c%3A\Users\path\to\repo     # leading slash + encoding
+```
+
+## Normalization (Windows)
+
+Before calling MCP Git:
+
+```python
+def normalize_mcp_git_repo_path(path: str) -> str:
+    path = path.replace("%3A", ":")
+    path = path.replace("\\", "/")
+    if ":" in path:
+        drive, rest = path.split(":", 1)
+        drive = drive.lstrip("/")
+        path = f"{drive}:{rest}"
+    return path
+```
+
+Example: `normalize_mcp_git_repo_path("/c%3A/Users/repo")` → `c:/Users/repo` (adjust casing to match the real drive letter).
+
+## Usage
+
+```python
+repo_path = normalize_mcp_git_repo_path(workspace_path)
+# mcp_git_git_status(repo_path=repo_path)
+```
+
+On Linux/macOS devcontainers, use the workspace absolute path with forward slashes (e.g. `/workspaces/SmartWealthAI`) — no drive letter required.
+
+## Common mistakes
+
+- Passing Cursor/workspace paths with `%3A` encoding.
+- Mixing `\` and `/` without normalizing.
+- Relative paths instead of absolute repo roots.
