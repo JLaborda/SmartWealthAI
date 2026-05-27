@@ -73,16 +73,16 @@ Each task should reference a spec path (e.g. `docs/mvp/features/universe-constru
 
 ## Agent skills
 
-Matt Pocock engineering skills ([`mattpocock/skills`](https://github.com/mattpocock/skills)) read repo-specific config from `docs/agents/`. Installed globally under `~/.agents/skills/`.
+Matt Pocock engineering skills ([`mattpocock/skills`](https://github.com/mattpocock/skills)) are vendored under [`.cursor/skills/`](.cursor/skills/). They read repo-specific config from [`.cursor/rules/`](.cursor/rules/) (issue tracker, triage labels, domain layout).
 
 ### Issue tracker
 
-GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. MVP specs in `docs/mvp/` remain canonical; Notion is optional for execution only. See `docs/agents/issue-tracker.md`.
+GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. MVP specs in `docs/mvp/` remain canonical; Notion is optional for execution only. See [`.cursor/rules/issue-tracker.md`](.cursor/rules/issue-tracker.md).
 
 ### Triage labels
 
-Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See [`.cursor/rules/triage-labels.md`](.cursor/rules/triage-labels.md).
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root; MVP specs in `docs/mvp/` during planning. See `docs/agents/domain.md`.
+Single-context: `CONTEXT.md` + `docs/adr/` at repo root; MVP specs in `docs/mvp/` during planning. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).

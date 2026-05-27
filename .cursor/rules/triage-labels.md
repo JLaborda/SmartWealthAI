@@ -1,3 +1,8 @@
+---
+description: Triage label vocabulary for Matt Pocock /triage skill
+alwaysApply: false
+---
+
 # Triage Labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.

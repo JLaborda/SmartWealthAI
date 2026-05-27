@@ -1,3 +1,8 @@
+---
+description: How agents consume CONTEXT.md, ADRs, and MVP specs (Matt Pocock skills)
+alwaysApply: false
+---
+
 # Domain Docs
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
