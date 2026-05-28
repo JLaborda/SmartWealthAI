@@ -12,9 +12,17 @@ Domain vocabulary lives in [`CONTEXT.md`](../CONTEXT.md) at the repo root (Matt 
 docs/mvp/
   architecture/architecture.md   # MVP vision, principles, module table, decisions
   features/                      # One spec per module
+  prds/                          # Implementation PRDs (tooling and cross-cutting)
   requirements/requirements.md   # Sprint 0 spike (historical; superseded by MVP specs)
   backlog/backlog.md             # Informal ideas mapped to features
 ```
+
+## PRDs
+
+| PRD | Scope |
+| --- | --- |
+| [devcontainer/prd.md](mvp/prds/devcontainer/prd.md) | Reproducible dev environment (Cursor / EC2) |
+| [ci-cd/ci-cd-prd.md](mvp/prds/ci-cd/ci-cd-prd.md) | Phase 0 CI/CD, AWS integration, ECS deploy path |
 
 ## Feature specs
 

@@ -1,5 +1,9 @@
 # Feature: ETL and Data Lake
 
+## Implementation status
+
+in_progress
+
 ## Objective
 
 Build the module that downloads, validates, normalizes, and stores financial data so that every downstream module (universe construction, scoring, backtesting, sell-watch, portfolio evolution) can rely on a single trustworthy source. The data lake lives on AWS S3 and is queried with DuckDB. Point-in-time correctness and incremental refresh are mandatory.
@@ -147,6 +151,14 @@ flowchart TD
 - A full daily incremental run for the S&P 500 universe completes inside the Fargate Spot task budget (target: under 30 minutes; to validate during implementation).
 - A backtest run never triggers fresh `yfinance` calls; it only reads curated parquet.
 - Schema, partitioning, and DuckDB view names are documented in the spec, not only in code.
+
+### Progress notes
+
+- A hermetic fixture lake contract is implemented for CI in
+  `tests/fixtures/lake/README.md` with raw SEC + raw yfinance snapshots,
+  curated derived fundamentals, and a provenance manifest with checksums.
+- Point-in-time selection and raw fixture loading behavior are covered by tests in
+  `tests/test_ci_baseline.py` via `smartwealthai.fixture_lake`.
 
 ## Open questions
 
