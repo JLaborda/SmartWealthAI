@@ -49,7 +49,7 @@ No test suite or linter is configured yet unless added explicitly.
 ## Gotchas
 
 - `yfinance` and other data providers need network access.
-- `data/` is gitignored. Never commit personal finance files or raw broker exports.
+- Generated data under `data/raw/`, `data/clean/`, and `data/cache/` is gitignored; `data/reference/` is intentionally trackable for canonical MVP inputs. Never commit personal finance files or raw broker exports.
 
 ## Notion (task tracking)
 

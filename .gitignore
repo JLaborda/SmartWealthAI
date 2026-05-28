@@ -2,8 +2,13 @@
 __pycache__/
 sw_requirements/*
 learning/*
-data/*
-*hacienda*
-*portfolio*
+data/raw/
+data/clean/
+data/cache/
+!data/reference/
+!data/reference/**
+/*hacienda*
+/*portfolio*
+/*Portfolio*
 .DS_Store
 backup*

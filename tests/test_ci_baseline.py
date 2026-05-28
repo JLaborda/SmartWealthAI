@@ -1,6 +1,8 @@
 """Hermetic tests for CI baseline and fixture contract."""
 
+import subprocess
 from datetime import date
+from pathlib import Path
 
 from smartwealthai import __version__
 from smartwealthai.fixture_lake import (
@@ -9,6 +11,20 @@ from smartwealthai.fixture_lake import (
     load_fixture_yfinance_history,
     point_in_time_fundamentals,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def git_ignores(path: str) -> bool:
+    """Return whether Git ignore rules hide a repository-relative path."""
+    return (
+        subprocess.run(
+            ["git", "check-ignore", "--quiet", path],
+            cwd=REPO_ROOT,
+            check=False,
+        ).returncode
+        == 0
+    )
 
 
 def test_package_exposes_version() -> None:
@@ -55,3 +71,23 @@ def test_yfinance_raw_fixture_contains_history_rows() -> None:
     assert yf_fixture["ticker"] == "AAPL"
     assert len(yf_fixture["rows"]) == 10
     assert {"Date", "Close", "Volume"}.issubset(yf_fixture["rows"][0].keys())
+
+
+def test_gitignore_keeps_canonical_reference_and_portfolio_paths_trackable() -> None:
+    """Guard against silent omission of future MVP reference data and portfolio code."""
+    trackable_paths = [
+        "data/reference/ticker_mapping.csv",
+        "data/reference/sp500_constituents.csv",
+        "src/smartwealthai/portfolio_construction.py",
+        "tests/test_portfolio_construction.py",
+        "docs/mvp/features/portfolio-construction.md",
+    ]
+    ignored_private_paths = [
+        "data/raw/sec_edgar/private-response.json",
+        "data/clean/personal_finance/operations/my_operations_eur.csv",
+        "data/cache/yfinance/AAPL/history.parquet",
+        "my_portfolio_export.csv",
+    ]
+
+    assert not any(git_ignores(path) for path in trackable_paths)
+    assert all(git_ignores(path) for path in ignored_private_paths)
