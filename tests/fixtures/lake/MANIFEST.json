@@ -29,7 +29,7 @@
     ]
   },
   "fixture_files_sha256": {
-    "README.md": "6f60a1aa90a49565b5a81d41129db87eab266808dc719c5b945e86964c70104f",
+    "README.md": "fddb809dc27d29b819e4fe1854d8d60854d10c20f77c13babea66491ea65a85b",
     "curated/fundamentals.csv": "add6e16476923a7cb78f28ed881c45e2a2d907cff10e04f0893c10dc6d0ae58b",
     "raw/sec_edgar/cik=0000320193/endpoint=companyfacts/as_of_date=2026-05-21/response.json": "3f50c80631d8e18a40fc295a7933f3cea15e4a0e3d58e48ba210d633c593cb58",
     "raw/sec_edgar/cik=0000789019/endpoint=companyfacts/as_of_date=2026-05-21/response.json": "00dc380deb4359e5dedd3413d61a3d6f26cd0a71bda06badaba6f0fa8ced9dc0",

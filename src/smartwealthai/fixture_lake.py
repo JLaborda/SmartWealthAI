@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 FIXTURES_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "lake"
+PIT_KEY_COLUMNS = ["cik", "metric", "fiscal_period_end"]
 
 
 def load_fixture_fundamentals() -> pd.DataFrame:
@@ -49,14 +50,14 @@ def load_fixture_yfinance_history(ticker: str) -> dict:
 
 
 def point_in_time_fundamentals(decision_date: date) -> pd.DataFrame:
-    """Return latest known fundamentals per company as of ``decision_date``."""
+    """Return latest known fundamentals per company metric as of ``decision_date``."""
     fundamentals = load_fixture_fundamentals()
     decision_ts = pd.Timestamp(decision_date)
     eligible = fundamentals.loc[fundamentals["as_of_date"] <= decision_ts].copy()
 
     latest = (
-        eligible.sort_values(["cik", "fiscal_period_end", "as_of_date", "version_id"])
-        .groupby(["cik", "fiscal_period_end"], as_index=False)
+        eligible.sort_values([*PIT_KEY_COLUMNS, "as_of_date", "version_id"])
+        .groupby(PIT_KEY_COLUMNS, as_index=False)
         .tail(1)
         .reset_index(drop=True)
     )

@@ -31,7 +31,7 @@ File: `curated/fundamentals.csv`
 ## Point-in-time rule used in tests
 
 For a decision date `D`, tests only use rows where `as_of_date <= D`.  
-For each `(cik, fiscal_period_end)`, the selected row is the latest by:
+For each `(cik, metric, fiscal_period_end)`, the selected row is the latest by:
 
 1. `as_of_date` ascending
 2. `version_id` ascending
