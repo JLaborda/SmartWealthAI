@@ -55,8 +55,8 @@ def point_in_time_fundamentals(decision_date: date) -> pd.DataFrame:
     eligible = fundamentals.loc[fundamentals["as_of_date"] <= decision_ts].copy()
 
     latest = (
-        eligible.sort_values(["cik", "fiscal_period_end", "as_of_date", "version_id"])
-        .groupby(["cik", "fiscal_period_end"], as_index=False)
+        eligible.sort_values(["cik", "fiscal_period_end", "metric", "as_of_date", "version_id"])
+        .groupby(["cik", "fiscal_period_end", "metric"], as_index=False)
         .tail(1)
         .reset_index(drop=True)
     )
