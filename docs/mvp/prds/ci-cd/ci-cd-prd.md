@@ -1,6 +1,6 @@
 # PRD: CI/CD and MLOps Infrastructure (Phase 0)
 
-**Status:** Ready for implementation  
+**Status:** In progress (M0 partial implementation)  
 **Canonical architecture:** `docs/mvp/architecture/architecture.md`  
 **Related specs:** ETL + data lake, permanent loss filter, backtesting, sell-watch (pipeline vertical slice)
 
@@ -23,6 +23,20 @@ Establish a **Phase 0 CI/CD foundation** that separates three concerns:
 The data lake uses the **same layout everywhere** (raw, curated, point-in-time zones) with a configurable lake root URI: local file mirror for optional offline work, S3 dev bucket as the canonical store for real ingestion, S3 prod bucket for promoted runs. DuckDB reads Parquet from either backend.
 
 GitFlow maps environments: pull requests run CI on all branches; merge to `develop` eventually deploys dev; merge to `main` eventually deploys prod behind a GitHub Environment approval gate.
+
+## Current Implementation Snapshot
+
+As of the current repository state, M0 is partially implemented:
+
+| Area | Implemented | Not yet implemented |
+| --- | --- | --- |
+| Makefile | `make install`, `make lint`, `make test` | `make test-smoke`, local ingest, Docker build, deploy helpers |
+| Python package | `src/smartwealthai/__init__.py` and `src/smartwealthai/fixture_lake.py` | Pipeline CLI and product modules |
+| PR CI | GitHub Actions installs Python 3.11 + Poetry, then runs `make install`, `make lint`, `make test` | Pipeline smoke test and integration tiers |
+| Fixtures | `tests/fixtures/lake/` with reduced SEC EDGAR companyfacts, reduced `yfinance` history, curated fundamentals, and `MANIFEST.json` checksums | Full fixture universe, Enron / Lehman / WorldCom regression cases |
+| Tests | Hermetic pytest coverage for package version, fixture schema, raw fixture loading, and point-in-time selection | Scoring, permanent-loss filter, portfolio selection, and CLI smoke tests |
+
+The current PR CI contract is deliberately small and deterministic: it uses only committed files, does not require AWS credentials, and must not call SEC EDGAR, `yfinance`, or any paid provider.
 
 ## User Stories
 
@@ -90,7 +104,8 @@ GitFlow maps environments: pull requests run CI on all branches; merge to `devel
 ### CI workflow (every pull request)
 
 - Triggers on pull requests targeting `develop` or `main` (and optionally other long-lived branches if added).
-- Steps: checkout → Python 3.11 + Poetry install → `make lint` → `make test` → `make test-smoke`.
+- Current steps: checkout → Python 3.11 + Poetry install → `make install` → `make lint` → `make test`.
+- Planned next step: add `make test-smoke` once the pipeline CLI and vertical slice modules exist.
 - **Lint:** Ruff check and format check on application and test packages.
 - **Unit tests:** pytest with markers excluding integration tests; all data from committed fixtures.
 - **Smoke test:** end-to-end pipeline on a tiny fixture universe proving the vertical slice wiring (may initially stub modules until implemented).
@@ -147,6 +162,8 @@ Deep modules (simple interfaces, testable in isolation):
 | **Pipeline CLI** | Subcommands invoked locally, in CI smoke, and in container | M1 |
 
 Makefile targets wrap Poetry commands so CI and humans share entrypoints: install, lint, test, test-smoke, local ingest, docker build (pipeline), and later deploy helpers.
+
+Current Makefile targets are limited to `install`, `lint`, and `test`. Add the remaining targets only when their backing code or workflow exists, so the Makefile stays an executable interface rather than a roadmap.
 
 ### Poetry dependency strategy
 
@@ -229,3 +246,4 @@ Makefile targets wrap Poetry commands so CI and humans share entrypoints: instal
 - Cost awareness: dev integration and ECS tasks should use minimal resource sizes and Spot where acceptable; align with the architecture soft budget (~low single-digit USD/month for control plane before storage growth).
 - When implementation begins, update `docs/README.md` to index this PRD under an MVP PRDs section alongside the devcontainer PRD.
 - GitHub issue creation with label `ready-for-agent` is recommended for tracking vertical implementation slices (`to-issues`), but this document is the saved PRD artifact at `docs/mvp/prds/ci-cd/ci-cd-prd.md` as requested.
+

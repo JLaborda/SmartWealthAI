@@ -1,45 +1,97 @@
-# 📈 SmartWealthAI
+# SmartWealthAI
 
-**A lightweight financial screener and portfolio management tool.**
+SmartWealthAI is an MVP-stage quantitative value-investing system for US equities.
+The target architecture is a modular, point-in-time-correct pipeline that ingests
+financial data, ranks companies with explainable quality and cheapness signals,
+backtests the strategy, monitors a paper model portfolio, and reports every
+decision through auditable artifacts.
 
-*Status: Phase 1 / Sprint 0 (Proof of Concept)*
+The repository is currently in **MVP planning and CI foundation work**. Canonical
+architecture and feature decisions live under `docs/mvp/`; legacy exploration in
+older source files or notebooks should not be treated as the product architecture.
 
-## 🎯 Project Vision
-SmartWealthAI is being built iteratively with a strict Agile philosophy. The current focus is on establishing a simple, reliable data pipeline for core financial metrics, starting with a raw implementation of Joel Greenblatt's "Magic Formula".
+## Documentation Map
 
-Future iterations (Phase 3+) will introduce advanced Machine Learning capabilities, including AI Agents performing RAG over 10-K business annual reports, and interactive dashboards.
+Start here when changing behavior:
 
-## 🛠️ Current Tech Stack
-* **Language:** Python
-* **Environment & Dependencies:** Poetry
-* **Core Libraries:** `yfinance`, `pandas`
+| Path | Purpose |
+| --- | --- |
+| `docs/README.md` | Index for the documentation tree. |
+| `docs/mvp/architecture/architecture.md` | MVP architecture, closed decisions, and cross-cutting constraints. |
+| `docs/mvp/features/*.md` | Feature specs for ETL, universe construction, scoring, backtesting, sell-watch, portfolio evolution, dashboard, and paper broker execution. |
+| `docs/mvp/prds/ci-cd/ci-cd-prd.md` | CI/CD and MLOps implementation plan. |
+| `tests/fixtures/lake/README.md` | Hermetic fixture lake contract used by PR CI. |
 
-## 🚀 Quickstart
+## Current Developer Workflow
 
-1.  **Install dependencies:**
-    ```bash
-    poetry install
-    ```
+### Requirements
 
-2.  **Run the basic screener:**
-    ```bash
-    poetry run python main.py
-    ```
+- Python 3.11
+- Poetry
 
-## 🗺️ Roadmap (Agile Milestones)
+### Install
 
-### Phase 1: Core Mechanics (Current)
-- [x] Project initialization (`poetry`).
-- [x] Fetch basic metrics (P/E, ROE, ROA) via `yfinance` for a static portfolio.
-- [ ] Implement mathematical ranking logic ("Magic Formula").
-- [ ] CLI basic formatting.
+```bash
+poetry install --no-root --with dev
+```
 
-### Phase 2: Scale & Structure (TBD)
-- [ ] Expand universe of tickers.
-- [ ] Basic data persistence (No DBs yet, maybe CSV/JSON).
-- [ ] Modularize architecture.
+or use the shared Make target:
 
-### Phase 3: The "AI" in SmartWealthAI
-- [ ] Introduce Machine Learning components.
-- [ ] LLM integration: RAG over 10-K annual reports.
-- [ ] Interactive Dashboard deployment.
+```bash
+make install
+```
+
+### Lint and Test
+
+```bash
+make lint
+make test
+```
+
+`make lint` runs Ruff checks and format verification. `make test` runs pytest
+against committed fixtures only; PR CI must not call SEC EDGAR, `yfinance`, AWS,
+or paid data providers.
+
+## Fixture Lake
+
+The first implemented package surface is `smartwealthai.fixture_lake`, a small
+helper module for deterministic tests. It loads static, reduced SEC EDGAR and
+`yfinance` snapshots from `tests/fixtures/lake/` and exposes a point-in-time
+fundamentals query:
+
+```python
+from datetime import date
+
+from smartwealthai.fixture_lake import point_in_time_fundamentals
+
+snapshot = point_in_time_fundamentals(decision_date=date(2025, 1, 1))
+```
+
+The point-in-time rule is: for a decision date `D`, use only rows where
+`as_of_date <= D`, then select the latest known `version_id` per
+`(cik, fiscal_period_end)`. This mirrors the ETL/data lake spec while keeping PR
+CI hermetic.
+
+## CI Guardrails
+
+The current GitHub Actions workflow runs on pull requests and pushes targeting
+`develop` or `main`:
+
+1. Install Poetry dependencies with `make install`.
+2. Run `make lint`.
+3. Run `make test`.
+
+Integration workflows that touch live providers or AWS are intentionally separate
+from PR CI and are still planned. Full backtests, paper trading, Streamlit
+deployment, Prefect orchestration, and MLflow infrastructure are also future
+MVP steps, not part of the current PR CI baseline.
+
+## Key MVP Constraints
+
+- Point-in-time correctness is mandatory; look-ahead bias is a critical defect.
+- Raw provider responses are stored before transformation.
+- The MVP is paper trading only; no module may place real broker orders.
+- S3 + DuckDB is the target data-lake shape; Athena and Kubernetes are out of
+  scope for the MVP.
+- Every implementation change should trace to a feature spec in
+  `docs/mvp/features/`.
