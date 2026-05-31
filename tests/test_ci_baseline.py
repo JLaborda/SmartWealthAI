@@ -3,6 +3,7 @@
 from datetime import date
 
 import pandas as pd
+
 import smartwealthai.fixture_lake as fixture_lake
 from smartwealthai import __version__
 from smartwealthai.fixture_lake import (
