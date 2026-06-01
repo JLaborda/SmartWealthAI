@@ -23,7 +23,7 @@ File: `curated/fundamentals.csv`
 | `metric` | string | SEC us-gaap metric key (for this fixture: `OperatingIncomeLoss`). |
 | `fiscal_period_end` | date | Fiscal period end date reported by issuer. |
 | `as_of_date` | date | Filing availability date used for point-in-time filtering. |
-| `version_id` | integer | Monotonic version ordered by filing date for the same fiscal period. |
+| `version_id` | integer | Monotonic version ordered by filing date for the same fiscal period and metric. |
 | `form` | string | SEC form type (`10-K`). |
 | `source_accession` | string | SEC accession id for source traceability. |
 | `value_usd` | integer | Reported metric value in USD. |
@@ -31,7 +31,7 @@ File: `curated/fundamentals.csv`
 ## Point-in-time rule used in tests
 
 For a decision date `D`, tests only use rows where `as_of_date <= D`.  
-For each `(cik, fiscal_period_end)`, the selected row is the latest by:
+For each `(cik, fiscal_period_end, metric)`, the selected row is the latest by:
 
 1. `as_of_date` ascending
 2. `version_id` ascending

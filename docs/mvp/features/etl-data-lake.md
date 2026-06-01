@@ -98,7 +98,7 @@ flowchart TD
 2. For each CIK, pull the latest filings index from SEC EDGAR. If a new accession exists, download the filing and store it verbatim under `raw/sec_edgar/...`. Capture the `acceptance-datetime` as `as_of_date`.
 3. For each ticker, request prices and corporate actions from the yfinance cache. On a cache miss (or expired TTL), call `yfinance` and write the response to `cache/yfinance/...` and `raw/yfinance/...`. Use free-tier providers as fallback if yfinance fails.
 4. Run the incremental normalizer: only new accessions and only new price rows are transformed. The output is appended to the curated parquet datasets with the appropriate partitions.
-5. The normalizer stamps every fundamentals row with `as_of_date` (EDGAR acceptance timestamp), `fiscal_period_end`, and `version_id` (monotonic per CIK + fiscal period to track restatements).
+5. The normalizer stamps every fundamentals row with `metric`, `as_of_date` (EDGAR acceptance timestamp), `fiscal_period_end`, and `version_id` (monotonic per CIK + fiscal period + metric to track restatements).
 6. Run data quality checks (see "Data quality checks" below). Failing rows are written to `curated/issues/...` and excluded from downstream views.
 7. Publish DuckDB views (`v_universe`, `v_fundamentals_pit`, `v_prices_adj`, `v_corporate_actions`) that point at the curated zone. Downstream modules consume only these views.
 
@@ -110,15 +110,15 @@ flowchart TD
 | `as_of_date` exists and is not in the future relative to `run_date` | Block |
 | `fiscal_period_end <= as_of_date` | Block |
 | Reported currency is USD | Block (non-USD goes to review queue) |
-| Restated values produce a new `version_id` for the same `(cik, fiscal_period_end)` | Warn |
+| Restated values produce a new `version_id` for the same `(cik, fiscal_period_end, metric)` | Warn |
 | Price gap larger than configurable threshold without a corresponding corporate action | Warn |
 | Volume zero across multiple consecutive trading days | Warn |
 | Schema migration mismatch | Block |
 
 ## Point-in-time semantics
 
-- Every curated fundamentals row has `(cik, fiscal_period_end, as_of_date, version_id)` as the natural key.
-- A query "fundamentals as of decision date D" returns, per `(cik, fiscal_period_end)`, the row with the highest `as_of_date <= D` and, on tie, the highest `version_id`.
+- Every curated fundamentals row has `(cik, fiscal_period_end, metric, as_of_date, version_id)` as the natural key.
+- A query "fundamentals as of decision date D" returns, per `(cik, fiscal_period_end, metric)`, the row with the highest `as_of_date <= D` and, on tie, the highest `version_id`.
 - The same logic applies when re-running historical backtests: the backtest engine pins `D = decision_date` for each rebalance and never sees a row with `as_of_date > D`.
 - Restated financials are kept as new versions; the prior version is preserved for replay of past decisions.
 
@@ -159,6 +159,8 @@ flowchart TD
   curated derived fundamentals, and a provenance manifest with checksums.
 - Point-in-time selection and raw fixture loading behavior are covered by tests in
   `tests/test_ci_baseline.py` via `smartwealthai.fixture_lake`.
+- Point-in-time fixture selection preserves one latest row per
+  `(cik, fiscal_period_end, metric)` so multi-metric fundamentals are not collapsed.
 
 ## Open questions
 
