@@ -12,10 +12,17 @@ Domain vocabulary lives in [`CONTEXT.md`](../CONTEXT.md) at the repo root (Matt 
 docs/mvp/
   architecture/architecture.md   # MVP vision, principles, module table, decisions
   features/                      # One spec per module
+  guides/                        # Operator guides for implemented slices
   prds/                          # Implementation PRDs (tooling and cross-cutting)
   requirements/requirements.md   # Sprint 0 spike (historical; superseded by MVP specs)
   backlog/backlog.md             # Informal ideas mapped to features
 ```
+
+## Operator guides
+
+| Guide | When to use |
+| --- | --- |
+| [download-fundamentals.md](mvp/guides/download-fundamentals.md) | Download SEC `companyfacts` + `edgartools` statements for a universe (local spike) |
 
 ## PRDs
 
