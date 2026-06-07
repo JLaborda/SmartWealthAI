@@ -40,16 +40,27 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ```bash
 poetry env use python3.11
-poetry install          # use `poetry install --no-root` if install fails without a package layout
-poetry run python <script.py>
+poetry install
+poetry run pytest
+poetry run download-fundamentals --help
 ```
 
-No test suite or linter is configured yet unless added explicitly.
+### Fundamentals download (local spike)
+
+```bash
+export SEC_IDENTITY="Your Name your@email.com"
+poetry run download-fundamentals --universe dow30
+```
+
+Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+Spec slice: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md).
 
 ## Gotchas
 
 - `yfinance` and other data providers need network access.
-- `data/` is gitignored. Never commit personal finance files or raw broker exports.
+- SEC EDGAR and `edgartools` require `SEC_IDENTITY` (real name + email) in the environment.
+- `data/` is gitignored except `data/reference/**` (versioned universe and mapping CSVs).
+  Never commit personal finance files or raw broker exports.
 
 ## Notion (task tracking)
 

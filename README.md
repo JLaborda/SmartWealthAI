@@ -10,9 +10,10 @@ SmartWealthAI is being built iteratively with a strict Agile philosophy. The cur
 Future iterations (Phase 3+) will introduce advanced Machine Learning capabilities, including AI Agents performing RAG over 10-K business annual reports, and interactive dashboards.
 
 ## 🛠️ Current Tech Stack
-* **Language:** Python
+* **Language:** Python 3.11+
 * **Environment & Dependencies:** Poetry
-* **Core Libraries:** `yfinance`, `pandas`
+* **Core Libraries:** `pandas`, `edgartools`, `requests`, `yfinance`
+* **MVP specs:** `docs/mvp/` (architecture + per-module features)
 
 ## 🚀 Quickstart
 
@@ -21,10 +22,18 @@ Future iterations (Phase 3+) will introduce advanced Machine Learning capabiliti
     poetry install
     ```
 
-2.  **Run the basic screener:**
+2.  **Run tests:**
     ```bash
-    poetry run python main.py
+    poetry run pytest
     ```
+
+3.  **Download fundamentals (Dow 30 pilot universe):**
+    ```bash
+    export SEC_IDENTITY="Your Name your@email.com"
+    poetry run download-fundamentals --universe dow30
+    ```
+
+    Full guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
 
 ## 🗺️ Roadmap (Agile Milestones)
 
