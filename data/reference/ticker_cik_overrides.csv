@@ -1,0 +1,5 @@
+ticker,cik,price_ticker,notes
+LEHMQ,806085,LEH,Lehman Brothers Holdings (bankruptcy)
+ENRNQ,1024401,ENRN,Enron Corp (bankruptcy)
+LEH,806085,LEH,Lehman Brothers legacy symbol
+ENRN,1024401,ENRN,Enron legacy symbol
