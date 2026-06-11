@@ -8,7 +8,7 @@ lint:
 	poetry run ruff format --check .
 
 test:
-	poetry run pytest
+	poetry run pytest --cov=smartwealthai --cov-report=term-missing
 
 # Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
 download-fundamentals:
