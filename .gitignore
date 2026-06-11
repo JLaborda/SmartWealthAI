@@ -3,7 +3,10 @@ __pycache__/
 sw_requirements/*
 learning/*
 data/*
+!data/reference/
+!data/reference/**
 *hacienda*
 *portfolio*
 .DS_Store
 backup*
+notebooks/*

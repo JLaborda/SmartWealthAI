@@ -1,5 +1,6 @@
 [tool.poetry]
-package-mode = false
+package-mode = true
+packages = [{ include = "smartwealthai", from = "src" }]
 
 [project]
 name = "smartwealthai"
@@ -12,9 +13,15 @@ readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "yfinance (>=1.2.0,<2.0.0)",
-    "pandas (>=3.0.1,<4.0.0)"
+    "pandas (>=3.0.1,<4.0.0)",
+    "edgartools (>=5.35.1,<6.0.0)",
+    "pyarrow (>=17.0.0,<25.0.0)",
+    "requests (>=2.32.0,<3.0.0)",
+    "click (>=8.1.0,<9.0.0)"
 ]
 
+[project.scripts]
+download-fundamentals = "smartwealthai.download_fundamentals:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

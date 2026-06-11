@@ -159,6 +159,87 @@ flowchart TD
   curated derived fundamentals, and a provenance manifest with checksums.
 - Point-in-time selection and raw fixture loading behavior are covered by tests in
   `tests/test_ci_baseline.py` via `smartwealthai.fixture_lake`.
+- Fundamentals download spike modules are implemented under `src/smartwealthai/`
+  (`sec_client`, `edgartools_client`, `download_fundamentals`) with hermetic tests in
+  `tests/test_download_fundamentals.py`. Dow 30 reference file:
+  `data/reference/universes/dow30.csv`. Operator guide:
+  `docs/mvp/guides/download-fundamentals.md`.
+
+## Fundamentals download spike (local)
+
+First vertical slice: download and persist raw SEC `companyfacts` plus standardized
+annual statements from `edgartools` for a parameterized universe. No `submissions`
+ingest, no curated parquet normalizer, and no S3 upload in this slice.
+
+**Operator guide:** [`docs/mvp/guides/download-fundamentals.md`](../guides/download-fundamentals.md)
+
+### Scope
+
+- Universe presets backed by versioned CSV files under `data/reference/universes/`.
+  Initial preset: `dow30` (30 tickers with fixed CIKs). Expand later to S&P 500,
+  Russell 3000, or Nasdaq as additional presets.
+- SEC REST: verbatim `companyfacts` JSON per CIK.
+- `edgartools`: `Company(ticker).get_facts()` → income, balance, and cash-flow
+  statements via `.income_statement()`, `.balance_sheet()`, and
+  `.cashflow_statement()` with `period="annual"` and configurable `periods`
+  (default 16).
+- Local raw zone only (`--data-dir`, default `data/`). Paths mirror the production
+  lake layout so the module can move to S3 later without renaming.
+
+### Configuration
+
+| Setting | Source | Notes |
+| --- | --- | --- |
+| SEC identity | `SEC_IDENTITY` env var (required) | Used for SEC REST `User-Agent` and `edgartools.set_identity()`. |
+| Data root | `--data-dir` CLI flag | Default `data/`. |
+| Universe | `--universe` preset or `--universe-file` | Preset `dow30` reads `data/reference/universes/dow30.csv`. |
+| History depth | `--periods` | Default `16` annual columns from `edgartools`. |
+| Snapshot date | `--as-of-date` | Default: UTC today. Partition key for immutable daily snapshots. |
+| Re-download | `--force` | Ignore existing files for the chosen `as_of_date`. |
+
+### Local raw layout
+
+| Dataset | Path |
+| --- | --- |
+| SEC companyfacts | `raw/sec_edgar/cik=<cik>/endpoint=companyfacts/as_of_date=<YYYY-MM-DD>/response.json` |
+| edgartools income | `raw/edgartools/cik=<cik>/as_of_date=<YYYY-MM-DD>/income_statement_annual.parquet` |
+| edgartools balance | `raw/edgartools/cik=<cik>/as_of_date=<YYYY-MM-DD>/balance_sheet_annual.parquet` |
+| edgartools cash flow | `raw/edgartools/cik=<cik>/as_of_date=<YYYY-MM-DD>/cashflow_statement_annual.parquet` |
+| Run errors | `raw/download_runs/as_of_date=<YYYY-MM-DD>/errors.json` (written only when failures occur) |
+
+### Cache and refresh
+
+- Partition by `as_of_date`. If a target file for today already exists, skip the
+  network call unless `--force` is set.
+- SEC requests are throttled (max ~8 req/s) and retried up to three times with
+  exponential backoff on transient errors (429, 5xx, timeouts).
+- A failure for one CIK does not abort the run. Permanent errors (e.g. 404) are
+  not retried. Exit code is `1` when any CIK fails, `0` otherwise.
+
+### CLI
+
+```bash
+export SEC_IDENTITY="Your Name your@email.com"
+python -m smartwealthai.download_fundamentals --universe dow30
+python -m smartwealthai.download_fundamentals --universe dow30 --periods 16 --force
+```
+
+### Module map
+
+| Module | Role |
+| --- | --- |
+| `smartwealthai.sec_client` | SEC REST client (throttle, retry, `companyfacts` download). |
+| `smartwealthai.edgartools_client` | `get_facts()` statement extraction to parquet. |
+| `smartwealthai.download_fundamentals` | CLI orchestration, universe loading, run summary. |
+
+### Acceptance criteria (spike)
+
+- [x] `dow30` preset loads 30 `(ticker, cik)` rows from a git-versioned CSV.
+- [ ] Each successful CIK produces the four raw artifacts above for the run date.
+- [x] Re-running without `--force` on the same day skips existing files.
+- [ ] `--force` re-downloads and overwrites today's partition.
+- [ ] One failing CIK does not stop the rest; failures are listed in `errors.json`.
+- [x] Hermetic unit tests cover universe loading, path building, and skip/force logic.
 
 ## Open questions
 
