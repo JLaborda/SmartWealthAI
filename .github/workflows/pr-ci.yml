@@ -1,4 +1,4 @@
-name: PR CI
+name: Tests
 
 on:
   pull_request:

@@ -1,7 +1,7 @@
 # 📈 SmartWealthAI
 
-[![PR CI](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml)
-[![codecov](https://codecov.io/gh/JLaborda/SmartWealthAI/graph/badge.svg)](https://codecov.io/gh/JLaborda/SmartWealthAI)
+[![Tests](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/JLaborda/SmartWealthAI?branch=main&label=coverage)](https://codecov.io/gh/JLaborda/SmartWealthAI)
 
 **A lightweight financial screener and portfolio management tool.**
 
