@@ -96,11 +96,7 @@ def errors_path(data_dir: Path, as_of_date: date) -> Path:
     The file is written only when one or more issuers fail during a run.
     """
     return (
-        data_dir
-        / "raw"
-        / "download_runs"
-        / f"as_of_date={as_of_date.isoformat()}"
-        / "errors.json"
+        data_dir / "raw" / "download_runs" / f"as_of_date={as_of_date.isoformat()}" / "errors.json"
     )
 
 
