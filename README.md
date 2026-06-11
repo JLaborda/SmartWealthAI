@@ -1,5 +1,8 @@
 # 📈 SmartWealthAI
 
+[![Tests](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/JLaborda/SmartWealthAI?branch=main&label=coverage)](https://codecov.io/gh/JLaborda/SmartWealthAI)
+
 **A lightweight financial screener and portfolio management tool.**
 
 *Status: Phase 1 / Sprint 0 (Proof of Concept)*
@@ -22,9 +25,9 @@ Future iterations (Phase 3+) will introduce advanced Machine Learning capabiliti
     poetry install
     ```
 
-2.  **Run tests:**
+2.  **Run tests (with coverage summary):**
     ```bash
-    poetry run pytest
+    make test
     ```
 
 3.  **Download fundamentals (Dow 30 pilot universe):**
