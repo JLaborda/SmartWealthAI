@@ -1,5 +1,9 @@
 # Feature: Sell-Watch / Vigilance
 
+## Implementation status
+
+**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+
 ## Objective
 
 Monitor every name held in the **model portfolio** every day and emit a hard `sell` signal when the thesis breaks. Signals never auto-execute: they appear in the dashboard and trigger an AWS SES email so the user can review and confirm. Sell-watch does not monitor the user's personal portfolio (those are personal decisions).

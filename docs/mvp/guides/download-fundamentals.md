@@ -1,4 +1,6 @@
-# Guide: Download fundamentals (local spike)
+# Guide: Download fundamentals (local spike — frozen)
+
+> **Status:** This guide documents the **frozen SEC ETL spike** ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)). The June 30 demo pipeline uses **SimFin** instead — see [`demo-slice.md`](../demo-slice.md) and [`etl-data-lake.md`](../features/etl-data-lake.md). Do not delete this spike; it resumes in phase 2.
 
 Operator guide for the first ETL vertical slice: download raw SEC `companyfacts` and
 standardized annual statements from `edgartools` for a parameterized universe.

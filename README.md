@@ -3,19 +3,22 @@
 [![Tests](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/JLaborda/SmartWealthAI?branch=main&label=coverage)](https://codecov.io/gh/JLaborda/SmartWealthAI)
 
-**A lightweight financial screener and portfolio management tool.**
+**A quantitative value-investing MVP: Greenblatt-style ranking on US equities.**
 
-*Status: Phase 1 / Sprint 0 (Proof of Concept)*
+*Status: MVP spec refinement — [June 30 demo slice](docs/mvp/demo-slice.md) is the current delivery target.*
 
-## 🎯 Project Vision
-SmartWealthAI is being built iteratively with a strict Agile philosophy. The current focus is on establishing a simple, reliable data pipeline for core financial metrics, starting with a raw implementation of Joel Greenblatt's "Magic Formula".
+## Project vision
 
-Future iterations (Phase 3+) will introduce advanced Machine Learning capabilities, including AI Agents performing RAG over 10-K business annual reports, and interactive dashboards.
+SmartWealthAI is a modular quantitative value investing system: SimFin fundamentals, point-in-time correctness, explainable ROC/EY ranking, and a Streamlit dashboard. The full architecture (backtest, sell-watch, paper trading) is the north star; the demo slice ships a narrower vertical first.
 
-## 🛠️ Current Tech Stack
+Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`](CONTEXT.md) · ADRs: [`docs/adr/`](docs/adr/)
+
+## Tech stack
+
 * **Language:** Python 3.11+
 * **Environment & Dependencies:** Poetry
-* **Core Libraries:** `pandas`, `edgartools`, `requests`, `yfinance`
+* **Data (demo):** SimFin bulk (`simfin`), `yfinance` prices
+* **Core libraries:** `pandas`, `simfin`, `yfinance`, `requests` (SEC spike: `edgartools` — frozen)
 * **MVP specs:** `docs/mvp/` (architecture + per-module features)
 
 ## 🚀 Quickstart
@@ -30,28 +33,30 @@ Future iterations (Phase 3+) will introduce advanced Machine Learning capabiliti
     make test
     ```
 
-3.  **Download fundamentals (Dow 30 pilot universe):**
+3.  **Demo slice docs** — start here before coding:
+    [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)
+
+4.  **SEC fundamentals spike (frozen, phase 2):**
     ```bash
     export SEC_IDENTITY="Your Name your@email.com"
     poetry run download-fundamentals --universe dow30
     ```
 
-    Full guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+    Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
 
-## 🗺️ Roadmap (Agile Milestones)
+## Roadmap
 
-### Phase 1: Core Mechanics (Current)
-- [x] Project initialization (`poetry`).
-- [x] Fetch basic metrics (P/E, ROE, ROA) via `yfinance` for a static portfolio.
-- [ ] Implement mathematical ranking logic ("Magic Formula").
-- [ ] CLI basic formatting.
+See [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md) for the **June 30, 2026** delivery target and [`docs/mvp/architecture/architecture.md`](docs/mvp/architecture/architecture.md) for the full MVP north star.
 
-### Phase 2: Scale & Structure (TBD)
-- [ ] Expand universe of tickers.
-- [ ] Basic data persistence (No DBs yet, maybe CSV/JSON).
-- [ ] Modularize architecture.
+### Demo slice (current)
 
-### Phase 3: The "AI" in SmartWealthAI
-- [ ] Introduce Machine Learning components.
-- [ ] LLM integration: RAG over 10-K annual reports.
-- [ ] Interactive Dashboard deployment.
+- [ ] SimFin bulk ETL → raw + curated fundamentals
+- [ ] US universe (SimFin minus banks / insurers / utilities)
+- [ ] ROC + EY ranking → top-30 equal-weight portfolio
+- [ ] Streamlit dashboard + MLflow run logging
+
+### Phase 2 (after demo)
+
+- Historical S&P 500 universe, permanent loss filter, backtesting
+- Sell-watch, paper trading, SEC EDGAR normalizer (optional PIT upgrade)
+- Corroborative signals, unstructured data, portfolio evolution

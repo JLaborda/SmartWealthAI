@@ -1,5 +1,9 @@
 # Feature: High-Quality Stocks
 
+## Implementation status
+
+planned — **in scope** for the June 30 demo slice ([`demo-slice.md`](../demo-slice.md)). Demo path skips the permanent loss filter upstream.
+
 ## Objective
 
 Score the economic quality of every company that survives the universe filter and the permanent loss filter. For the MVP, the quality factor is a strict Greenblatt-style **Return on Capital (ROC)** computed from point-in-time fundamentals. Future iterations can plug additional quality signals into the same interface.

@@ -1,5 +1,9 @@
 # Feature: Permanent Loss Filter
 
+## Implementation status
+
+**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+
 ## Objective
 
 Identify companies in the investable universe with elevated risk of permanent capital loss and remove them from the ranking before any score is computed. For the MVP, "permanent loss" is defined narrowly as **fraud or bankruptcy / financial distress**. Companies flagged by either subfilter are hard-excluded.

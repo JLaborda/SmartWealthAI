@@ -1,5 +1,9 @@
 # Feature: Cheap Stocks
 
+## Implementation status
+
+planned — **in scope** for the June 30 demo slice ([`demo-slice.md`](../demo-slice.md)). Demo path skips the permanent loss filter upstream.
+
 ## Objective
 
 Score the cheapness of every company that survives the universe filter, the permanent loss filter, and the quality scoring step. For the MVP, cheapness is a strict Greenblatt-style **Earnings Yield (EY) = EBIT / Enterprise Value**. Future iterations can plug additional valuation signals (FCF yield, EV/EBITDA, shareholder yield) through the same interface.

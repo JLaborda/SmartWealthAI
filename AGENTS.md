@@ -4,7 +4,7 @@ Instructions for AI agents working in the SmartWealthAI repository.
 
 ## Project phase
 
-SmartWealthAI is in **MVP planning and spec refinement**. Architecture and features are defined in Markdown under `docs/mvp/`. Implementation work must align with a feature spec in `docs/mvp/features/` and respect cross-cutting rules in `docs/mvp/architecture/architecture.md`.
+SmartWealthAI is in **MVP planning and spec refinement**, with a **June 30, 2026 demo slice** as the current delivery target. Architecture and features are defined in Markdown under `docs/mvp/`. Implementation work must align with a feature spec in `docs/mvp/features/` and respect cross-cutting rules in `docs/mvp/architecture/architecture.md`.
 
 Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy exploration and out of scope for planning context.
 
@@ -13,6 +13,8 @@ Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy e
 | Path | Purpose |
 | --- | --- |
 | `CONTEXT.md` | Ubiquitous language (domain terms; extend via `/grill-with-docs`) |
+| `docs/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
+| `docs/mvp/demo-slice.md` | June 30 delivery target (narrow vertical slice) |
 | `docs/mvp/architecture/architecture.md` | MVP vision, principles, module table, closed decisions |
 | `docs/mvp/features/*.md` | Per-module specs (scope, acceptance criteria, diagrams) |
 | `docs/mvp/requirements/requirements.md` | Sprint 0 spike (superseded by MVP specs; historical reference) |
@@ -42,10 +44,20 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 poetry env use python3.11
 poetry install
 poetry run pytest
-poetry run download-fundamentals --help
 ```
 
-### Fundamentals download (local spike)
+### Fundamentals — demo path (SimFin)
+
+Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never commit).
+
+```bash
+export SIMFIN_API_KEY="<from user secrets>"
+# SimFin connector CLI — to be added; see docs/mvp/demo-slice.md
+```
+
+Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
+
+### Fundamentals — SEC spike (frozen, phase 2)
 
 ```bash
 export SEC_IDENTITY="Your Name your@email.com"
@@ -53,12 +65,12 @@ poetry run download-fundamentals --universe dow30
 ```
 
 Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
-Spec slice: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md).
 
 ## Gotchas
 
-- `yfinance` and other data providers need network access.
-- SEC EDGAR and `edgartools` require `SEC_IDENTITY` (real name + email) in the environment.
+- `yfinance`, SimFin bulk API, and other data providers need network access.
+- SimFin requires `SIMFIN_API_KEY` in the environment (AWS Secrets Manager at runtime).
+- SEC EDGAR and `edgartools` require `SEC_IDENTITY` (real name + email) for the **frozen** SEC spike only.
 - `data/` is gitignored except `data/reference/**` (versioned universe and mapping CSVs).
   Never commit personal finance files or raw broker exports.
 

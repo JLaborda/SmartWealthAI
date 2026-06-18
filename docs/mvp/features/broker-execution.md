@@ -1,5 +1,9 @@
 # Feature: Broker Execution
 
+## Implementation status
+
+**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+
 ## Objective
 
 Convert the model portfolio's target positions, plus confirmed sell-watch signals, into broker-compatible orders. For the MVP, every order is **paper-traded** in a simulator. Real broker connectivity is out of scope until the user explicitly opts in.

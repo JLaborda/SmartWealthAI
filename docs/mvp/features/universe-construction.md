@@ -1,18 +1,31 @@
 # Feature: Universe Construction
 
+## Implementation status
+
+planned — **demo mode** ships first ([`demo-slice.md`](../demo-slice.md)); full S&P 500 historical mode in phase 2.
+
 ## Objective
 
 Produce the investable universe of US common stocks for each decision date. This module is the single entry point for "which tickers does the strategy consider today?" and is the upstream dependency of every downstream module. It must be point-in-time correct and survivorship-bias-free.
 
 ## MVP scope
 
-- Use the S&P 500 historical constituents as the seed universe, covering at least the last 20 years.
-- Include companies that were once in the S&P 500 even if they are now delisted or bankrupt; they are direct evidence used by the permanent loss filter.
-- Keep common stocks only. Exclude ADRs, REITs, BDCs, ETFs, and preferred shares for the MVP.
-- Exclude banks, insurers, and utilities using SEC SIC codes.
-- Deduplicate share classes: keep the share class with the highest average trading liquidity per issuer.
-- Apply optional market cap and trading volume floors as parameters.
-- Produce a daily, immutable universe snapshot stored under `curated/universe/run_date=<YYYY-MM-DD>/`.
+### Demo slice (June 30)
+
+- Seed universe: all SimFin US companies (`load_companies(market='us')`).
+- Exclude banks, insurers, and utilities via `data/reference/simfin_industry_exclusions.csv` (`IndustryId` list built from `load_industries()`).
+- Sanity check: exclude tickers present in SimFin `income_banks` or `income_insurance` bulk datasets even if `IndustryId` is missing from the CSV.
+- No S&P 500 historical file required for demo.
+- No market-cap or ADV floors in demo (optional parameters disabled).
+- Produce daily snapshot under `curated/universe/run_date=<YYYY-MM-DD>/`.
+
+### Full MVP (phase 2)
+
+- S&P 500 historical constituents (incl. delisted) from `data/reference/sp500_constituents.csv`.
+- Common-stock filters (exclude ADRs, REITs, BDCs, ETFs, preferred-only).
+- SIC-based sector exclusions when SEC ETL is available.
+- Share-class deduplication by ADV.
+- Optional market-cap and volume floors.
 
 ## Out of MVP scope
 
@@ -26,22 +39,40 @@ Produce the investable universe of US common stocks for each decision date. This
 
 | Input | Source | Notes |
 | --- | --- | --- |
-| Historical S&P 500 constituents | `data/reference/sp500_constituents.csv` | Pinned snapshot from a community dataset (proposed: `github.com/fja05680/sp500`). Format: `date, ticker, action` where `action in {added, removed}`. Must cover 20+ years. |
-| SIC codes | SEC EDGAR submissions JSON | Field `sicCode`. Cached in curated zone. |
-| Daily prices and volume | `curated/prices` | Already produced by `etl-data-lake`. |
-| Market cap | `curated/fundamentals` join `curated/prices` | `shares_outstanding * close`. |
-| Ticker mapping (broker -> yfinance) | `data/reference/ticker_mapping.csv` | Same file used by `portfolio-evolution`. |
-| Run date | Pipeline parameter | Determines the point-in-time universe slice. |
+| US company list | SimFin `companies` (demo) | `Ticker`, `CIK`, `IndustryId`. |
+| Industry metadata | SimFin `industries` + `simfin_industry_exclusions.csv` | Sector/industry names for audit. |
+| Bank/insurance sanity | SimFin `income_banks` / `income_insurance` ticker index | Secondary exclusion signal. |
+| Historical S&P 500 constituents | `data/reference/sp500_constituents.csv` | Phase 2 only. |
+| SIC codes | SEC EDGAR submissions | Phase 2 only. |
+| Daily prices and volume | `curated/prices` | For ADV dedup and floors (phase 2). |
+| Market cap | `curated/fundamentals` join `curated/prices` | Tie-break and optional floors. |
+| Run date | Pipeline parameter | PIT universe slice. |
 
 ## Outputs
 
 | Dataset | Path | Schema |
 | --- | --- | --- |
-| Daily universe | `s3://smartwealthai-data-lake/curated/universe/run_date=<YYYY-MM-DD>/universe.parquet` | `run_date, ticker, cik, sic_code, sector_bucket, in_sp500, market_cap_eur, market_cap_usd, avg_daily_volume_usd, share_class_kept, exclusion_reasons` |
+| Daily universe | `s3://smartwealthai-data-lake/curated/universe/run_date=<YYYY-MM-DD>/universe.parquet` | `run_date, ticker, cik, industry_id, sector, market_cap_usd, exclusion_reasons` (demo schema; `sic_code` added in phase 2) |
 | Exclusion log | `s3://smartwealthai-data-lake/curated/universe/run_date=<YYYY-MM-DD>/exclusions.parquet` | One row per excluded ticker with the triggered rule(s). |
 | DuckDB view | `v_universe` | Latest universe view, partitioned on `run_date`. |
 
-## Mermaid diagram
+## Mermaid diagram (demo)
+
+```mermaid
+flowchart TD
+    Companies["SimFin companies (market=us)"] --> Seed["Seed universe at run_date"]
+    ExclCSV["simfin_industry_exclusions.csv"] --> SectorFilter{"IndustryId excluded?"}
+    BankSanity["Bank / insurance statement indices"] --> SanityFilter{"Bank or insurer ticker?"}
+    Seed --> SectorFilter
+    SectorFilter -->|Yes| Excluded["exclusions.parquet"]
+    SectorFilter -->|No| SanityFilter
+    SanityFilter -->|Yes| Excluded
+    SanityFilter -->|No| Universe["universe.parquet"]
+    Universe --> DuckDBView["v_universe"]
+    Excluded --> ExclusionLog["exclusions.parquet"]
+```
+
+## Mermaid diagram (full MVP — phase 2)
 
 ```mermaid
 flowchart TD
@@ -66,9 +97,16 @@ flowchart TD
     Universe --> DuckDBView["v_universe"]
 ```
 
-## Expected flow
+## Expected flow (demo)
 
-1. Read the pinned `data/reference/sp500_constituents.csv` and compute, for the given `run_date`, the set of tickers that have been in the index at any point between the backtest start date and `run_date`.
+1. Load SimFin `companies` for `market=us` from curated or raw snapshot.
+2. Join `IndustryId` to `simfin_industry_exclusions.csv`; excluded rows → `exclusions.parquet` with reason `sector`.
+3. Drop tickers found in bank/insurance SimFin statement indices (sanity check).
+4. Persist `universe.parquet` for `run_date`.
+
+## Expected flow (full MVP — phase 2)
+
+1. Read `data/reference/sp500_constituents.csv` and compute historical membership through `run_date`.
 2. Map each ticker to its CIK and `sic_code` via the curated EDGAR submissions table.
 3. Filter to common stocks. The MVP keeps only issuers whose SEC form types include `10-K` and `10-Q` filed on a standard schedule, and excludes:
    - ETFs and ETN issuers (form `N-CSR`, `N-Q`, fund-specific filings).
@@ -89,12 +127,18 @@ flowchart TD
 
 ## Acceptance criteria
 
-- Calling the module with the same `run_date` twice produces byte-identical output (same hash).
+### Demo
+
+- [ ] Same `run_date` → byte-identical `universe.parquet`.
+- [ ] No excluded `IndustryId` appears in the universe.
+- [ ] No bank/insurance sanity-check ticker appears in the universe.
+- [ ] Module consumes only curated/raw SimFin snapshots (no network).
+
+### Full MVP (phase 2)
+
 - Bankrupt companies that were once in the index appear in past universe snapshots up to their delisting date and are excluded only after that date with reason `delisted`.
 - No company whose SIC code is in the excluded sector ranges appears in any universe snapshot.
-- Each excluded ticker has at least one reason logged in `exclusions.parquet`.
-- Share class deduplication is reversible from the exclusion log (we can answer "which class did we keep on 2015-06-30?").
-- The module never queries network resources; it consumes only curated parquet and reference CSVs.
+- Share class deduplication is reversible from the exclusion log.
 - The schema of `universe.parquet` is versioned and documented.
 
 ## Open questions

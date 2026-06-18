@@ -1,19 +1,30 @@
 # Feature: Dashboard and Reporting
 
+## Implementation status
+
+planned — **demo slice** ships first ([`demo-slice.md`](../demo-slice.md)); full MVP pages in phase 2.
+
 ## Objective
 
 Surface every input, score, decision, and audit trail produced by the pipeline in a single Streamlit dashboard. The dashboard is the primary product surface for the user. Visual polish is explicitly deferred; functional completeness comes first.
 
 ## MVP scope
 
+### Demo slice (June 30)
+
+- Streamlit app (local or lightweight AWS deploy).
+- Pages: **Overview**, **ETL & data quality**, **Universe**, **Quality (ROC)**, **Cheapness (EY)**, **Ranking + model portfolio** (top 30 EW).
+- Per-name explainability: ROC/EY inputs and combined rank.
+- MLflow run link per pipeline execution.
+- Read-only views (no sell-watch confirmation in demo).
+
+### Full MVP (phase 2)
+
 - Streamlit app deployed on AWS (likely Fargate Spot behind an ALB, or App Runner if cheaper at MVP scale).
-- One page per module: ETL health, universe, permanent loss filter, quality scores, cheapness scores, ranking, model portfolio, sell-watch, portfolio evolution, backtests.
-- Every page links to the MLflow run id that produced the data displayed.
-- Every score row shows the input components and the rules that fired.
-- Read-only views; no editing of holdings or signals from the dashboard except confirming or dismissing sell-watch signals.
+- Additional pages: permanent loss filter, sell-watch, backtests, portfolio evolution.
 - Sell-watch confirmation writes back to `curated/sell_watch/confirmations.parquet`.
 - Authentication: simple username + password from AWS Secrets Manager for the MVP (or Cognito if the cheapest path is similar).
-- Reports are rendered as HTML inside Streamlit and persisted as static HTML snapshots in S3 per run date.
+- Reports rendered as HTML inside Streamlit and persisted as static HTML snapshots in S3 per run date.
 
 ## Out of MVP scope
 
@@ -37,19 +48,29 @@ Surface every input, score, decision, and audit trail produced by the pipeline i
 
 ## Pages
 
+### Demo slice
+
+| Page | What it shows |
+| --- | --- |
+| **Overview** | Latest pipeline run timestamp, model portfolio headline, link to MLflow run. |
+| **ETL & data quality** | Last successful SimFin / yfinance ingestion, freshness, review-queue count. |
+| **Universe** | Today's universe and exclusion log (sector + bank/insurance sanity). |
+| **Quality** | ROC distribution + top / bottom names + per-name component breakdown. |
+| **Cheapness** | EY distribution + top / bottom names + per-name component breakdown. |
+| **Ranking + model portfolio** | Combined Greenblatt rank with tie-break; top **30** equal-weight holdings. |
+| **MLflow links** | Direct links to runs by date and `git_sha` tag. |
+
+### Full MVP (phase 2)
+
 | Page | What it shows |
 | --- | --- |
 | **Overview** | Headline KPIs (latest backtest Sharpe pass/fail, model NAV, personal NAV, open sell signals), latest pipeline run timestamp, links to MLflow runs. |
-| **ETL & data quality** | Last successful ingestion per provider, freshness per ticker, count of rows in the review queue. |
-| **Universe** | Today's universe and the most recent exclusion log. |
 | **Permanent loss** | Today's exclusions with rule and value; trend line of count of exclusions over time; CI status of the Enron / Lehman / WorldCom regression. |
-| **Quality** | ROC distribution + top / bottom names + per-name component breakdown. |
-| **Cheapness** | EY distribution + top / bottom names + per-name component breakdown. |
-| **Ranking + model portfolio** | Combined Greenblatt rank with tie-break; current 15 to 30 holdings; weight per name; cap-violation indicators. |
 | **Sell-watch** | Open signals (proposed), confirmed history, dismissed history; each signal has a confirm and dismiss button. |
 | **Backtests** | Equity curves, Sharpe table, crisis drawdown, Monte Carlo distribution, overfit flag, pass/fail. |
 | **Portfolio evolution** | Personal NAV, model paper NAV, benchmark overlays, drawdown, rolling Sharpe, attribution. |
-| **MLflow links** | Direct links to runs by date, by experiment, by tag (`git_sha`). |
+
+All pages (demo and full MVP): every score row shows input components and rules that fired; every page links to the MLflow run id that produced the displayed data.
 
 ## Mermaid diagram
 
@@ -73,10 +94,18 @@ flowchart LR
 
 ## Acceptance criteria
 
+### Demo slice
+
+- [ ] Dashboard shows combined rank, ROC/EY inputs, and top-30 equal-weight portfolio with explanations.
+- [ ] Dashboard is readable from cached parquet; no live SimFin or yfinance calls for display.
+- [ ] Every numeric score traces to a curated parquet row.
+- [ ] Dashboard renders correctly when curated parquet for a module is missing (clear empty state).
+
+### Full MVP (phase 2)
+
 - The dashboard is fully readable from cached parquet; no network calls to the live pipeline are made for display.
 - Every numeric score on the dashboard can be traced to a row in a curated parquet file.
 - Sell-watch confirmation is the only write operation triggered by the dashboard.
-- The dashboard renders correctly when curated parquet for a module is missing (clear empty state, not an exception).
 - The static HTML snapshot per run date is stored in `s3://smartwealthai-reports/run_date=<YYYY-MM-DD>/index.html` and is browsable.
 - Authentication blocks unauthenticated access.
 - The dashboard build is published from GitHub Actions to ECR and deployed to Fargate Spot.
