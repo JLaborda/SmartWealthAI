@@ -9,7 +9,7 @@ The pipeline decision date (e.g. daily batch). Scoring, universe, and filters ar
 _Avoid_: as-of date (reserved for filing availability), execution date
 
 **As-of date**:
-When a fundamental fact became publicly knowable—typically SEC EDGAR filing acceptance. Historical queries use `as_of_date <= run_date`.
+When a fundamental fact became publicly knowable. MVP: SimFin **Publish Date**; restatements use **Restated Date** as a new `version_id`; missing publish date → conservative `Report Date + lag` and **review queue**. Historical queries use `as_of_date <= run_date`.
 _Avoid_: run date, report date, period end (unless explicitly the accounting period)
 
 **Point-in-time (PIT)**:
@@ -25,8 +25,16 @@ Backtesting only companies that still exist today, overstating returns. Mitigate
 _Avoid_: living-universe backtest
 
 **Universe**:
-Investable tickers for a run date—seeded from historical S&P 500 constituents, filtered to common US stocks, with banks/insurers/utilities excluded. Spec: `docs/mvp/features/universe-construction.md`.
+Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Phase 2:** historical S&P 500 constituents including delisted names. Spec: `docs/mvp/features/universe-construction.md`.
 _Avoid_: watchlist, portfolio, benchmark index today
+
+**Industry classification**:
+Provider-assigned industry code used to apply sector hard exclusions (banks, insurers, utilities). MVP source: SimFin `IndustryId` on the company record; exclusions maintained in `data/reference/simfin_industry_exclusions.csv` with optional sanity check against SimFin bank/insurance statement datasets.
+_Avoid_: SIC code (deferred with SEC ETL to phase 2), GICS, naive sector label from prices
+
+**Sector hard exclusion (banks / insurers / utilities)**:
+Hard exclusion because their financial statements are not comparable to industrial companies under Greenblatt ROC and EY—different line items, balance-sheet economics, and (for utilities) regulated returns. Not because SimFin lacks data; SimFin uses separate templates for banks and insurers.
+_Avoid_: penalize, down-rank, “low quality score” for financials
 
 **Hard exclusion**:
 A company removed entirely from ranking (not a score penalty). Permanent loss and some universe rules are hard exclusions.
@@ -41,8 +49,12 @@ Rows flagged for human review—invalid denominators, missing inputs, negative E
 _Avoid_: silent drop, auto-fix without audit
 
 **EBIT**:
-Operating income before interest and taxes; TTM in MVP. Shared numerator for ROC and Earnings Yield (`OperatingIncomeLoss` from EDGAR for `formula_version = v1`).
+Operating income before interest and taxes; **TTM** in MVP (Magic Formula scoring). Sourced from curated fundamentals (`formula_version = v1`).
 _Avoid_: net income, EBITDA (unless a future spec says otherwise)
+
+**Fundamentals periodicity (MVP)**:
+Income and cash-flow statements use SimFin **TTM**; balance sheet uses the latest **quarterly** snapshot with `as_of_date <= run_date`. Annual-only series are not used for live scoring in MVP.
+_Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for ranking between rebalance dates
 
 **Return on capital (ROC)**:
 `EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `docs/mvp/features/high-quality-stocks.md`.
@@ -77,8 +89,8 @@ Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
-Target long-only holdings (15–30 names, max 10% per name) from the pipeline; paper-traded for tracking.
-_Avoid_: personal portfolio, watchlist
+Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper-traded in full MVP (phase 2).
+_Avoid_: personal portfolio, watchlist (demo slice)
 
 **Watchlist**:
 Ranked candidates broader than current holdings; may enter the model portfolio on rebalance.
@@ -97,16 +109,16 @@ Recommendation to exit a holding; requires explicit user confirmation before ord
 _Avoid_: auto-sell, trim (deferred state)
 
 **Walk-forward backtest**:
-Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`.
-_Avoid_: single in-sample fit, peeking at hold-out
+Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred to phase 2** for the June 30 demo MVP; demo slice stops at ranked model portfolio + dashboard.
+_Avoid_: single in-sample fit, peeking at hold-out (when backtest ships)
 
 **Block bootstrap**:
 Monte Carlo that resamples contiguous multi-month blocks of real joint price/fundamental history.
 _Avoid_: synthetic generative fundamentals (out of MVP)
 
 **Raw zone / curated zone**:
-Immutable provider responses vs normalized parquet consumed by scoring. Data lake: S3 + DuckDB.
-_Avoid_: single “database” without lineage
+Immutable provider responses vs normalized parquet consumed by scoring. Data lake: S3 + DuckDB. MVP: store SimFin bulk files verbatim in raw for every variant the pipeline downloads (TTM income/cashflow, quarterly balance); curated zone holds only what scoring consumes today. **Curated fundamentals schema is provider-agnostic** (`ebit`, `total_assets`, `as_of_date`, etc.)—SimFin and future SEC normalizers must emit the same contract.
+_Avoid_: single “database” without lineage, SimFin-native column names in curated, normalizing annual/quarterly income in curated before QV needs it
 
 **MLflow run**:
 Logged experiment with parameters, metrics, and artifacts (watchlist, backtest report, commit SHA).
@@ -121,6 +133,14 @@ _Avoid_: ad-hoc snapshot without run id
 - **Sell-watch** evaluates only the **model portfolio**, not the user’s personal portfolio
 
 ## Flagged ambiguities
+
+Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)):
+
+- **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
+- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin only (**free tier**, bulk download + ~weekly refresh); prices from yfinance.
+- **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
+
+Terminology reminders:
 
 - “Cheap” means high **EY**, not low P/E—use **EY rank** in issues and code names.
 - “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.

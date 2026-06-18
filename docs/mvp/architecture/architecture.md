@@ -4,11 +4,15 @@ This document is a living specification for designing the SmartWealthAI MVP with
 
 This is a portfolio project intended to showcase MLOps practices applied to a quantitative value investing system. The end user is a particular investor, but the system itself behaves as an automated agent that runs end-to-end without manual intervention.
 
+## June 30 demo slice (current delivery target)
+
+The **first shippable vertical** is narrower than the full vision below. See [`demo-slice.md`](../demo-slice.md) and [ADR-0002](../../adr/0002-june-demo-scope-cut.md): SimFin ETL → US-market universe → ROC/EY → top-30 equal-weight portfolio → Streamlit dashboard. Backtest, permanent loss filter, sell-watch, and paper trading are **phase 2**. The full architecture in this document remains the north star.
+
 ## MVP vision
 
 Build a modular quantitative value investing system that:
 
-1. Retrieves financial data from SEC EDGAR and free price providers.
+1. Retrieves financial data from **SimFin** (fundamentals, demo) and free price providers; SEC EDGAR deferred to phase 2 ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 2. Stores raw and curated data in an AWS-based, incrementally refreshed data lake.
 3. Filters out companies with high risk of permanent capital loss (fraud and bankruptcy).
 4. Identifies high-quality companies.
@@ -32,11 +36,11 @@ The MVP prioritizes traceability, reproducibility, point-in-time correctness, lo
 - **Point-in-time correctness**: no module is allowed to use data that was not yet publicly available at the decision date. Look-ahead bias is treated as a critical defect.
 - **Raw before transformed**: provider responses are stored verbatim in a raw zone before any normalization, so any bug downstream can be replayed from source.
 - **Incremental data lake**: new filings or prices update only what changed; we never reprocess the full history unless we explicitly request it.
-- **Provider abstraction**: SEC EDGAR, free price providers, and future sources are wrapped behind interchangeable connectors.
+- **Provider abstraction**: SimFin, SEC EDGAR (phase 2), free price providers, and future sources are wrapped behind interchangeable connectors; `curated/fundamentals` schema is provider-agnostic.
 - **AWS-first, cheapest-first**: data lake, compute, secrets, and dashboard all live in AWS, choosing the cheapest viable option at MVP scale. Heavier infrastructure (Kubernetes, paid data) is a growth path, not an MVP requirement.
 - **MLOps and CI/CD by design**: every pipeline component is built, tested, packaged, deployed, scheduled, and observed.
 - **Paper trading first**: the broker module never touches real money in the MVP, even by accident.
-- **Backtesting before broker**: the strategy must pass a backtest before any order, even a paper one, is generated.
+- **Backtesting before broker**: the strategy must pass a backtest before any order, even a paper one, is generated. **Does not apply to the June demo slice** (no broker in demo).
 - **Specs before code**: this document and the feature specs are refined before implementation begins.
 
 ## Architecture diagram
@@ -44,7 +48,8 @@ The MVP prioritizes traceability, reproducibility, point-in-time correctness, lo
 ```mermaid
 flowchart LR
     subgraph Sources["Data sources"]
-        SEC["SEC EDGAR (fundamentals)"]
+        SimFin["SimFin (fundamentals, MVP)"]
+        SEC["SEC EDGAR (phase 2)"]
         Prices["Prices: yfinance + free tier FMP / Alpha Vantage / EODHD"]
         UserPort["User portfolio CSV (data/clean/personal_finance/...)"]
         News["News and transcripts (later)"]
@@ -54,13 +59,13 @@ flowchart LR
         Ingest["Ingestion connectors"]
         Raw["Raw zone (immutable)"]
         Normalized["Normalized / curated zone (versioned schema)"]
-        PITStore["Point-in-time store (as_of_date = EDGAR filing date)"]
+        PITStore["Point-in-time store (as_of_date = SimFin Publish Date)"]
         QualityChecks["Data quality + review queue"]
     end
 
     subgraph Universe["Universe construction"]
-        SP500Hist["S&P 500 historical constituents (incl. delisted)"]
-        UniFilters["Filters: common stocks only, SIC-based exclusion of banks / insurers / utilities, optional market-cap and volume floors"]
+        SP500Hist["Universe: SimFin US (demo) / S&P 500 historical (phase 2)"]
+        UniFilters["Filters: IndustryId exclusion banks / insurers / utilities"]
     end
 
     subgraph Analysis["Analysis engine"]
@@ -103,7 +108,8 @@ flowchart LR
         Secrets["GitHub Secrets (build) + AWS Secrets Manager (runtime)"]
     end
 
-    SEC --> Ingest
+    SimFin --> Ingest
+    SEC -. "phase 2" .-> Ingest
     Prices --> Ingest
     UserPort --> Ingest
     News --> Ingest
@@ -166,7 +172,7 @@ flowchart LR
 | Module | Spec | Main responsibility |
 | --- | --- | --- |
 | ETL + Data Lake | [../features/etl-data-lake.md](../features/etl-data-lake.md) | Download, version, validate, and store financial data with point-in-time guarantees and incremental refresh. |
-| Universe construction | [../features/universe-construction.md](../features/universe-construction.md) | Build the historical S&P 500 universe (including delisted), filter to common stocks, exclude banks / insurers / utilities, deduplicate share classes. |
+| Universe construction | [../features/universe-construction.md](../features/universe-construction.md) | **Demo:** SimFin US minus banks / insurers / utilities. **Phase 2:** historical S&P 500 (incl. delisted), common-stock filters, share-class dedup. |
 | Permanent loss filter | [../features/permanent-loss-filter.md](../features/permanent-loss-filter.md) | Hard-exclude companies with fraud or bankruptcy risk; include the Enron / Lehman / WorldCom regression test. |
 | High-quality stocks | [../features/high-quality-stocks.md](../features/high-quality-stocks.md) | Score quality starting from Greenblatt's ROC. |
 | Cheap stocks | [../features/cheap-stocks.md](../features/cheap-stocks.md) | Score valuation starting from Earnings Yield. |
@@ -178,12 +184,28 @@ flowchart LR
 | Broker execution | [../features/broker-execution.md](../features/broker-execution.md) | Convert confirmed decisions into paper trading orders only. |
 | Dashboard + reporting | [../features/dashboard-reporting.md](../features/dashboard-reporting.md) | Surface every input, score, decision, and explanation. Functional-first for the MVP. |
 
-## Proposed functional flow
+## Functional flow — June 30 demo slice
+
+See [`demo-slice.md`](../demo-slice.md). Steps not listed here are **phase 2**.
+
+1. Pipeline run for a `run_date`; secrets from env / AWS Secrets Manager (`SIMFIN_API_KEY`, etc.).
+2. Bulk-download SimFin US datasets if older than `refresh_days`; store verbatim under `raw/simfin/`.
+3. Fetch prices via `yfinance` (cached); store raw + `curated/prices`.
+4. Run the SimFin normalizer → `curated/fundamentals` with PIT `as_of_date` from SimFin `Publish Date`.
+5. Build the demo universe: SimFin US companies minus banks / insurers / utilities (`IndustryId` CSV + bank/insurance sanity check).
+6. Calculate ROC and Earnings Yield; combined rank with market-cap tie-break.
+7. Select top **30** names, equal-weight model portfolio.
+8. Log an MLflow run (params, metrics, portfolio artifact, git SHA).
+9. Publish the Streamlit dashboard: ranking table, portfolio, per-name ROC/EY explainability.
+
+## Functional flow — full MVP (phase 2)
+
+North-star end-to-end flow after the demo slice ships:
 
 1. CI/CD pipeline triggers a daily run (cron via Prefect / EventBridge) and pulls secrets.
-2. Build the run-date universe from the S&P 500 historical constituents, apply universe filters, deduplicate share classes.
-3. Ingest fundamentals from SEC EDGAR and prices from free providers, storing raw responses immutably.
-4. Incrementally normalize new or restated data and write to the point-in-time store, tagged with the EDGAR filing date.
+2. Build the run-date universe from historical S&P 500 constituents, apply universe filters, deduplicate share classes.
+3. Ingest fundamentals from SimFin and/or SEC EDGAR and prices from free providers, storing raw responses immutably.
+4. Incrementally normalize new or restated data and write to the point-in-time store (`as_of_date` = provider publish or EDGAR acceptance).
 5. Run data quality checks; failing rows go to the review queue and are excluded if not resolved.
 6. Apply the permanent loss filter (fraud + bankruptcy) as a hard exclusion with stored reasons. CI runs the Enron / Lehman / WorldCom regression check.
 7. Calculate ROC (quality) and Earnings Yield (cheapness).
@@ -205,23 +227,27 @@ These items are now closed for the MVP. They can be reopened in later iterations
 
 | Area | Decision |
 | --- | --- |
+| **June demo** | See [`demo-slice.md`](../demo-slice.md). SimFin → US universe → ROC/EY → top 30 EW → dashboard. |
 | Markets | US only. Other markets deferred. |
-| Universe | Common stocks only. |
-| Sector classification | SIC codes from SEC EDGAR (free, native). If a company's filing cannot be processed the same way as the rest, it is excluded from the universe. |
-| Sectors excluded | Banks, insurers, and utilities (different accounting). Revisit if the MVP works. |
+| Universe (demo) | All SimFin US companies minus banks/insurers/utilities. |
+| Universe (full MVP) | S&P 500 historical constituents (incl. delisted). Phase 2. |
+| Sector classification (demo) | SimFin `IndustryId` + `load_industries()`; exclusions in `data/reference/simfin_industry_exclusions.csv`. |
+| Sector classification (full MVP) | SIC from SEC EDGAR when SEC ETL ships. |
+| Sectors excluded | Banks, insurers, and utilities (incomparable accounting for ROC/EY). |
 | Sector limits | No sector / country / industry quotas. Out of MVP scope. |
-| Universe source | S&P 500 historical constituents (any company that has ever been in the index since the backtest start date), including delisted companies. Bankruptcies are kept in the universe because they are direct evidence of failure for the filter. |
-| Share classes | Treat as the same company; keep the class with the highest average trading liquidity and drop the rest. |
-| Market cap floor | Optional parameter. |
-| Trading volume floor | Yes, a minimum average daily volume rule to guarantee tradeability. Exact threshold treated as a parameter. |
-| Primary fundamentals source | SEC EDGAR (via `sec-edgar-downloader` or similar). |
+| Share classes | Treat as the same company; keep the class with the highest average trading liquidity and drop the rest. Phase 2 for demo. |
+| Market cap floor | Optional parameter. Off in demo. |
+| Trading volume floor | Optional; off in demo. |
+| Primary fundamentals source | **SimFin** (free tier, bulk download). [ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md). |
+| SEC ETL | Frozen spike in repo; phase 2 normalizer. |
 | Primary price source | `yfinance`; free tiers of FMP, Alpha Vantage, and EODHD as redundancy / fallback. |
 | Data lake | S3 (raw + curated zones) + DuckDB as the analytical engine (`duckdb` reads parquet directly from S3, no Athena bill). |
-| Data lake refresh | Incremental: only changed or new filings/prices are reprocessed; no full rebuild on each run. |
+| Data lake refresh | Bulk re-download on schedule (`refresh_days=7` on free tier); incremental normalize by `Publish Date` watermark. |
 | Schema versioning | Normalized schemas are versioned with explicit migrations. |
-| Raw data policy | Store provider responses verbatim in the raw zone. |
+| Raw data policy | Store provider responses verbatim in the raw zone (SimFin bulk files for variants the pipeline downloads). |
 | Retention policy | Keep curated data long-term; purge raw data only once curated data has been validated. |
-| Point-in-time | Required from the MVP. SEC EDGAR filing acceptance timestamp is the official `as_of_date`. Conservative period-end + lag is a fallback. |
+| Point-in-time | Required. SimFin `Publish Date` is `as_of_date`; `Restated Date` for new versions; `Report Date + lag` fallback → review queue. |
+| Fundamentals periodicity | Income/cashflow TTM; balance sheet quarterly (latest PIT snapshot). |
 | Missing data | Flag for review for the MVP. If review backlog grows, fall back to exclusion. |
 
 ### Scoring and portfolio construction
@@ -231,12 +257,12 @@ These items are now closed for the MVP. They can be reopened in later iterations
 | Ranking style | Greenblatt-style: ROC for quality + Earnings Yield for cheapness. Treated as a placeholder until replaced by a more practical model. |
 | Tie-break | Sort ties by ascending market cap; smaller names have priority (more room to grow). |
 | Permanent loss | Hard exclusion. Scope: fraud + bankruptcy only. |
-| Portfolio size | 15 to 30 long-only positions. |
+| Portfolio size | **Demo:** top 30. **Full MVP:** 15 to 30 long-only positions. |
 | Short positions | Not allowed. |
-| Per-name cap | 10% of portfolio. |
-| Weighting | Equal-weight (EW), score-weighted (SW), and risk-parity (RP) are backtest hyperparameters. The winner of the backtest is used in production. |
-| Rebalancing | Annual fixed for the MVP (no longer a per-run hyperparameter). Other frequencies remain a backtest hyperparameter for later iterations. |
-| Outputs | Ranked watchlist + model portfolio + their evolution over time. |
+| Per-name cap | 10% of portfolio (full MVP; irrelevant for demo EW top 30). |
+| Weighting | **Demo:** equal-weight only. **Full MVP:** EW / SW / RP as backtest hyperparameters. |
+| Rebalancing | Annual fixed for the full MVP. Demo is single `run_date` snapshot. |
+| Outputs | **Demo:** model portfolio + full ranking in dashboard. **Full MVP:** watchlist + model portfolio + evolution. |
 
 ### Risk, explainability, and operations
 
@@ -317,7 +343,7 @@ A backtest (or any historical scoring) must only use information that was public
 - Index reconstitution. Using today's S&P 500 constituents to backtest 2010 introduces survivorship bias.
 - Corporate actions (splits, dividends, delistings) and ticker changes.
 
-The MVP's point-in-time store records, for every fundamental value, the `as_of_date` (EDGAR filing date) and a `version_id`. Any historical query is forced to filter by `as_of_date <= decision_date`. When the filing date is missing or unreliable, a conservative lag (period end + 45 days for 10-Q, + 90 days for 10-K) is used and the row is flagged for review. This is conservative enough for a long-term value strategy.
+The MVP's point-in-time store records, for every fundamental value, the `as_of_date` (SimFin `Publish Date` in the demo; EDGAR acceptance in phase 2) and a `version_id`. Any historical query is forced to filter by `as_of_date <= decision_date`. When the publish date is missing or unreliable, a conservative lag (period end + 45 days for 10-Q, + 90 days for 10-K) is used and the row is flagged for review. This is conservative enough for a long-term value strategy.
 
 ### MLflow as the snapshot store
 
@@ -442,7 +468,7 @@ A short, targeted list. Everything else is now closed for the MVP.
 Order proposed for refining the feature specs (each spec follows the same template: Objective, Scope, Out of scope, Inputs, Outputs, Mermaid diagram, Flow, Open questions, Acceptance criteria, Risks):
 
 1. `universe-construction.md` (new) - blocks every downstream module.
-2. `etl-data-lake.md` (update) - reflect SEC EDGAR + free price providers + S3 + DuckDB + PIT store + incremental.
+2. `etl-data-lake.md` — SimFin connector + normalizer (demo); SEC spike frozen for phase 2. ✅ Updated.
 3. `permanent-loss-filter.md` (update) - fraud + bankruptcy, hard exclusion, Enron / Lehman / WorldCom regression test.
 4. `high-quality-stocks.md` (update) - ROC + tie-break by market cap.
 5. `cheap-stocks.md` (update) - Earnings Yield as primary cheapness signal.

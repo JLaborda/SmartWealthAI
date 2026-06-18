@@ -9,20 +9,36 @@ Domain vocabulary lives in [`CONTEXT.md`](../CONTEXT.md) at the repo root (Matt 
 ## Layout
 
 ```text
-docs/mvp/
-  architecture/architecture.md   # MVP vision, principles, module table, decisions
-  features/                      # One spec per module
-  guides/                        # Operator guides for implemented slices
-  prds/                          # Implementation PRDs (tooling and cross-cutting)
-  requirements/requirements.md   # Sprint 0 spike (historical; superseded by MVP specs)
-  backlog/backlog.md             # Informal ideas mapped to features
+docs/
+  adr/                           # Architecture Decision Records (why, not how)
+  mvp/
+    demo-slice.md                # June 30 delivery target (narrow vertical)
+    architecture/architecture.md # MVP vision, principles, module table, decisions
+    features/                    # One spec per module
+    guides/                      # Operator guides for implemented slices
+    prds/                        # Implementation PRDs (tooling and cross-cutting)
+    requirements/requirements.md  # Sprint 0 spike (historical; superseded by MVP specs)
+    backlog/backlog.md           # Informal ideas mapped to features
 ```
+
+## Architecture Decision Records (ADRs)
+
+Short notes on hard-to-reverse choices. See [`docs/adr/`](../adr/).
+
+| ADR | Decision |
+| --- | --- |
+| [0001](../adr/0001-simfin-fundamentals-mvp.md) | SimFin fundamentals for MVP; SEC ETL phase 2 |
+| [0002](../adr/0002-june-demo-scope-cut.md) | June 30 demo slice scope cut |
+
+## Demo slice
+
+**Current delivery target:** [`demo-slice.md`](mvp/demo-slice.md) — SimFin → US universe → ROC/EY → top-30 portfolio → dashboard.
 
 ## Operator guides
 
 | Guide | When to use |
 | --- | --- |
-| [download-fundamentals.md](mvp/guides/download-fundamentals.md) | Download SEC `companyfacts` + `edgartools` statements for a universe (local spike) |
+| [download-fundamentals.md](mvp/guides/download-fundamentals.md) | **Frozen SEC spike** (phase 2): download `companyfacts` + `edgartools` for a universe. Active demo path uses SimFin — see [`demo-slice.md`](mvp/demo-slice.md) and [`etl-data-lake.md`](mvp/features/etl-data-lake.md). |
 
 ## PRDs
 

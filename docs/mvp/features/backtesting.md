@@ -1,5 +1,9 @@
 # Feature: Backtesting and Crisis Report
 
+## Implementation status
+
+**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+
 ## Objective
 
 Validate the strategy on at least 20 years of point-in-time data before any paper trading order is generated. Backtests must be reproducible, point-in-time correct, free of survivorship bias, and tracked end-to-end via MLflow. A backtest run that does not beat all benchmarks on Sharpe blocks order generation for that configuration.
