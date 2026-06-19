@@ -8,6 +8,10 @@ Ubiquitous language for the quantitative value-investing MVP. Canonical formulas
 The pipeline decision date (e.g. daily batch). Scoring, universe, and filters are keyed to this date.
 _Avoid_: as-of date (reserved for filing availability), execution date
 
+**Run-date share price (demo)**:
+Closing price on or before the run date from SimFin bulk `shareprices/latest`, joined to the universe by ticker. Used for market cap (`shares_outstanding × adj_close`) in ROC tie-break and EY. **`price_date` may lag `run_date` by up to ~30 days** on the SimFin free tier; acceptable for the June demo. Full daily history (`shareprices/daily`) and alternate vendors (e.g. yfinance) are phase 2.
+_Avoid_: Yahoo as canonical price when the universe is SimFin; requiring same-day prices in the demo pipeline
+
 **As-of date**:
 When a fundamental fact became publicly knowable. MVP: SimFin **Publish Date**; restatements use **Restated Date** as a new `version_id`; missing publish date → conservative `Report Date + lag` and **review queue**. Historical queries use `as_of_date <= run_date`.
 _Avoid_: run date, report date, period end (unless explicitly the accounting period)
@@ -137,7 +141,7 @@ _Avoid_: ad-hoc snapshot without run id
 Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)):
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
-- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin only (**free tier**, bulk download + ~weekly refresh); prices from yfinance.
+- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
 - **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
 
 Terminology reminders:

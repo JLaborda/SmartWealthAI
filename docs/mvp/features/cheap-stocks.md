@@ -32,7 +32,7 @@ Score the cheapness of every company that survives the universe filter, the perm
 | --- | --- | --- |
 | Passing universe + permanent loss filter pass list | `curated/universe` + `curated/permanent_loss` | Only `pass` rows are scored. |
 | PIT fundamentals (income statement, balance sheet) | `curated/fundamentals` | Filtered by `as_of_date <= run_date`. |
-| Run-date market cap | `curated/prices` join `curated/fundamentals` | `shares_outstanding * close` on `run_date`. |
+| Run-date market cap | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` join `curated/fundamentals` | `shares_outstanding * adj_close`; `price_date` is the latest trading day ≤ `run_date`. |
 | Enterprise value components | `curated/fundamentals` | Total debt, preferred equity, minority interest, cash. |
 | Run date | Pipeline parameter | |
 | EY formula version | `config/cheap/ey.yaml` | Versioned. |
