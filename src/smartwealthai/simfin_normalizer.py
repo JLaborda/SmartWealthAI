@@ -12,6 +12,8 @@ from smartwealthai.lake_paths import (
     curated_fundamentals_path,
     curated_issues_path,
     fiscal_period_label,
+    is_valid_cik,
+    is_valid_fiscal_period,
     pad_cik,
     simfin_bulk_path,
 )
@@ -89,6 +91,11 @@ def normalize_simfin(
             issue_rows.append(_issue_row(ticker=ticker, reason="missing_cik"))
             continue
 
+        cik = pad_cik(str(cik_raw))
+        if not is_valid_cik(cik):
+            issue_rows.append(_issue_row(ticker=ticker, reason="invalid_cik"))
+            continue
+
         report_date = income_row[mapping["meta"]["report_date"]]
         balance_row = _latest_balance_row(
             balance,
@@ -105,7 +112,7 @@ def normalize_simfin(
             income_row=income_row,
             balance_row=balance_row,
             ticker=ticker,
-            cik=pad_cik(str(cik_raw)),
+            cik=cik,
             mapping=mapping,
         )
         if issues:
@@ -209,6 +216,9 @@ def _build_curated_row(
 
     fiscal_period_end = report_date.date() if hasattr(report_date, "date") else report_date
     period = _period_label(income_row, meta, fiscal_period_end)
+    if not is_valid_fiscal_period(period):
+        issues.append(_issue_row(ticker=ticker, reason="invalid_period"))
+        return None, issues
     version_id = _version_id(income_row, meta)
 
     row: dict[str, object] = {
