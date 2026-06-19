@@ -25,6 +25,7 @@ dependencies = [
 download-fundamentals = "smartwealthai.download_fundamentals:main"
 download-simfin = "smartwealthai.download_simfin:main"
 normalize-simfin = "smartwealthai.normalize_simfin:main"
+build-universe = "smartwealthai.build_universe:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]
