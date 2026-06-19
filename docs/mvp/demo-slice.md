@@ -38,7 +38,8 @@ Deliver a working, explainable Greenblatt-style Magic Formula pipeline on real U
 | Data | Source | Tier |
 | --- | --- | --- |
 | Fundamentals | SimFin bulk (`income` TTM, `balance` quarterly, `cashflow` TTM, `companies`, `industries`) | Free |
-| Prices | `yfinance` | Free |
+| Prices (demo) | SimFin bulk `shareprices/latest` | Free; same ticker namespace as universe |
+| Prices (phase 2) | SimFin `shareprices/daily` or vendor fallback | Backtest and personal NAV |
 | Industry exclusions | `data/reference/simfin_industry_exclusions.csv` + bank/insurance dataset sanity check | Versioned CSV |
 
 ## Pipeline diagram
@@ -46,10 +47,10 @@ Deliver a working, explainable Greenblatt-style Magic Formula pipeline on real U
 ```mermaid
 flowchart LR
     SimFin["SimFin bulk US"] --> Raw["raw/simfin/"]
-    YF["yfinance prices"] --> RawPrices["raw/yfinance/"]
     Raw --> Norm["SimFin normalizer"]
-    RawPrices --> Prices["curated/prices"]
+    Raw --> SharePx["shareprices/latest"]
     Norm --> Fund["curated/fundamentals"]
+    SharePx --> Prices["curated/prices"]
     Companies["SimFin companies + industries"] --> Uni["Universe (US − exclusions)"]
     Fund --> Uni
     Uni --> ROC["ROC rank"]
@@ -74,6 +75,7 @@ flowchart LR
 | Fundamentals periodicity | Income/cashflow **TTM**; balance sheet **quarterly** (latest PIT row) |
 | Raw vs curated | Raw verbatim for downloaded variants; curated minimal (provider-agnostic schema) |
 | Universe | All SimFin `market=us` companies minus banks/insurers/utilities (`IndustryId` CSV + bank/insurance sanity check) |
+| Share prices | SimFin `shareprices/latest`; `price_date` may lag `run_date` by ~30 days (free tier) — OK for demo |
 | Portfolio | Top 30, equal-weight, market-cap tie-break on ranks |
 | SEC code | Frozen, not called by demo pipeline |
 

@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-in_progress — **demo path:** SimFin connector + normalizer. SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
+in_progress — **demo path:** SimFin connector + normalizer + SimFin shareprices snapshot ([#59](https://github.com/JLaborda/SmartWealthAI/issues/59)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 
 ## Objective
 
@@ -13,13 +13,12 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 ### Demo slice (June 30 — primary)
 
 - Ingest US fundamentals from **SimFin** bulk download (`simfin` Python package, free tier).
-- Datasets: `companies`, `industries`, `income` (TTM), `balance` (quarterly), `cashflow` (TTM) for `market=us`.
+- Datasets: `companies`, `industries`, `income` (TTM), `balance` (quarterly), `cashflow` (TTM), `shareprices` (`latest`) for `market=us`.
 - Store SimFin bulk responses verbatim under `raw/simfin/`.
 - Normalize into provider-agnostic `curated/fundamentals` (same schema scoring modules expect).
 - Point-in-time: `as_of_date` = SimFin `Publish Date`; restatements via `Restated Date` + new `version_id`.
-- Ingest US prices from `yfinance` (FMP / Alpha Vantage / EODHD fallbacks optional).
+- Build run-date prices from SimFin bulk `shareprices/latest` joined to the universe (one row per ticker).
 - Run data quality checks; failing rows → review queue.
-- Cache `yfinance` on S3 with TTL.
 - Weekly bulk refresh on free tier (`refresh_days=7`); incremental normalize by publish-date watermark.
 - DuckDB views on curated parquet.
 
@@ -47,7 +46,8 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 | Publish / report / restated dates | SimFin statement rows | `Publish Date` → `as_of_date`. |
 | Company metadata | SimFin `companies` | `Ticker`, `CIK`, `IndustryId`, `SimFinId`. |
 | Industry labels | SimFin `industries` | Sector/industry names for exclusions CSV. |
-| Daily prices, splits, dividends | `yfinance` (primary), FMP / AV / EODHD (fallback) | Cached on S3 with TTL. |
+| Share prices (demo) | SimFin bulk `shareprices` variant `latest` | Run-date close for market cap; same ticker namespace as universe. |
+| Share prices (phase 2) | SimFin `shareprices/daily` or vendor fallback | Backtest and personal NAV. |
 | Industry exclusions | `data/reference/simfin_industry_exclusions.csv` | Banks, insurers, utilities. |
 | Reference ticker map | `data/reference/ticker_mapping.csv` | Broker symbol → yfinance symbol. |
 | SEC `companyfacts` (frozen) | SEC EDGAR | Phase 2 only; spike under `raw/sec_edgar/`. |
@@ -59,10 +59,12 @@ All outputs live under `s3://smartwealthai-data-lake/` and are queryable from Du
 | Dataset | Path (S3) | Partitioning | Notes |
 | --- | --- | --- | --- |
 | Raw SimFin bulk | `raw/simfin/dataset=<name>/variant=<v>/market=us/as_of_date=<YYYY-MM-DD>/` | by dataset, variant, download date | Verbatim CSV/ZIP from SimFin bulk API. |
-| Raw prices | `raw/yfinance/ticker=<ticker>/endpoint=<endpoint>/as_of_date=<YYYY-MM-DD>/` | by ticker and endpoint | Verbatim yfinance response. |
+| Raw share prices | `raw/simfin/dataset=shareprices/variant=latest/market=us/as_of_date=<YYYY-MM-DD>/` | by download date | Verbatim SimFin bulk CSV. |
+| Raw prices (phase 2) | `raw/yfinance/...` or `shareprices/daily` | by ticker / date | Vendor fallback for backtest. |
 | Raw SEC (frozen) | `raw/sec_edgar/cik=<cik>/endpoint=companyfacts/...` | by CIK | Phase 2; existing spike layout. |
 | Curated fundamentals (PIT) | `curated/fundamentals/cik=<cik>/period=<YYYYQn>/` | by CIK and fiscal period | Provider-agnostic schema; `as_of_date`, `version_id`, `fiscal_period_end`. |
-| Curated prices | `curated/prices/ticker=<ticker>/year=<YYYY>/` | by ticker and year | Adjusted and unadjusted close, volume, splits, dividends. |
+| Curated prices (demo) | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` | by run date | One row per universe ticker: `run_date`, `ticker`, `price_date`, `close`, `adj_close`, `volume`. |
+| Curated prices (phase 2) | `curated/prices/ticker=<ticker>/year=<YYYY>/` | by ticker and year | Full daily history for backtest and NAV. |
 | Universe history | `curated/universe/run_date=<YYYY-MM-DD>/` | by run date | Built by `universe-construction`. |
 | Issue registry | `curated/issues/run_date=<YYYY-MM-DD>/` | by run date | Rows that failed quality checks. |
 | yfinance cache | `cache/yfinance/<ticker>/<endpoint>/<as_of_date>.parquet` | by ticker, endpoint, date | TTL per endpoint. |
@@ -93,10 +95,10 @@ flowchart TD
 
 ## Expected flow (demo)
 
-1. Download SimFin bulk US datasets (`companies`, `industries`, `income-ttm`, `balance-quarterly`, `cashflow-ttm`) if older than `refresh_days`. Store verbatim under `raw/simfin/...`.
-2. For each ticker in the demo universe (from `universe-construction`), fetch prices via yfinance cache; on miss, call live and write cache + raw.
-3. Run the **SimFin normalizer** on new bulk snapshots (see *SimFin normalizer* below). Join income TTM + latest quarterly balance per ticker with PIT semantics.
-4. Stamp `as_of_date` from `Publish Date` (or `Restated Date` for new versions). Fallback: `Report Date + lag` → review queue.
+1. Download SimFin bulk US datasets (`companies`, `industries`, `income-ttm`, `balance-quarterly`, `cashflow-ttm`, `shareprices-latest`) if older than `refresh_days`. Store verbatim under `raw/simfin/...`.
+2. Build universe for `run_date` (see `universe-construction.md`).
+3. Join universe tickers to `shareprices/latest`; for each ticker take the latest `Date <= run_date`; write `curated/prices/run_date=<date>/prices.parquet`. Missing tickers → error summary, excluded from scoring join.
+4. Run the **SimFin normalizer** on fundamentals bulk snapshots (see *SimFin normalizer* below).
 5. Quality checks; failures → `curated/issues/`.
 6. Publish DuckDB views. Downstream reads curated only.
 
@@ -123,8 +125,7 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - A query "fundamentals as of decision date D" returns, per `(cik, fiscal_period_end)`, the row with the highest `as_of_date <= D` and, on tie, the highest `version_id`.
 - The same logic applies when re-running historical backtests: the backtest engine pins `D = decision_date` for each rebalance and never sees a row with `as_of_date > D`.
 - Restated financials are kept as new versions; the prior version is preserved for replay of past decisions.
-
-## yfinance cache strategy
+- **Demo share prices:** curated `price_date` comes from SimFin `shareprices/latest` (free tier refreshes ~weekly). **`price_date` may trail `run_date` by up to ~30 days**; no block or review queue for staleness in the demo slice. Phase 2 uses `shareprices/daily` or vendor fallback when same-day accuracy matters.
 
 - Cache key: `(ticker, endpoint, as_of_date)`.
 - TTL per endpoint:
@@ -173,6 +174,18 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - Fundamentals download spike modules are implemented under `src/smartwealthai/`
   (`sec_client`, `edgartools_client`, `download_fundamentals`) — **frozen** for phase 2.
   SimFin connector + normalizer are the active demo path ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
+- SimFin shareprices snapshot in `price_ingest.py` and `download_prices.py` CLI
+  (`poetry run download-prices`). Requires `shareprices/latest` from `download-simfin`.
+  Writes `curated/prices/run_date=<date>/prices.parquet`. Hermetic tests in
+  `tests/test_download_prices.py`.
+
+**Operator sequence (demo prices):**
+
+```bash
+poetry run download-simfin --as-of-date 2026-06-19
+poetry run build-universe --run-date 2026-06-19
+poetry run download-prices --run-date 2026-06-19 --snapshot-date 2026-06-19
+```
 
 ## Decisions made (fundamentals)
 

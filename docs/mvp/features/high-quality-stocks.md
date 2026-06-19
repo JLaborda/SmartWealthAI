@@ -33,7 +33,7 @@ Score the economic quality of every company that survives the universe filter an
 | --- | --- | --- |
 | Passing universe + permanent loss filter pass list | `curated/universe` + `curated/permanent_loss` | Only `pass` rows are scored. |
 | PIT fundamentals (income statement, balance sheet) | `curated/fundamentals` | Filtered by `as_of_date <= run_date`. |
-| Market cap | `curated/prices` join `curated/fundamentals` | `shares_outstanding * close` on `run_date`. |
+| Market cap | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` join `curated/fundamentals` | Tie-break uses `shares_outstanding * adj_close` on `run_date`. |
 | Run date | Pipeline parameter | |
 | ROC formula version | `config/quality/roc.yaml` | Versioned to allow future variants. |
 
