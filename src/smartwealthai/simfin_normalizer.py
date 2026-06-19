@@ -40,6 +40,7 @@ CANONICAL_VALUE_FIELDS: tuple[str, ...] = (
 )
 
 DATE_COLUMNS = ("Report Date", "Publish Date", "Restated Date")
+PIT_NATURAL_KEY = ("cik", "fiscal_period_end", "as_of_date", "version_id")
 
 
 @dataclass
@@ -121,13 +122,27 @@ def normalize_simfin(
             curated_rows.append(row)
 
     result = NormalizeResult()
+    rows_by_path: dict[Path, list[dict[str, object]]] = {}
     for row in curated_rows:
         period = str(row["period"])
         cik = str(row["cik"])
         out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
+        rows_by_path.setdefault(out_path, []).append(row)
+
+    for out_path, rows in rows_by_path.items():
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
-        result.written_rows += 1
+        frame = pd.DataFrame(rows)
+        if out_path.exists():
+            frame = pd.concat([pd.read_parquet(out_path), frame], ignore_index=True)
+        for column in ("fiscal_period_end", "as_of_date"):
+            frame[column] = pd.to_datetime(frame[column])
+        frame = (
+            frame.sort_values(list(PIT_NATURAL_KEY))
+            .drop_duplicates(subset=list(PIT_NATURAL_KEY), keep="last")
+            .reset_index(drop=True)
+        )
+        frame.to_parquet(out_path, index=False)
+        result.written_rows += len(rows)
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
