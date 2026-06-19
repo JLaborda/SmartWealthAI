@@ -159,6 +159,10 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - SimFin bulk connector implemented in `src/smartwealthai/download_simfin.py`,
   `simfin_client.py`, and `lake_paths.simfin_bulk_path`. Operator guide:
   [`docs/mvp/guides/download-simfin.md`](../guides/download-simfin.md).
+- SimFin fundamentals normalizer in `src/smartwealthai/simfin_normalizer.py` and
+  `normalize_simfin.py` CLI; mapping at `config/fundamentals/simfin_mapping_v1.yaml`.
+  Hermetic tests in `tests/test_simfin_normalizer.py` with fixtures under
+  `tests/fixtures/lake/raw/simfin/`.
 - Hermetic tests in `tests/test_download_simfin.py` (path layout, skip/force,
   mocked download, per-dataset failure handling).
 - A hermetic fixture lake contract is implemented for CI in
@@ -235,11 +239,25 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 
 ### Acceptance criteria (SimFin normalizer)
 
-- [ ] Reads bulk files from `raw/simfin/` only.
-- [ ] Emits same curated schema as SEC path would (see canonical fields below).
-- [ ] PIT natural key `(cik, fiscal_period_end, as_of_date, version_id)`.
-- [ ] Hermetic tests with fixture SimFin CSV snippets.
-- [ ] `simfin_mapping_v1.yaml` drives column resolution.
+- [x] Reads bulk files from `raw/simfin/` only.
+- [x] Emits same curated schema as SEC path would (see canonical fields below).
+- [x] PIT natural key `(cik, fiscal_period_end, as_of_date, version_id)`.
+- [x] Hermetic tests with fixture SimFin CSV snippets.
+- [x] `simfin_mapping_v1.yaml` drives column resolution.
+
+### Module map (SimFin normalizer)
+
+| Module | Role |
+| --- | --- |
+| `smartwealthai.simfin_normalizer` | Raw SimFin CSV join + PIT stamping + curated parquet writer. |
+| `smartwealthai.normalize_simfin` | CLI entry point (`poetry run normalize-simfin`). |
+| `config/fundamentals/simfin_mapping_v1.yaml` | SimFin column → canonical field mapping. |
+| `smartwealthai.lake_paths` | `curated_fundamentals_path`, `curated_issues_path`, `fiscal_period_label`. |
+
+```bash
+poetry run normalize-simfin --data-dir data --snapshot-date 2026-06-18
+poetry run normalize-simfin --ticker AAPL --ticker MSFT
+```
 
 ## SEC fundamentals normalizer (phase 2)
 
