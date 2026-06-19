@@ -211,6 +211,24 @@ def curated_issues_path(data_dir: Path, *, run_date: date) -> Path:
     )
 
 
+def curated_universe_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the daily investable universe snapshot."""
+    return (
+        data_dir / "curated" / "universe" / f"run_date={run_date.isoformat()}" / "universe.parquet"
+    )
+
+
+def curated_exclusions_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the universe exclusion log on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "universe"
+        / f"run_date={run_date.isoformat()}"
+        / "exclusions.parquet"
+    )
+
+
 def artifact_paths(data_dir: Path, cik: str, as_of_date: date) -> list[Path]:
     """Return all raw artifact paths produced for one CIK on a given date.
 

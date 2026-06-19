@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-**in progress** — industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)); universe builder pending.
+**in progress** — universe builder implemented ([#58](https://github.com/JLaborda/SmartWealthAI/issues/58)); industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)) done.
 
 Demo mode ships first ([`demo-slice.md`](../demo-slice.md)); full S&P 500 historical mode in phase 2.
 
@@ -137,10 +137,12 @@ flowchart TD
 ### Demo
 
 - [x] `data/reference/simfin_industry_exclusions.csv` versioned with banks, insurers, utilities (`industry_id`, `industry_name`, `sector`, `exclusion_reason`).
-- [ ] Same `run_date` → byte-identical `universe.parquet`.
-- [ ] No excluded `IndustryId` appears in the universe.
-- [ ] No bank/insurance sanity-check ticker appears in the universe.
-- [ ] Module consumes only curated/raw SimFin snapshots (no network).
+- [x] Same `run_date` → byte-identical `universe.parquet`.
+- [x] No excluded `IndustryId` appears in the universe.
+- [x] No bank/insurance sanity-check ticker appears in the universe.
+- [x] Module consumes only curated/raw SimFin snapshots (no network).
+
+**Code:** `src/smartwealthai/universe_builder.py`, CLI `poetry run build-universe`.
 
 ### Full MVP (phase 2)
 

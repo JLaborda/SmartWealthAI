@@ -203,7 +203,7 @@ def test_normalize_simfin_routes_missing_cik_to_issues(lake_with_simfin: Path) -
         market="us",
         as_of_date=SIMFIN_FIXTURE_DATE,
     )
-    _append_csv_line(companies_path, "NOCIK;999;;50;Technology;No CIK Inc.")
+    _append_csv_line(companies_path, "NOCIK;999;No CIK Inc.;50;USA;")
     _append_csv_line(
         income_path,
         "NOCIK;999;2024-06-30;2024-07-30;;USD;2024;Q2;100;10;5",
@@ -236,7 +236,7 @@ def test_normalize_simfin_routes_missing_balance_to_issues(lake_with_simfin: Pat
         market="us",
         as_of_date=SIMFIN_FIXTURE_DATE,
     )
-    _append_csv_line(companies_path, "NOBS;888;0000999888;50;Technology;No Balance Inc.")
+    _append_csv_line(companies_path, "NOBS;888;No Balance Inc.;50;USA;0000999888")
     _append_csv_line(
         income_path,
         "NOBS;888;2024-06-30;2024-07-30;;USD;2024;Q2;100;10;5",
