@@ -48,7 +48,7 @@ poetry run download-simfin --as-of-date 2026-06-18 --force
 
 | Module | Role |
 | --- | --- |
-| `smartwealthai.simfin_client` | Configure API key, trigger `simfin` bulk download, resolve cache CSV path. |
+| `smartwealthai.simfin_client` | Configure API key, safe bulk download (zip-slip guarded), resolve cache CSV path. |
 | `smartwealthai.download_simfin` | CLI orchestration, skip/force logic, run summary. |
 | `smartwealthai.lake_paths` | Raw lake path builders for `raw/simfin/`. |
 

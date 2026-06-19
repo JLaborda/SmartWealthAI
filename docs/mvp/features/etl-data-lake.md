@@ -200,7 +200,7 @@ poetry run download-simfin --refresh-days 7 --force
 
 | Module | Role |
 | --- | --- |
-| `smartwealthai.simfin_client` | API key config, trigger `simfin` bulk download, cache CSV path. |
+| `smartwealthai.simfin_client` | API key config, safe bulk download (zip-slip guarded), cache CSV path. |
 | `smartwealthai.download_simfin` | CLI orchestration, skip/force by `refresh_days`, run summary. |
 | `smartwealthai.lake_paths` | `simfin_bulk_path`, `simfin_errors_path`. |
 
@@ -211,6 +211,7 @@ poetry run download-simfin --refresh-days 7 --force
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
+- [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
 - [x] Operator steps in [`download-simfin.md`](../guides/download-simfin.md).
 
 ## SimFin normalizer (demo)
