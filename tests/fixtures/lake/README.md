@@ -7,6 +7,7 @@ yfinance), then reduced and committed for hermetic tests.
 ## Directory layout
 
 - `raw/sec_edgar/...`: reduced real SEC companyfacts snapshots
+- `raw/simfin/...`: reduced SimFin bulk CSV snapshots (income TTM, balance quarterly, companies)
 - `raw/yfinance/...`: reduced real yfinance history snapshots
 - `curated/fundamentals.csv`: stable derived dataset for PIT tests
 - `MANIFEST.json`: provenance and SHA-256 checksums
