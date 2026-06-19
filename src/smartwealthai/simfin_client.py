@@ -14,7 +14,9 @@ from simfin.utils import _file_age
 
 DownloadFn = Callable[..., None]
 
-KNOWN_DATASETS = frozenset({"companies", "industries", "income", "balance", "cashflow"})
+KNOWN_DATASETS = frozenset(
+    {"companies", "industries", "income", "balance", "cashflow", "shareprices"}
+)
 
 
 def configure_simfin(*, api_key: str, cache_dir: Path) -> None:

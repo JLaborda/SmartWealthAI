@@ -229,6 +229,62 @@ def curated_exclusions_path(data_dir: Path, *, run_date: date) -> Path:
     )
 
 
+def yfinance_raw_path(
+    data_dir: Path,
+    *,
+    ticker: str,
+    endpoint: str,
+    as_of_date: date,
+) -> Path:
+    """Build the path for a verbatim yfinance response snapshot."""
+    return (
+        data_dir
+        / "raw"
+        / "yfinance"
+        / f"ticker={ticker}"
+        / f"endpoint={endpoint}"
+        / f"as_of_date={as_of_date.isoformat()}"
+        / f"{endpoint}.json"
+    )
+
+
+def curated_prices_path(data_dir: Path, *, ticker: str, year: int) -> Path:
+    """Build the path for curated daily prices for one ticker and calendar year.
+
+    Phase 2 full-history layout; demo uses :func:`curated_prices_snapshot_path`.
+    """
+    return data_dir / "curated" / "prices" / f"ticker={ticker}" / f"year={year}" / "prices.parquet"
+
+
+def curated_prices_snapshot_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the demo cross-sectional price snapshot on ``run_date``."""
+    return data_dir / "curated" / "prices" / f"run_date={run_date.isoformat()}" / "prices.parquet"
+
+
+def yfinance_errors_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for a yfinance price ingest run error summary (phase 2)."""
+    return (
+        data_dir
+        / "raw"
+        / "yfinance"
+        / "download_runs"
+        / f"run_date={run_date.isoformat()}"
+        / "errors.json"
+    )
+
+
+def price_ingest_errors_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for missing-ticker errors from SimFin price ingest."""
+    return (
+        data_dir
+        / "curated"
+        / "prices"
+        / "download_runs"
+        / f"run_date={run_date.isoformat()}"
+        / "errors.json"
+    )
+
+
 def artifact_paths(data_dir: Path, cik: str, as_of_date: date) -> list[Path]:
     """Return all raw artifact paths produced for one CIK on a given date.
 
