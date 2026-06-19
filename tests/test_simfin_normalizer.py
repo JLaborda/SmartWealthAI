@@ -12,8 +12,10 @@ from smartwealthai.fixture_lake import FIXTURES_DIR
 from smartwealthai.lake_paths import (
     curated_fundamentals_path,
     curated_issues_path,
+    fiscal_period_label,
     simfin_bulk_path,
 )
+from smartwealthai.normalize_simfin import cli_run
 from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
     load_simfin_mapping,
@@ -116,6 +118,269 @@ def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin
     assert result.issue_rows == 1
     issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
     assert issues.iloc[0]["reason"] == "missing_publish_date"
+
+
+def test_fiscal_period_label_uses_calendar_quarter() -> None:
+    assert fiscal_period_label(date(2024, 9, 28)) == "2024Q3"
+
+
+def test_cli_normalize_simfin_writes_curated_output(lake_with_simfin: Path) -> None:
+    exit_code = cli_run(
+        [
+            "--data-dir",
+            str(lake_with_simfin),
+            "--snapshot-date",
+            SIMFIN_FIXTURE_DATE.isoformat(),
+            "--ticker",
+            "AAPL",
+        ]
+    )
+
+    assert exit_code == 0
+    assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4").exists()
+
+
+def test_normalize_simfin_skips_tickers_outside_filter(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(
+        income_path,
+        "MSFT;222;2024-06-30;2024-07-30;;USD;2024;Q2;211915000000;88520000000;72361000000",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 1
+    assert result.issue_rows == 0
+
+
+def test_normalize_simfin_routes_unknown_ticker_to_issues(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(
+        income_path,
+        "NOPE;999;2024-06-30;2024-07-30;;USD;2024;Q2;100;10;5",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"NOPE"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert "missing_company_metadata" in set(issues["reason"])
+
+
+def test_normalize_simfin_routes_missing_cik_to_issues(lake_with_simfin: Path) -> None:
+    companies_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(companies_path, "NOCIK;999;;50;Technology;No CIK Inc.")
+    _append_csv_line(
+        income_path,
+        "NOCIK;999;2024-06-30;2024-07-30;;USD;2024;Q2;100;10;5",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"NOCIK"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "missing_cik"
+
+
+def test_normalize_simfin_routes_missing_balance_to_issues(lake_with_simfin: Path) -> None:
+    companies_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(companies_path, "NOBS;888;0000999888;50;Technology;No Balance Inc.")
+    _append_csv_line(
+        income_path,
+        "NOBS;888;2024-06-30;2024-07-30;;USD;2024;Q2;100;10;5",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"NOBS"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "missing_balance_row"
+
+
+def test_normalize_simfin_routes_non_usd_currency_to_issues(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path.write_text(
+        income_path.read_text().replace(
+            "2024-11-01;;USD",
+            "2024-11-01;;EUR",
+        )
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "non_usd_currency"
+
+
+def test_normalize_simfin_routes_missing_mandatory_fields_to_issues(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path.write_text(income_path.read_text().replace("391035000000;", ";"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "missing_mandatory_fields"
+
+
+def test_normalize_simfin_routes_as_of_before_period_end_to_issues(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    balance_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="balance",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    for path in (income_path, balance_path):
+        path.write_text(path.read_text().replace("2024-11-01;", "2024-01-01;"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "as_of_before_period_end"
+
+
+def test_normalize_simfin_uses_calendar_period_when_fiscal_labels_missing(
+    lake_with_simfin: Path,
+) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path.write_text(
+        income_path.read_text().replace("2024;Q4;", ";;").replace("2024;Q4;", ";;")
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 1
+    assert curated_fundamentals_path(
+        lake_with_simfin, cik="0000320193", period="2024Q3"
+    ).exists()
+
+
+def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
+    mapping_path = tmp_path / "mapping.yaml"
+    mapping_path.write_text(
+        "version: test_v1\n"
+        "fields:\n"
+        "  ebit: EBIT\n"
+        "meta:\n"
+        "  ticker: Ticker\n"
+        "unknown_section:\n"
+        "missing_publish_lag_days: 45\n"
+        "note without colon\n"
+    )
+
+    mapping = load_simfin_mapping(mapping_path)
+
+    assert mapping["version"] == "test_v1"
+    assert mapping["fields"]["ebit"] == "EBIT"
+    assert mapping["missing_publish_lag_days"] == 45
+
+
+def _append_csv_line(path: Path, line: str) -> None:
+    path.write_text(path.read_text().rstrip("\n") + "\n" + line + "\n")
 
 
 def _copy_simfin_fixtures(data_dir: Path) -> None:
