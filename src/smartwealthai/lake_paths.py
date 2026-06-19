@@ -12,8 +12,11 @@ Example::
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
+
+_FISCAL_PERIOD_RE = re.compile(r"^\d{4}Q[1-4]$")
 
 STATEMENT_NAMES: tuple[str, ...] = (
     "income_statement",
@@ -33,6 +36,17 @@ def pad_cik(cik: str) -> str:
         CIK formatted as 10 digits, e.g. ``"0000320193"``.
     """
     return str(cik).zfill(10)
+
+
+def is_valid_cik(cik: str) -> bool:
+    """Return True if ``cik`` is a 10-digit SEC CIK after zero-padding."""
+    padded = pad_cik(cik)
+    return len(padded) == 10 and padded.isdigit()
+
+
+def is_valid_fiscal_period(period: str) -> bool:
+    """Return True if ``period`` is a safe ``YYYYQn`` partition label."""
+    return bool(_FISCAL_PERIOD_RE.match(period))
 
 
 def companyfacts_path(data_dir: Path, cik: str, as_of_date: date) -> Path:
@@ -155,6 +169,45 @@ def simfin_bulk_path(
         / f"market={market_key}"
         / f"as_of_date={as_of_date.isoformat()}"
         / filename
+    )
+
+
+def fiscal_period_label(report_date: date) -> str:
+    """Return ``YYYYQn`` partition label for a fiscal period end date."""
+    quarter = (report_date.month - 1) // 3 + 1
+    return f"{report_date.year}Q{quarter}"
+
+
+def curated_fundamentals_path(data_dir: Path, *, cik: str, period: str) -> Path:
+    """Build the path for curated fundamentals parquet for one CIK and period.
+
+    Raises:
+        ValueError: If ``cik`` or ``period`` are not safe partition keys.
+    """
+    if not is_valid_cik(cik):
+        msg = f"Invalid CIK partition key: {cik!r}"
+        raise ValueError(msg)
+    if not is_valid_fiscal_period(period):
+        msg = f"Invalid fiscal period partition key: {period!r}"
+        raise ValueError(msg)
+    return (
+        data_dir
+        / "curated"
+        / "fundamentals"
+        / f"cik={pad_cik(cik)}"
+        / f"period={period}"
+        / "fundamentals.parquet"
+    )
+
+
+def curated_issues_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the fundamentals review queue on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "issues"
+        / f"run_date={run_date.isoformat()}"
+        / "fundamentals.parquet"
     )
 
 
