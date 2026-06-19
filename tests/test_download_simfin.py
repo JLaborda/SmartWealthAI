@@ -208,9 +208,7 @@ def test_run_download_fails_when_all_critical_datasets_fail(tmp_path: Path) -> N
 
 def test_simfin_errors_path_matches_spec_layout() -> None:
     path = simfin_errors_path(Path("data"), date(2026, 6, 18))
-    assert path == Path(
-        "data/raw/simfin/download_runs/as_of_date=2026-06-18/errors.json"
-    )
+    assert path == Path("data/raw/simfin/download_runs/as_of_date=2026-06-18/errors.json")
 
 
 def test_simfin_source_filename_for_industries_without_market() -> None:
