@@ -354,9 +354,7 @@ def test_normalize_simfin_uses_calendar_period_when_fiscal_labels_missing(
     )
 
     assert result.written_rows == 1
-    assert curated_fundamentals_path(
-        lake_with_simfin, cik="0000320193", period="2024Q3"
-    ).exists()
+    assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q3").exists()
 
 
 def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
