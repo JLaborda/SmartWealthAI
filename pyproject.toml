@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 download-fundamentals = "smartwealthai.download_fundamentals:main"
 download-simfin = "smartwealthai.download_simfin:main"
+generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
