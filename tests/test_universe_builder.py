@@ -264,8 +264,7 @@ def test_skips_blank_ticker_rows(lake: Path) -> None:
 def test_sector_from_exclusions_when_industries_missing(lake: Path, tmp_path: Path) -> None:
     exclusions = tmp_path / "exclusions.csv"
     exclusions.write_text(
-        "industry_id,industry_name,sector,exclusion_reason\n"
-        "104002,Banks,Financial Services,bank\n"
+        "industry_id,industry_name,sector,exclusion_reason\n104002,Banks,Financial Services,bank\n"
     )
     _write_companies(lake, ["JPM;111053;JPMorgan Chase & Co.;104002;USA;0000019617"])
     industries_path = simfin_bulk_path(
