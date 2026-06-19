@@ -2,7 +2,9 @@
 
 ## Implementation status
 
-planned — **demo mode** ships first ([`demo-slice.md`](../demo-slice.md)); full S&P 500 historical mode in phase 2.
+**in progress** — industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)); universe builder pending.
+
+Demo mode ships first ([`demo-slice.md`](../demo-slice.md)); full S&P 500 historical mode in phase 2.
 
 ## Objective
 
@@ -14,6 +16,11 @@ Produce the investable universe of US common stocks for each decision date. This
 
 - Seed universe: all SimFin US companies (`load_companies(market='us')`).
 - Exclude banks, insurers, and utilities via `data/reference/simfin_industry_exclusions.csv` (`IndustryId` list built from `load_industries()`).
+- **Regeneration rules** (applied by `build_exclusions` in `src/smartwealthai/simfin_industry_exclusions.py`):
+  - `bank`: SimFin industry name exactly `Banks`
+  - `insurer`: industry name contains `Insurance`
+  - `utility`: SimFin sector exactly `Utilities`
+- Regenerate after SimFin industry label changes: `poetry run generate-simfin-industry-exclusions --industries <path-to-industries.csv>`
 - Sanity check: exclude tickers present in SimFin `income_banks` or `income_insurance` bulk datasets even if `IndustryId` is missing from the CSV.
 - No S&P 500 historical file required for demo.
 - No market-cap or ADV floors in demo (optional parameters disabled).
@@ -129,6 +136,7 @@ flowchart TD
 
 ### Demo
 
+- [x] `data/reference/simfin_industry_exclusions.csv` versioned with banks, insurers, utilities (`industry_id`, `industry_name`, `sector`, `exclusion_reason`).
 - [ ] Same `run_date` → byte-identical `universe.parquet`.
 - [ ] No excluded `IndustryId` appears in the universe.
 - [ ] No bank/insurance sanity-check ticker appears in the universe.
