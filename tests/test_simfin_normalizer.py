@@ -122,8 +122,7 @@ def test_normalize_simfin_preserves_same_period_pit_versions(lake_with_simfin: P
         curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
     )
     as_of_dates = {
-        value.date() if hasattr(value, "date") else value
-        for value in rows["as_of_date"]
+        value.date() if hasattr(value, "date") else value for value in rows["as_of_date"]
     }
     assert len(rows) == 2
     assert set(rows["version_id"]) == {1, 2}
