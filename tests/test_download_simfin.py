@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import time
+import zipfile
 from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -31,6 +32,7 @@ from smartwealthai.simfin_client import (
     configure_simfin,
     dataset_cache_path,
     fetch_dataset_csv,
+    safe_extract_zip,
 )
 
 
@@ -254,38 +256,48 @@ def test_dataset_cache_path_after_configure(tmp_path: Path) -> None:
     assert path == cache_dir / "us-income-ttm.csv"
 
 
-def test_fetch_dataset_csv_invokes_loader_and_returns_cache_path(tmp_path: Path) -> None:
+def test_fetch_dataset_csv_invokes_downloader_and_returns_cache_path(tmp_path: Path) -> None:
     configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
-    loader = MagicMock()
+    downloader = MagicMock()
 
     result = fetch_dataset_csv(
         dataset="income",
         variant="ttm",
         market="us",
         refresh_days=7,
-        load_fn=loader,
+        download_fn=downloader,
     )
 
-    loader.assert_called_once_with(variant="ttm", refresh_days=7)
+    downloader.assert_called_once_with(
+        dataset="income",
+        variant="ttm",
+        market="us",
+        refresh_days=7,
+    )
     assert result == tmp_path / "cache" / "us-income-ttm.csv"
 
 
 def test_fetch_dataset_csv_passes_market_for_companies(tmp_path: Path) -> None:
     configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
-    loader = MagicMock()
+    downloader = MagicMock()
 
     fetch_dataset_csv(
         dataset="companies",
         variant=None,
         market="us",
         refresh_days=7,
-        load_fn=loader,
+        download_fn=downloader,
     )
 
-    loader.assert_called_once_with(refresh_days=7, market="us")
+    downloader.assert_called_once_with(
+        dataset="companies",
+        variant=None,
+        market="us",
+        refresh_days=7,
+    )
 
 
-def test_default_loader_raises_for_unknown_dataset() -> None:
+def test_download_dataset_csv_raises_for_unknown_dataset() -> None:
     with pytest.raises(ValueError, match="Unknown SimFin dataset"):
         fetch_dataset_csv(
             dataset="not-a-dataset",
@@ -293,6 +305,31 @@ def test_default_loader_raises_for_unknown_dataset() -> None:
             market="us",
             refresh_days=7,
         )
+
+
+def test_safe_extract_zip_rejects_path_traversal(tmp_path: Path) -> None:
+    zip_path = tmp_path / "evil.zip"
+    dest_dir = tmp_path / "dest"
+    dest_dir.mkdir()
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("../outside.csv", "pwned")
+
+    with pytest.raises(ValueError, match="Unsafe zip entry path"):
+        safe_extract_zip(zip_path, dest_dir)
+
+    assert not (tmp_path / "outside.csv").exists()
+
+
+def test_safe_extract_zip_allows_members_under_dest(tmp_path: Path) -> None:
+    zip_path = tmp_path / "bulk.zip"
+    dest_dir = tmp_path / "dest"
+    dest_dir.mkdir()
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("us-income-ttm.csv", "Ticker;Revenue\nAAPL;1\n")
+
+    safe_extract_zip(zip_path, dest_dir)
+
+    assert (dest_dir / "us-income-ttm.csv").read_text() == "Ticker;Revenue\nAAPL;1\n"
 
 
 def test_download_dataset_force_requests_immediate_simfin_refresh(tmp_path: Path) -> None:
