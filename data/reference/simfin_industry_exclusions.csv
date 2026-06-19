@@ -1,0 +1,8 @@
+industry_id,industry_name,sector,exclusion_reason
+104002,Banks,Financial Services,bank
+104004,Insurance - Life,Financial Services,insurer
+104005,Insurance,Financial Services,insurer
+104006,Insurance - Property & Casualty,Financial Services,insurer
+104013,Insurance - Specialty,Financial Services,insurer
+105001,Utilities - Regulated,Utilities,utility
+105002,Utilities - Independent Power Producers,Utilities,utility
