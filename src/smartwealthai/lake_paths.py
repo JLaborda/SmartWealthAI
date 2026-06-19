@@ -158,6 +158,35 @@ def simfin_bulk_path(
     )
 
 
+def fiscal_period_label(report_date: date) -> str:
+    """Return ``YYYYQn`` partition label for a fiscal period end date."""
+    quarter = (report_date.month - 1) // 3 + 1
+    return f"{report_date.year}Q{quarter}"
+
+
+def curated_fundamentals_path(data_dir: Path, *, cik: str, period: str) -> Path:
+    """Build the path for curated fundamentals parquet for one CIK and period."""
+    return (
+        data_dir
+        / "curated"
+        / "fundamentals"
+        / f"cik={pad_cik(cik)}"
+        / f"period={period}"
+        / "fundamentals.parquet"
+    )
+
+
+def curated_issues_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the fundamentals review queue on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "issues"
+        / f"run_date={run_date.isoformat()}"
+        / "fundamentals.parquet"
+    )
+
+
 def artifact_paths(data_dir: Path, cik: str, as_of_date: date) -> list[Path]:
     """Return all raw artifact paths produced for one CIK on a given date.
 

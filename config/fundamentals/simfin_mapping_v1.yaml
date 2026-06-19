@@ -1,0 +1,32 @@
+version: simfin_mapping_v1
+
+# SimFin bulk column names → curated canonical fields (see etl-data-lake.md).
+fields:
+  ebit: "Operating Income (Loss)"
+  revenue: Revenue
+  net_income: "Net Income"
+  current_assets: "Total Current Assets"
+  current_liabilities: "Total Current Liabilities"
+  cash: "Cash & Cash Equivalents"
+  short_term_debt: "Short Term Debt"
+  ppe_net: "Property, Plant & Equipment, Net"
+  long_term_debt: "Long Term Debt"
+  preferred_equity: "Preferred Equity"
+  minority_interest: "Minority Interest"
+  total_assets: "Total Assets"
+  total_liabilities: "Total Liabilities"
+  shares_outstanding: "Shares (Basic)"
+
+meta:
+  ticker: Ticker
+  simfin_id: SimFinId
+  cik: CIK
+  currency: Currency
+  report_date: "Report Date"
+  publish_date: "Publish Date"
+  restated_date: "Restated Date"
+  fiscal_year: "Fiscal Year"
+  fiscal_period: "Fiscal Period"
+
+# ponytail: single lag when Publish Date is missing (quarterly default from architecture).
+missing_publish_lag_days: 45
