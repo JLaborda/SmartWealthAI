@@ -17,11 +17,13 @@ dependencies = [
     "edgartools (>=5.35.1,<6.0.0)",
     "pyarrow (>=17.0.0,<25.0.0)",
     "requests (>=2.32.0,<3.0.0)",
-    "click (>=8.1.0,<9.0.0)"
+    "click (>=8.1.0,<9.0.0)",
+    "simfin (>=1.0.2,<2.0.0)"
 ]
 
 [project.scripts]
 download-fundamentals = "smartwealthai.download_fundamentals:main"
+download-simfin = "smartwealthai.download_simfin:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -52,6 +54,12 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.coverage.run]
 source = ["smartwealthai"]
 branch = true
+# Frozen SEC ETL spike (phase 2) — excluded from demo coverage metrics.
+omit = [
+    "src/smartwealthai/sec_client.py",
+    "src/smartwealthai/edgartools_client.py",
+    "src/smartwealthai/download_fundamentals.py",
+]
 
 [tool.coverage.report]
 show_missing = true

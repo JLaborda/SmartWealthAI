@@ -1924,6 +1924,23 @@ files = [
 ]
 
 [[package]]
+name = "simfin"
+version = "1.0.2"
+description = "Simple financial data for Python"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "simfin-1.0.2-py3-none-any.whl", hash = "sha256:869e9ec7750d6ee88deef6c1e450309a493599484fc34e982c0a2c448143d78c"},
+    {file = "simfin-1.0.2.tar.gz", hash = "sha256:51aa37da7f84c06c61baed748e9b3812668b58dd61af869723fb11b8150baa3c"},
+]
+
+[package.dependencies]
+numpy = "*"
+pandas = "*"
+requests = "*"
+
+[[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -2228,4 +2245,4 @@ repair = ["scipy (>=1.6.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "a32e532f61b8e11c72d4914777ea6372ece388dc1111c74ccb1e134b251ddbf8"
+content-hash = "08edf36a9905f3913b077fb4e2cab6aa42cc99e162d9a3054c9db20bc44d3363"
