@@ -13,3 +13,7 @@ test:
 # Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
 download-fundamentals:
 	poetry run download-fundamentals --universe dow30
+
+# formatting command
+format:
+	poetry run ruff format .

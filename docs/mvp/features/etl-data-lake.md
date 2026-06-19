@@ -156,6 +156,11 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 
 ### Progress notes
 
+- SimFin bulk connector implemented in `src/smartwealthai/download_simfin.py`,
+  `simfin_client.py`, and `lake_paths.simfin_bulk_path`. Operator guide:
+  [`docs/mvp/guides/download-simfin.md`](../guides/download-simfin.md).
+- Hermetic tests in `tests/test_download_simfin.py` (path layout, skip/force,
+  mocked download, per-dataset failure handling).
 - A hermetic fixture lake contract is implemented for CI in
   `tests/fixtures/lake/README.md` with raw SEC + raw yfinance snapshots,
   curated derived fundamentals, and a provenance manifest with checksums.
@@ -177,6 +182,37 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 | Provenance | Per-field source column + `mapping_version`. |
 | Downstream contract | Scoring reads `curated/fundamentals` only — provider-agnostic schema. |
 | SEC spike | Frozen in repo; not deleted. |
+
+## SimFin bulk connector (demo)
+
+Downloads US fundamentals via the `simfin` Python package into `raw/simfin/`.
+Operator guide: [`docs/mvp/guides/download-simfin.md`](../guides/download-simfin.md).
+
+### CLI
+
+```bash
+export SIMFIN_API_KEY="<from user secrets>"
+poetry run download-simfin
+poetry run download-simfin --refresh-days 7 --force
+```
+
+### Module map
+
+| Module | Role |
+| --- | --- |
+| `smartwealthai.simfin_client` | API key config, safe bulk download (zip-slip guarded), cache CSV path. |
+| `smartwealthai.download_simfin` | CLI orchestration, skip/force by `refresh_days`, run summary. |
+| `smartwealthai.lake_paths` | `simfin_bulk_path`, `simfin_errors_path`. |
+
+### Acceptance criteria (SimFin connector)
+
+- [x] `simfin` dependency in `pyproject.toml`; API key from `SIMFIN_API_KEY`.
+- [x] CLI downloads all five demo datasets into stable `raw/simfin/` partitions.
+- [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
+- [x] Per-dataset failures recorded in run summary; batch continues when possible.
+- [x] Hermetic tests cover path building, skip/force logic, and mocked download.
+- [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
+- [x] Operator steps in [`download-simfin.md`](../guides/download-simfin.md).
 
 ## SimFin normalizer (demo)
 

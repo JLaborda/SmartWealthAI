@@ -52,6 +52,11 @@ def test_artifact_paths_returns_four_targets_per_cik() -> None:
     assert len(paths) == 4
 
 
+def test_edgartools_statement_path_rejects_unknown_statement() -> None:
+    with pytest.raises(ValueError, match="Unknown statement"):
+        edgartools_statement_path(Path("data"), "320193", date(2026, 6, 7), "unknown")
+
+
 def test_should_skip_when_file_exists_and_not_forced(tmp_path: Path) -> None:
     target = tmp_path / "response.json"
     target.write_text("{}")

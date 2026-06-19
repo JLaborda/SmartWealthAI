@@ -100,6 +100,64 @@ def errors_path(data_dir: Path, as_of_date: date) -> Path:
     )
 
 
+def simfin_errors_path(data_dir: Path, as_of_date: date) -> Path:
+    """Build the path for a SimFin bulk download run error summary."""
+    return (
+        data_dir
+        / "raw"
+        / "simfin"
+        / "download_runs"
+        / f"as_of_date={as_of_date.isoformat()}"
+        / "errors.json"
+    )
+
+
+def simfin_source_filename(
+    *,
+    dataset: str,
+    variant: str | None,
+    market: str | None,
+) -> str:
+    """Return the SimFin bulk CSV filename for a dataset partition.
+
+    Mirrors ``simfin.paths._filename_dataset`` so lake paths match verbatim
+    files produced by the ``simfin`` package cache.
+    """
+    name = dataset if market is None else f"{market}-{dataset}"
+    if variant is not None:
+        name = f"{name}-{variant}"
+    return f"{name}.csv"
+
+
+def simfin_bulk_path(
+    data_dir: Path,
+    *,
+    dataset: str,
+    variant: str | None,
+    market: str | None,
+    as_of_date: date,
+) -> Path:
+    """Build the path for a verbatim SimFin bulk CSV snapshot.
+
+    Layout: ``raw/simfin/dataset=<name>/variant=<v>/market=<m>/as_of_date=<date>/``.
+    Datasets without a SimFin variant use ``variant=default``; datasets without a
+    market keyword (e.g. ``industries``) still partition under ``market=us``.
+    """
+    variant_key = variant if variant is not None else "default"
+    market_key = market if market is not None else "us"
+    filename = simfin_source_filename(dataset=dataset, variant=variant, market=market)
+    return (
+        data_dir
+        / "raw"
+        / "simfin"
+        / f"dataset={dataset}"
+        / f"variant={variant_key}"
+        / f"market={market_key}"
+        / f"as_of_date={as_of_date.isoformat()}"
+        / filename
+    )
+
+
 def artifact_paths(data_dir: Path, cik: str, as_of_date: date) -> list[Path]:
     """Return all raw artifact paths produced for one CIK on a given date.
 

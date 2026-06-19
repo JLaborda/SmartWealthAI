@@ -52,10 +52,10 @@ Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never com
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-# SimFin connector CLI — to be added; see docs/mvp/demo-slice.md
+poetry run download-simfin
 ```
 
-Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
+Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Operator guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
 
 ### Fundamentals — SEC spike (frozen, phase 2)
 
