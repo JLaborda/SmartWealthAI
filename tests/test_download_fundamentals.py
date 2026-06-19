@@ -16,8 +16,11 @@ from smartwealthai.download_fundamentals import should_skip
 from smartwealthai.lake_paths import (
     artifact_paths,
     companyfacts_path,
+    curated_fundamentals_path,
     edgartools_statement_path,
     errors_path,
+    is_valid_cik,
+    is_valid_fiscal_period,
     pad_cik,
 )
 from smartwealthai.universe import load_universe, resolve_universe_file
@@ -25,6 +28,35 @@ from smartwealthai.universe import load_universe, resolve_universe_file
 
 def test_pad_cik_zero_fills_to_ten_digits() -> None:
     assert pad_cik("320193") == "0000320193"
+
+
+def test_is_valid_cik_accepts_padded_and_unpadded_numeric_ciks() -> None:
+    assert is_valid_cik("320193")
+    assert is_valid_cik("0000320193")
+
+
+def test_is_valid_cik_rejects_path_traversal_and_non_numeric_values() -> None:
+    assert not is_valid_cik("../../evil")
+    assert not is_valid_cik("12345678901")
+    assert not is_valid_cik("000032019a")
+
+
+def test_is_valid_fiscal_period_accepts_yyyyq1_through_q4() -> None:
+    assert is_valid_fiscal_period("2024Q1")
+    assert is_valid_fiscal_period("2024Q4")
+
+
+def test_is_valid_fiscal_period_rejects_unsafe_partition_labels() -> None:
+    assert not is_valid_fiscal_period("2024/..//Q4")
+    assert not is_valid_fiscal_period("../2024Q4")
+    assert not is_valid_fiscal_period("2024Q5")
+
+
+def test_curated_fundamentals_path_rejects_invalid_partition_keys() -> None:
+    with pytest.raises(ValueError, match="Invalid CIK"):
+        curated_fundamentals_path(Path("data"), cik="../../evil", period="2024Q4")
+    with pytest.raises(ValueError, match="Invalid fiscal period"):
+        curated_fundamentals_path(Path("data"), cik="0000320193", period="../2024Q4")
 
 
 def test_companyfacts_path_matches_spec_layout() -> None:

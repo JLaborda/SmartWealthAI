@@ -303,6 +303,54 @@ def test_normalize_simfin_routes_missing_mandatory_fields_to_issues(lake_with_si
     assert issues.iloc[0]["reason"] == "missing_mandatory_fields"
 
 
+def test_normalize_simfin_routes_invalid_cik_to_issues(lake_with_simfin: Path) -> None:
+    companies_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    companies_path.write_text(companies_path.read_text().replace("0000320193", "../../evil"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    assert result.issue_rows == 1
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "invalid_cik"
+    assert list((lake_with_simfin / "curated" / "fundamentals").rglob("fundamentals.parquet")) == []
+
+
+def test_normalize_simfin_routes_invalid_period_to_issues(lake_with_simfin: Path) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path.write_text(income_path.read_text().replace(";Q4;", ";/..//Q4;"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 0
+    assert result.issue_rows == 1
+    issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
+    assert issues.iloc[0]["reason"] == "invalid_period"
+    assert list((lake_with_simfin / "curated" / "fundamentals").rglob("fundamentals.parquet")) == []
+
+
 def test_normalize_simfin_routes_as_of_before_period_end_to_issues(lake_with_simfin: Path) -> None:
     income_path = simfin_bulk_path(
         lake_with_simfin,
