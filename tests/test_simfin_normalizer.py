@@ -121,7 +121,9 @@ def test_normalize_simfin_preserves_original_and_restated_versions(
     rows = pd.read_parquet(
         curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
     ).sort_values("version_id")
-    as_of_dates = [value.date() if hasattr(value, "date") else value for value in rows["as_of_date"]]
+    as_of_dates = [
+        value.date() if hasattr(value, "date") else value for value in rows["as_of_date"]
+    ]
     assert rows["version_id"].tolist() == [1, 2]
     assert as_of_dates == [date(2024, 11, 1), date(2025, 10, 31)]
 
