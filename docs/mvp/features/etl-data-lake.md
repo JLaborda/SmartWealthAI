@@ -163,7 +163,8 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - SimFin fundamentals normalizer in `src/smartwealthai/simfin_normalizer.py` and
   `normalize_simfin.py` CLI; mapping at `config/fundamentals/simfin_mapping_v1.yaml`.
   Hermetic tests in `tests/test_simfin_normalizer.py` with fixtures under
-  `tests/fixtures/lake/raw/simfin/`.
+  `tests/fixtures/lake/raw/simfin/`. Curated partition writes preserve all
+  `(cik, fiscal_period_end, as_of_date, version_id)` versions for restatement replay.
 - Hermetic tests in `tests/test_download_simfin.py` (path layout, skip/force,
   mocked download, per-dataset failure handling).
 - A hermetic fixture lake contract is implemented for CI in

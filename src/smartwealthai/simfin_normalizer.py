@@ -21,6 +21,7 @@ from smartwealthai.lake_paths import (
 DEFAULT_MAPPING_PATH = (
     Path(__file__).resolve().parents[2] / "config" / "fundamentals" / "simfin_mapping_v1.yaml"
 )
+PIT_NATURAL_KEY: tuple[str, ...] = ("cik", "fiscal_period_end", "as_of_date", "version_id")
 
 CANONICAL_VALUE_FIELDS: tuple[str, ...] = (
     "ebit",
@@ -121,13 +122,9 @@ def normalize_simfin(
             curated_rows.append(row)
 
     result = NormalizeResult()
-    for row in curated_rows:
-        period = str(row["period"])
-        cik = str(row["cik"])
-        out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
-        result.written_rows += 1
+    for out_path, rows in _partition_curated_rows(data_dir, curated_rows).items():
+        _write_curated_partition(out_path, rows)
+        result.written_rows += len(rows)
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
@@ -136,6 +133,34 @@ def normalize_simfin(
         result.issue_rows = len(issue_rows)
 
     return result
+
+
+def _partition_curated_rows(
+    data_dir: Path,
+    rows: list[dict[str, object]],
+) -> dict[Path, list[dict[str, object]]]:
+    partitioned: dict[Path, list[dict[str, object]]] = {}
+    for row in rows:
+        period = str(row["period"])
+        cik = str(row["cik"])
+        out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
+        partitioned.setdefault(out_path, []).append(row)
+    return partitioned
+
+
+def _write_curated_partition(out_path: Path, rows: list[dict[str, object]]) -> None:
+    new_rows = pd.DataFrame(rows)
+    if out_path.exists():
+        frame = pd.concat([pd.read_parquet(out_path), new_rows], ignore_index=True)
+    else:
+        frame = new_rows
+    frame = (
+        frame.drop_duplicates(subset=list(PIT_NATURAL_KEY), keep="last")
+        .sort_values(list(PIT_NATURAL_KEY))
+        .reset_index(drop=True)
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(out_path, index=False)
 
 
 def _raw_paths(data_dir: Path, snapshot_date: date) -> dict[str, Path]:

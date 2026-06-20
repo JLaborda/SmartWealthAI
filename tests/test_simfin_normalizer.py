@@ -97,6 +97,35 @@ def test_normalize_simfin_uses_restated_date_for_new_version(lake_with_simfin: P
     assert as_of_date == date(2025, 10, 31)
 
 
+def test_normalize_simfin_preserves_original_and_restated_versions(
+    lake_with_simfin: Path,
+) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    lines = income_path.read_text().rstrip("\n").splitlines()
+    restated = lines[1].replace("2024-11-01;;USD", "2024-11-01;2025-10-31;USD")
+    income_path.write_text("\n".join([*lines, restated]) + "\n")
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 2
+    rows = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    ).sort_values("version_id")
+    as_of_dates = [value.date() if hasattr(value, "date") else value for value in rows["as_of_date"]]
+    assert rows["version_id"].tolist() == [1, 2]
+    assert as_of_dates == [date(2024, 11, 1), date(2025, 10, 31)]
+
+
 def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin: Path) -> None:
     income_path = simfin_bulk_path(
         lake_with_simfin,
