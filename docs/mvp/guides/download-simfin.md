@@ -1,4 +1,4 @@
-# Download SimFin bulk fundamentals (demo)
+# Download SimFin bulk fundamentals and prices (demo)
 
 Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`etl-data-lake.md`](../features/etl-data-lake.md).
 
@@ -13,7 +13,7 @@ export SIMFIN_API_KEY="<from user secrets>"
 
 ## Download US bulk datasets
 
-Downloads five demo datasets into the raw lake under `data/raw/simfin/`:
+Downloads six demo datasets into the raw lake under `data/raw/simfin/`:
 
 | Dataset | Variant | Lake partition |
 | --- | --- | --- |
@@ -22,6 +22,7 @@ Downloads five demo datasets into the raw lake under `data/raw/simfin/`:
 | `income` | `ttm` | `dataset=income/variant=ttm/market=us/` |
 | `balance` | `quarterly` | `dataset=balance/variant=quarterly/market=us/` |
 | `cashflow` | `ttm` | `dataset=cashflow/variant=ttm/market=us/` |
+| `shareprices` | `latest` | `dataset=shareprices/variant=latest/market=us/` |
 
 Each partition also includes `as_of_date=<YYYY-MM-DD>/` and the verbatim SimFin CSV filename (e.g. `us-income-ttm.csv`).
 
@@ -29,6 +30,13 @@ Each partition also includes `as_of_date=<YYYY-MM-DD>/` and the verbatim SimFin 
 poetry run download-simfin
 poetry run download-simfin --data-dir data --refresh-days 7
 poetry run download-simfin --as-of-date 2026-06-18 --force
+```
+
+This command writes raw snapshots only. The demo price snapshot is built later by `poetry run download-prices` after the universe exists.
+
+```bash
+poetry run build-universe --run-date 2026-06-18
+poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
 ```
 
 ## Refresh and cache behaviour
@@ -41,7 +49,7 @@ poetry run download-simfin --as-of-date 2026-06-18 --force
 
 - A failure for one dataset does not stop the rest.
 - Non-critical dataset (`cashflow`) failure still exits `0` when critical datasets succeed.
-- Exit code `1` when all critical datasets (`companies`, `industries`, `income`, `balance`) fail, or when `SIMFIN_API_KEY` is missing.
+- Exit code `1` when all critical datasets (`companies`, `industries`, `income`, `balance`, `shareprices`) fail, or when `SIMFIN_API_KEY` is missing.
 - Per-run errors are written to `raw/simfin/download_runs/as_of_date=<date>/errors.json` when any dataset fails.
 
 ## Module map

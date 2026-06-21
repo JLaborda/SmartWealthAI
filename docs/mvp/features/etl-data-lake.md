@@ -74,16 +74,19 @@ All outputs live under `s3://smartwealthai-data-lake/` and are queryable from Du
 ```mermaid
 flowchart TD
     Scheduler["Pipeline run"] --> SimFinConn["SimFin bulk connector"]
-    Scheduler --> YFConn["yfinance connector (cached)"]
 
     SimFinConn --> RawSF["raw/simfin/ (immutable)"]
     RawSF --> SFNorm["SimFin fundamentals normalizer"]
+    RawSF --> SharePx["shareprices/latest"]
+    SharePx --> PriceNorm["Demo price snapshot builder"]
+    Scheduler -. "phase 2" .-> YFConn["yfinance / vendor fallback (cached)"]
     YFConn --> Cache["yfinance cache (S3, TTL)"]
     Cache --> RawYF["raw/yfinance/"]
-    RawYF --> PriceNorm["Price normalizer"]
+    RawYF --> PriceHist["Phase 2 price normalizer"]
 
     SFNorm --> Curated["Curated parquet (S3)"]
     PriceNorm --> Curated
+    PriceHist --> Curated
     Curated --> PITStore["PIT store (curated/fundamentals)"]
     PITStore --> QC["Data quality checks"]
     Curated --> QC
@@ -127,6 +130,8 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - Restated financials are kept as new versions; the prior version is preserved for replay of past decisions.
 - **Demo share prices:** curated `price_date` comes from SimFin `shareprices/latest` (free tier refreshes ~weekly). **`price_date` may trail `run_date` by up to ~30 days**; no block or review queue for staleness in the demo slice. Phase 2 uses `shareprices/daily` or vendor fallback when same-day accuracy matters.
 
+Phase 2 yfinance cache semantics:
+
 - Cache key: `(ticker, endpoint, as_of_date)`.
 - TTL per endpoint:
   - Daily prices (`history`): 1 day after market close.
@@ -140,7 +145,7 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 
 - **SimFin (demo):** Re-download bulk US files when on-disk age exceeds `refresh_days` (default `7` on free tier). Normalizer processes only rows with `Publish Date` newer than the last successful watermark per dataset.
 - **Initial backfill:** One manual bulk download of all demo datasets; normalizer filters to universe tickers.
-- **yfinance:** Per-ticker watermark as before.
+- **yfinance / vendor fallback (phase 2):** Per-ticker watermark as before.
 - Curated zones are append-only. Restatements create new versions; we never overwrite a prior version.
 
 ## Acceptance criteria
@@ -167,8 +172,9 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 - Hermetic tests in `tests/test_download_simfin.py` (path layout, skip/force,
   mocked download, per-dataset failure handling).
 - A hermetic fixture lake contract is implemented for CI in
-  `tests/fixtures/lake/README.md` with raw SEC + raw yfinance snapshots,
-  curated derived fundamentals, and a provenance manifest with checksums.
+  `tests/fixtures/lake/README.md` with raw SEC, raw SimFin, and raw yfinance
+  snapshots, curated derived fundamentals, and a provenance manifest with
+  checksums.
 - Point-in-time selection and raw fixture loading behavior are covered by tests in
   `tests/test_ci_baseline.py` via `smartwealthai.fixture_lake`.
 - Fundamentals download spike modules are implemented under `src/smartwealthai/`
@@ -224,7 +230,7 @@ poetry run download-simfin --refresh-days 7 --force
 ### Acceptance criteria (SimFin connector)
 
 - [x] `simfin` dependency in `pyproject.toml`; API key from `SIMFIN_API_KEY`.
-- [x] CLI downloads all five demo datasets into stable `raw/simfin/` partitions.
+- [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
@@ -248,7 +254,7 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 
 | Dataset | Path |
 | --- | --- |
-| SimFin bulk snapshot | `raw/simfin/dataset=<income\|balance\|cashflow\|companies\|industries>/variant=<ttm\|quarterly>/market=us/as_of_date=<YYYY-MM-DD>/` |
+| SimFin bulk snapshot | `raw/simfin/dataset=<income\|balance\|cashflow\|companies\|industries\|shareprices>/variant=<ttm\|quarterly\|latest\|default>/market=us/as_of_date=<YYYY-MM-DD>/` |
 
 ### Acceptance criteria (SimFin normalizer)
 

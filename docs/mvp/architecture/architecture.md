@@ -50,7 +50,7 @@ flowchart LR
     subgraph Sources["Data sources"]
         SimFin["SimFin (fundamentals, MVP)"]
         SEC["SEC EDGAR (phase 2)"]
-        Prices["Prices: yfinance + free tier FMP / Alpha Vantage / EODHD"]
+        Prices["Prices: SimFin shareprices/latest (demo) + yfinance / vendor fallback (phase 2)"]
         UserPort["User portfolio CSV (data/clean/personal_finance/...)"]
         News["News and transcripts (later)"]
     end
@@ -190,9 +190,9 @@ See [`demo-slice.md`](../demo-slice.md). Steps not listed here are **phase 2**.
 
 1. Pipeline run for a `run_date`; secrets from env / AWS Secrets Manager (`SIMFIN_API_KEY`, etc.).
 2. Bulk-download SimFin US datasets if older than `refresh_days`; store verbatim under `raw/simfin/`.
-3. Fetch prices via `yfinance` (cached); store raw + `curated/prices`.
-4. Run the SimFin normalizer → `curated/fundamentals` with PIT `as_of_date` from SimFin `Publish Date`.
-5. Build the demo universe: SimFin US companies minus banks / insurers / utilities (`IndustryId` CSV + bank/insurance sanity check).
+3. Build the demo universe: SimFin US companies minus banks / insurers / utilities (`IndustryId` CSV + bank/insurance sanity check).
+4. Build run-date prices from SimFin bulk `shareprices/latest`: join universe tickers, take the latest `Date <= run_date`, and store `curated/prices`.
+5. Run the SimFin normalizer → `curated/fundamentals` with PIT `as_of_date` from SimFin `Publish Date`.
 6. Calculate ROC and Earnings Yield; combined rank with market-cap tie-break.
 7. Select top **30** names, equal-weight model portfolio.
 8. Log an MLflow run (params, metrics, portfolio artifact, git SHA).
@@ -240,7 +240,7 @@ These items are now closed for the MVP. They can be reopened in later iterations
 | Trading volume floor | Optional; off in demo. |
 | Primary fundamentals source | **SimFin** (free tier, bulk download). [ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md). |
 | SEC ETL | Frozen spike in repo; phase 2 normalizer. |
-| Primary price source | `yfinance`; free tiers of FMP, Alpha Vantage, and EODHD as redundancy / fallback. |
+| Primary price source | **Demo:** SimFin bulk `shareprices/latest`. **Phase 2:** `yfinance`; free tiers of FMP, Alpha Vantage, and EODHD as redundancy / fallback. |
 | Data lake | S3 (raw + curated zones) + DuckDB as the analytical engine (`duckdb` reads parquet directly from S3, no Athena bill). |
 | Data lake refresh | Bulk re-download on schedule (`refresh_days=7` on free tier); incremental normalize by `Publish Date` watermark. |
 | Schema versioning | Normalized schemas are versioned with explicit migrations. |
@@ -448,9 +448,9 @@ The Greenblatt Magic Formula benchmark is implemented as a strict canonical repl
 
 This benchmark is the placeholder while the user iterates on the quality and cheapness modules; future scoring variants are evaluated against it.
 
-### yfinance cache
+### yfinance cache (phase 2)
 
-To avoid hammering the free `yfinance` endpoint on every daily run, all `yfinance` responses are cached on S3 under `s3://smartwealthai-cache/yfinance/<ticker>/<endpoint>/<as_of_date>.parquet`, with a configurable TTL per endpoint (e.g., prices: 1 day; corporate actions: 7 days; fundamentals: 90 days). Cache misses trigger a live call; cache hits are read straight from S3.
+For phase 2 backtests and personal NAV, `yfinance` responses are cached on S3 under `s3://smartwealthai-cache/yfinance/<ticker>/<endpoint>/<as_of_date>.parquet`, with a configurable TTL per endpoint (e.g., prices: 1 day; corporate actions: 7 days; fundamentals: 90 days). Demo prices come from SimFin `shareprices/latest`. Cache misses trigger a live call; cache hits are read straight from S3.
 
 ### Ticker mapping table
 

@@ -38,6 +38,7 @@ Short notes on hard-to-reverse choices. See [`docs/adr/`](../adr/).
 
 | Guide | When to use |
 | --- | --- |
+| [download-simfin.md](mvp/guides/download-simfin.md) | **Active demo path:** download SimFin bulk fundamentals and `shareprices/latest`, then build universe and run-date price snapshots. |
 | [download-fundamentals.md](mvp/guides/download-fundamentals.md) | **Frozen SEC spike** (phase 2): download `companyfacts` + `edgartools` for a universe. Active demo path uses SimFin — see [`demo-slice.md`](mvp/demo-slice.md) and [`etl-data-lake.md`](mvp/features/etl-data-lake.md). |
 
 ## PRDs
