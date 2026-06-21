@@ -40,6 +40,7 @@ CANONICAL_VALUE_FIELDS: tuple[str, ...] = (
 )
 
 DATE_COLUMNS = ("Report Date", "Publish Date", "Restated Date")
+FUNDAMENTALS_NATURAL_KEY = ("cik", "fiscal_period_end", "as_of_date", "version_id")
 
 
 @dataclass
@@ -121,13 +122,7 @@ def normalize_simfin(
             curated_rows.append(row)
 
     result = NormalizeResult()
-    for row in curated_rows:
-        period = str(row["period"])
-        cik = str(row["cik"])
-        out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
-        result.written_rows += 1
+    result.written_rows = _write_curated_rows(data_dir, curated_rows)
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
@@ -166,6 +161,36 @@ def _raw_paths(data_dir: Path, snapshot_date: date) -> dict[str, Path]:
 
 def _read_simfin_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, sep=";", parse_dates=list(DATE_COLUMNS))
+
+
+def _write_curated_rows(data_dir: Path, rows: list[dict[str, object]]) -> int:
+    rows_by_path: dict[Path, list[dict[str, object]]] = {}
+    for row in rows:
+        period = str(row["period"])
+        cik = str(row["cik"])
+        out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
+        rows_by_path.setdefault(out_path, []).append(row)
+
+    for out_path, partition_rows in rows_by_path.items():
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        partition = pd.DataFrame(partition_rows)
+        if out_path.exists():
+            partition = pd.concat([pd.read_parquet(out_path), partition], ignore_index=True)
+        partition = _deduplicate_fundamentals(partition)
+        partition.to_parquet(out_path, index=False)
+
+    return len(rows)
+
+
+def _deduplicate_fundamentals(rows: pd.DataFrame) -> pd.DataFrame:
+    rows = rows.copy()
+    for column in ("fiscal_period_end", "as_of_date"):
+        rows[column] = pd.to_datetime(rows[column]).dt.date
+    return (
+        rows.drop_duplicates(subset=list(FUNDAMENTALS_NATURAL_KEY), keep="last")
+        .sort_values(list(FUNDAMENTALS_NATURAL_KEY))
+        .reset_index(drop=True)
+    )
 
 
 def _latest_balance_row(
