@@ -17,7 +17,8 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 
 * **Language:** Python 3.11+
 * **Environment & Dependencies:** Poetry
-* **Data (demo):** SimFin bulk (`simfin`), `yfinance` prices
+* **Data (demo):** SimFin bulk fundamentals and `shareprices/latest` (`simfin`)
+* **Data (phase 2):** `yfinance` and free vendor fallbacks for prices / personal NAV
 * **Core libraries:** `pandas`, `simfin`, `yfinance`, `requests` (SEC spike: `edgartools` — frozen)
 * **MVP specs:** `docs/mvp/` (architecture + per-module features)
 
@@ -36,7 +37,15 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 3.  **Demo slice docs** — start here before coding:
     [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)
 
-4.  **SEC fundamentals spike (frozen, phase 2):**
+4.  **SimFin demo raw download:**
+    ```bash
+    export SIMFIN_API_KEY="<from user secrets>"
+    poetry run download-simfin
+    ```
+
+    Guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md).
+
+5.  **SEC fundamentals spike (frozen, phase 2):**
     ```bash
     export SEC_IDENTITY="Your Name your@email.com"
     poetry run download-fundamentals --universe dow30
