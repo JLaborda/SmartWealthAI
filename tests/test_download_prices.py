@@ -169,6 +169,44 @@ def test_run_skips_when_curated_snapshot_exists(lake: Path) -> None:
     assert second.run_skipped is True
 
 
+def test_run_rebuilds_partial_snapshot_after_missing_price_is_fixed(lake: Path) -> None:
+    universe_path = curated_universe_path(lake, run_date=RUN_DATE)
+    pd.DataFrame({"ticker": ["AAPL", "MSFT"]}).to_parquet(universe_path, index=False)
+
+    raw_path = simfin_bulk_path(
+        lake,
+        dataset="shareprices",
+        variant="latest",
+        market="us",
+        as_of_date=SNAPSHOT_DATE,
+    )
+    complete_raw = raw_path.read_text()
+    raw_path.write_text(
+        "\n".join(
+            line
+            for line in complete_raw.splitlines()
+            if line.startswith("Ticker;") or line.startswith("AAPL;")
+        )
+        + "\n"
+    )
+
+    first = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    assert first.missing_tickers == ["MSFT"]
+    assert first.curated_path is not None
+    first_prices = pd.read_parquet(first.curated_path)
+    assert set(first_prices["ticker"]) == {"AAPL"}
+
+    raw_path.write_text(complete_raw)
+    second = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    assert second.run_skipped is False
+    assert second.missing_tickers == []
+    assert second.curated_path is not None
+    second_prices = pd.read_parquet(second.curated_path)
+    assert set(second_prices["ticker"]) == {"AAPL", "MSFT"}
+
+
 def test_cli_records_missing_tickers(lake: Path) -> None:
     universe_path = curated_universe_path(lake, run_date=RUN_DATE)
     universe = pd.read_parquet(universe_path)

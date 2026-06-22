@@ -100,7 +100,7 @@ flowchart TD
 
 1. Download SimFin bulk US datasets (`companies`, `industries`, `income-ttm`, `balance-quarterly`, `cashflow-ttm`, `shareprices-latest`) if older than `refresh_days`. Store verbatim under `raw/simfin/...`.
 2. Build universe for `run_date` (see `universe-construction.md`).
-3. Join universe tickers to `shareprices/latest`; for each ticker take the latest `Date <= run_date`; write `curated/prices/run_date=<date>/prices.parquet`. Missing tickers → error summary, excluded from scoring join.
+3. Join universe tickers to `shareprices/latest`; for each ticker take the latest `Date <= run_date`; write `curated/prices/run_date=<date>/prices.parquet`. Missing tickers → error summary, excluded from scoring join. A later rerun without `--force` may reuse an existing price snapshot only when that snapshot covers every ticker in the current run-date universe; partial snapshots rebuild automatically.
 4. Run the **SimFin normalizer** on fundamentals bulk snapshots (see *SimFin normalizer* below).
 5. Quality checks; failures → `curated/issues/`.
 6. Publish DuckDB views. Downstream reads curated only.
@@ -155,6 +155,7 @@ Phase 2 yfinance cache semantics:
 - A query for "fundamentals available on date D" never returns rows with `as_of_date > D`.
 - The same ingest run can fail for one ticker without aborting the rest.
 - Schema versions and migrations are explicit; downstream views do not break silently.
+- Existing demo price snapshots are skipped only when they cover the current universe; partial snapshots are rebuilt so newly available prices are not silently omitted.
 - `yfinance` is not called when a valid cache entry exists.
 - A full daily incremental run for the demo universe completes inside the Fargate Spot task budget (target: under 30 minutes; to validate during implementation). Phase 2 S&P 500 historical universe may need a separate budget check.
 - A backtest run never triggers fresh `yfinance` calls; it only reads curated parquet.
