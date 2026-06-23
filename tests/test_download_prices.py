@@ -27,6 +27,7 @@ from smartwealthai.price_ingest import (
     build_price_rows,
     load_raw_shareprices,
     load_universe_tickers,
+    price_snapshot_covers_tickers,
     run_price_ingest,
     shareprices_raw_path,
     should_skip_artifact,
@@ -149,6 +150,26 @@ def test_should_skip_when_curated_snapshot_exists(lake: Path) -> None:
     assert should_skip_artifact(curated, force=False) is True
 
 
+def test_price_snapshot_covers_tickers_requires_full_universe(lake: Path) -> None:
+    path = write_curated_prices_snapshot(
+        lake,
+        run_date=RUN_DATE,
+        rows=[
+            {
+                "run_date": RUN_DATE.isoformat(),
+                "ticker": "AAPL",
+                "price_date": PRICE_DATE.isoformat(),
+                "close": 274.0,
+                "adj_close": 273.5,
+                "volume": 50_000_000,
+            }
+        ],
+    )
+
+    assert price_snapshot_covers_tickers(path, ["AAPL"]) is True
+    assert price_snapshot_covers_tickers(path, ["AAPL", "MSFT"]) is False
+
+
 def test_run_price_ingest_writes_curated_snapshot(lake: Path) -> None:
     ingest_run = run_price_ingest(
         data_dir=lake,
@@ -167,6 +188,37 @@ def test_run_skips_when_curated_snapshot_exists(lake: Path) -> None:
     run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
     second = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
     assert second.run_skipped is True
+
+
+def test_run_rebuilds_partial_snapshot_after_missing_price_is_fixed(lake: Path) -> None:
+    universe_path = curated_universe_path(lake, run_date=RUN_DATE)
+    pd.DataFrame({"ticker": ["AAPL", "MSFT"]}).to_parquet(universe_path, index=False)
+    raw_path = simfin_bulk_path(
+        lake,
+        dataset="shareprices",
+        variant="latest",
+        market="us",
+        as_of_date=SNAPSHOT_DATE,
+    )
+    original_shareprices = raw_path.read_text()
+    raw_path.write_text(
+        "\n".join(
+            line for line in original_shareprices.splitlines() if not line.startswith("MSFT;")
+        )
+        + "\n"
+    )
+
+    first = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+    assert first.included == 1
+    assert first.missing_tickers == ["MSFT"]
+
+    raw_path.write_text(original_shareprices)
+    second = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    assert second.run_skipped is False
+    assert second.included == 2
+    curated = pd.read_parquet(curated_prices_snapshot_path(lake, run_date=RUN_DATE))
+    assert set(curated["ticker"]) == {"AAPL", "MSFT"}
 
 
 def test_cli_records_missing_tickers(lake: Path) -> None:

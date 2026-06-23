@@ -97,6 +97,64 @@ def test_normalize_simfin_uses_restated_date_for_new_version(lake_with_simfin: P
     assert as_of_date == date(2025, 10, 31)
 
 
+def test_normalize_simfin_preserves_original_and_restated_versions(
+    lake_with_simfin: Path,
+) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(
+        income_path,
+        "AAPL;111052;2024-09-28;2024-11-01;2025-10-31;USD;2024;Q4;"
+        "391035000000;125000000000;95000000000",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 2
+    rows = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    ).sort_values("as_of_date")
+    assert list(rows["version_id"]) == [1, 2]
+    assert list(rows["ebit"]) == [123_216_000_000, 125_000_000_000]
+
+
+def test_normalize_simfin_stamps_later_balance_publish_date(
+    lake_with_simfin: Path,
+) -> None:
+    balance_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="balance",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    balance_path.write_text(balance_path.read_text().replace("2024-11-01;", "2024-11-15;"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 1
+    row = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    ).iloc[0]
+    as_of = row["as_of_date"]
+    as_of_date = as_of.date() if hasattr(as_of, "date") else as_of
+    assert as_of_date == date(2024, 11, 15)
+    assert row["as_of_source"] == "balance_publish_date"
+
+
 def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin: Path) -> None:
     income_path = simfin_bulk_path(
         lake_with_simfin,

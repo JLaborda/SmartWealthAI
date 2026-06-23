@@ -121,13 +121,28 @@ def normalize_simfin(
             curated_rows.append(row)
 
     result = NormalizeResult()
+    partition_rows: dict[Path, list[dict[str, object]]] = {}
     for row in curated_rows:
         period = str(row["period"])
         cik = str(row["cik"])
         out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
+        partition_rows.setdefault(out_path, []).append(row)
         result.written_rows += 1
+
+    for out_path, rows in partition_rows.items():
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        frame = pd.DataFrame(rows)
+        if out_path.exists():
+            frame = pd.concat([pd.read_parquet(out_path), frame], ignore_index=True)
+        frame = (
+            frame.drop_duplicates(
+                subset=["cik", "fiscal_period_end", "as_of_date", "version_id"],
+                keep="last",
+            )
+            .sort_values(["cik", "fiscal_period_end", "as_of_date", "version_id"])
+            .reset_index(drop=True)
+        )
+        frame.to_parquet(out_path, index=False)
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
@@ -196,18 +211,29 @@ def _build_curated_row(
 
     publish_col = meta["publish_date"]
     report_col = meta["report_date"]
-    publish_date = income_row.get(publish_col)
     report_date = income_row[report_col]
-    restated_date = income_row.get(meta["restated_date"])
-    as_of_date, as_of_source = _resolve_as_of_date(
-        publish_date=publish_date,
+    income_as_of_date, income_as_of_source = _resolve_as_of_date(
+        publish_date=income_row.get(publish_col),
         report_date=report_date,
-        restated_date=restated_date,
+        restated_date=income_row.get(meta["restated_date"]),
         lag_days=int(mapping["missing_publish_lag_days"]),
     )
-    if as_of_source == "report_date_lag":
+    balance_as_of_date, balance_as_of_source = _resolve_as_of_date(
+        publish_date=balance_row.get(publish_col),
+        report_date=balance_row[report_col],
+        restated_date=balance_row.get(meta["restated_date"]),
+        lag_days=int(mapping["missing_publish_lag_days"]),
+    )
+    if "report_date_lag" in {income_as_of_source, balance_as_of_source}:
         issues.append(_issue_row(ticker=ticker, reason="missing_publish_date"))
         return None, issues
+    as_of_date = max(income_as_of_date, balance_as_of_date)
+    as_of_source = _combined_as_of_source(
+        income_as_of_date=income_as_of_date,
+        income_as_of_source=income_as_of_source,
+        balance_as_of_date=balance_as_of_date,
+        balance_as_of_source=balance_as_of_source,
+    )
 
     currency = income_row.get(meta["currency"])
     if pd.notna(currency) and str(currency).upper() != "USD":
@@ -219,7 +245,7 @@ def _build_curated_row(
     if not is_valid_fiscal_period(period):
         issues.append(_issue_row(ticker=ticker, reason="invalid_period"))
         return None, issues
-    version_id = _version_id(income_row, meta)
+    version_id = _version_id(income_row, balance_row, meta)
 
     row: dict[str, object] = {
         "cik": cik,
@@ -263,6 +289,20 @@ def _resolve_as_of_date(
     return fallback.date(), "report_date_lag"
 
 
+def _combined_as_of_source(
+    *,
+    income_as_of_date: date,
+    income_as_of_source: str,
+    balance_as_of_date: date,
+    balance_as_of_source: str,
+) -> str:
+    if income_as_of_date == balance_as_of_date and income_as_of_source == balance_as_of_source:
+        return income_as_of_source
+    if balance_as_of_date > income_as_of_date:
+        return f"balance_{balance_as_of_source}"
+    return f"income_{income_as_of_source}"
+
+
 def _period_label(income_row: pd.Series, meta: dict, report_date: date) -> str:
     fiscal_year = income_row.get(meta["fiscal_year"])
     fiscal_period = income_row.get(meta["fiscal_period"])
@@ -271,9 +311,10 @@ def _period_label(income_row: pd.Series, meta: dict, report_date: date) -> str:
     return fiscal_period_label(report_date)
 
 
-def _version_id(income_row: pd.Series, meta: dict) -> int:
-    restated = income_row.get(meta["restated_date"])
-    if pd.notna(restated):
+def _version_id(income_row: pd.Series, balance_row: pd.Series, meta: dict) -> int:
+    income_restated = income_row.get(meta["restated_date"])
+    balance_restated = balance_row.get(meta["restated_date"])
+    if pd.notna(income_restated) or pd.notna(balance_restated):
         return 2
     return 1
 

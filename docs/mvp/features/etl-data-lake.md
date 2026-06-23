@@ -16,7 +16,7 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 - Datasets: `companies`, `industries`, `income` (TTM), `balance` (quarterly), `cashflow` (TTM), `shareprices` (`latest`) for `market=us`.
 - Store SimFin bulk responses verbatim under `raw/simfin/`.
 - Normalize into provider-agnostic `curated/fundamentals` (same schema scoring modules expect).
-- Point-in-time: `as_of_date` = SimFin `Publish Date`; restatements via `Restated Date` + new `version_id`.
+- Point-in-time: `as_of_date` = the latest availability date across joined SimFin source rows (`Publish Date`, or `Restated Date` for restatements); restatements create a new `version_id`.
 - Build run-date prices from SimFin bulk `shareprices/latest` joined to the universe (one row per ticker).
 - Run data quality checks; failing rows → review queue.
 - Weekly bulk refresh on free tier (`refresh_days=7`); incremental normalize by publish-date watermark.
@@ -151,7 +151,7 @@ Phase 2 yfinance cache semantics:
 ## Acceptance criteria
 
 - Raw and curated zones are clearly separated; raw is never read by scoring modules.
-- Every fundamentals value can be traced to a source file under `raw/simfin/` and its SimFin publish metadata.
+- Every fundamentals value can be traced to a source file under `raw/simfin/` and its SimFin publish/restatement metadata.
 - A query for "fundamentals available on date D" never returns rows with `as_of_date > D`.
 - The same ingest run can fail for one ticker without aborting the rest.
 - Schema versions and migrations are explicit; downstream views do not break silently.
@@ -233,13 +233,14 @@ poetry run download-simfin --refresh-days 7 --force
 - [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
+- [x] Any failed critical dataset exits non-zero; non-critical `cashflow` failure is tolerated.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
 - [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
 - [x] Operator steps in [`download-simfin.md`](../guides/download-simfin.md).
 
 ## SimFin normalizer (demo)
 
-Transforms SimFin bulk statements into curated canonical parquet. Joins income TTM with the latest quarterly balance row per ticker subject to PIT filters.
+Transforms SimFin bulk statements into curated canonical parquet. Joins income TTM with the latest quarterly balance row per ticker and stamps the curated row with the later availability date across both source rows.
 
 ### Configuration
 
@@ -261,6 +262,7 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 - [x] Reads bulk files from `raw/simfin/` only.
 - [x] Emits same curated schema as SEC path would (see canonical fields below).
 - [x] PIT natural key `(cik, fiscal_period_end, as_of_date, version_id)`.
+- [x] Restatements and later source availability are preserved in the same `(cik, period)` parquet partition instead of overwriting prior PIT rows.
 - [x] Hermetic tests with fixture SimFin CSV snippets.
 - [x] `simfin_mapping_v1.yaml` drives column resolution.
 

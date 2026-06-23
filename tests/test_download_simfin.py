@@ -208,6 +208,41 @@ def test_run_download_fails_when_all_critical_datasets_fail(tmp_path: Path) -> N
     assert exit_code == 1
 
 
+def test_run_download_fails_when_one_critical_dataset_fails(tmp_path: Path) -> None:
+    data_dir = tmp_path / "lake"
+    cache_dir = tmp_path / "cache"
+
+    def fake_fetch(
+        *,
+        dataset: str,
+        variant: str | None,
+        market: str | None,
+        **_kwargs: object,
+    ) -> Path:
+        if dataset == "shareprices":
+            msg = "simfin unavailable"
+            raise OSError(msg)
+        path = cache_dir / f"{market or 'global'}-{dataset}-{variant or 'default'}.csv"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("csv\n")
+        return path
+
+    exit_code = run_download(
+        data_dir=data_dir,
+        as_of_date=date(2026, 6, 18),
+        refresh_days=7,
+        force=True,
+        api_key="test-key",
+        cache_dir=cache_dir,
+        fetch_csv=fake_fetch,
+    )
+
+    assert exit_code == 1
+    errors_file = simfin_errors_path(data_dir, date(2026, 6, 18))
+    assert errors_file.exists()
+    assert "shareprices" in errors_file.read_text()
+
+
 def test_simfin_errors_path_matches_spec_layout() -> None:
     path = simfin_errors_path(Path("data"), date(2026, 6, 18))
     assert path == Path("data/raw/simfin/download_runs/as_of_date=2026-06-18/errors.json")
