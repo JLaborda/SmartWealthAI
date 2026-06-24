@@ -266,6 +266,41 @@ def test_cli_fails_when_no_tickers_priced(lake: Path) -> None:
     assert not curated_prices_snapshot_path(lake, run_date=RUN_DATE).exists()
 
 
+def test_force_rebuild_removes_stale_snapshot_when_no_tickers_price(lake: Path) -> None:
+    assert (
+        cli_run(
+            [
+                "--data-dir",
+                str(lake),
+                "--run-date",
+                RUN_DATE.isoformat(),
+                "--snapshot-date",
+                SNAPSHOT_DATE.isoformat(),
+            ]
+        )
+        == 0
+    )
+    curated = curated_prices_snapshot_path(lake, run_date=RUN_DATE)
+    assert curated.exists()
+    universe_path = curated_universe_path(lake, run_date=RUN_DATE)
+    pd.DataFrame({"ticker": ["MISSING"]}).to_parquet(universe_path, index=False)
+
+    exit_code = cli_run(
+        [
+            "--data-dir",
+            str(lake),
+            "--run-date",
+            RUN_DATE.isoformat(),
+            "--snapshot-date",
+            SNAPSHOT_DATE.isoformat(),
+            "--force",
+        ]
+    )
+
+    assert exit_code == 1
+    assert not curated.exists()
+
+
 def test_cli_warns_when_many_tickers_missing(lake: Path, caplog: pytest.LogCaptureFixture) -> None:
     universe_path = curated_universe_path(lake, run_date=RUN_DATE)
     universe = pd.read_parquet(universe_path)

@@ -144,6 +144,8 @@ def run_price_ingest(
     written_path: Path | None = None
     if rows:
         written_path = write_curated_prices_snapshot(data_dir, run_date=run_date, rows=rows)
+    elif curated_path.exists():
+        curated_path.unlink()
 
     return PriceIngestRun(
         curated_path=written_path,

@@ -147,6 +147,7 @@ Phase 2 yfinance cache semantics:
 - **Initial backfill:** One manual bulk download of all demo datasets; normalizer filters to universe tickers.
 - **yfinance / vendor fallback (phase 2):** Per-ticker watermark as before.
 - Curated zones are append-only. Restatements create new versions; we never overwrite a prior version.
+- A joined curated fundamentals row is available only after every statement source used by that row is public. For SimFin income + balance joins, `as_of_date` is the later of the income and balance publish/restated dates.
 
 ## Acceptance criteria
 
@@ -233,6 +234,7 @@ poetry run download-simfin --refresh-days 7 --force
 - [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
+- [x] Missing critical datasets (`companies`, `industries`, `income`, `balance`, `shareprices`) make the run exit non-zero; `cashflow` remains non-critical for the demo.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
 - [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
 - [x] Operator steps in [`download-simfin.md`](../guides/download-simfin.md).
@@ -263,6 +265,7 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 - [x] PIT natural key `(cik, fiscal_period_end, as_of_date, version_id)`.
 - [x] Hermetic tests with fixture SimFin CSV snippets.
 - [x] `simfin_mapping_v1.yaml` drives column resolution.
+- [x] Joins income and balance statements without look-ahead: balance values can only appear from their own publish/restated date onward.
 
 ### Module map (SimFin normalizer)
 

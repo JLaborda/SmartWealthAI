@@ -112,7 +112,7 @@ def download_dataset(
         )
         lake_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, lake_path)
-    except OSError as exc:
+    except Exception as exc:
         return DatasetResult(name=spec.name, failed=True, error=str(exc))
     return DatasetResult(name=spec.name, downloaded=True)
 
@@ -175,9 +175,7 @@ def run_download(
         error_file.write_text(json.dumps(payload, indent=2))
         click.echo(f"Wrote error summary: {error_file}")
 
-    if len(critical_failures) == len([spec for spec in DEMO_DATASETS if spec.critical]):
-        return 1
-    return 0
+    return 1 if critical_failures else 0
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})

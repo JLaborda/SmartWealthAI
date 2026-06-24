@@ -121,13 +121,24 @@ def normalize_simfin(
             curated_rows.append(row)
 
     result = NormalizeResult()
+    rows_by_output: dict[Path, list[dict[str, object]]] = {}
     for row in curated_rows:
         period = str(row["period"])
         cik = str(row["cik"])
         out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
+        rows_by_output.setdefault(out_path, []).append(row)
+
+    for out_path, rows in rows_by_output.items():
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
-        result.written_rows += 1
+        new_frame = pd.DataFrame(rows)
+        if out_path.exists():
+            new_frame = pd.concat([pd.read_parquet(out_path), new_frame], ignore_index=True)
+        new_frame = new_frame.drop_duplicates(
+            subset=["cik", "fiscal_period_end", "as_of_date", "version_id"],
+            keep="last",
+        )
+        new_frame.to_parquet(out_path, index=False)
+        result.written_rows += len(rows)
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
@@ -199,15 +210,30 @@ def _build_curated_row(
     publish_date = income_row.get(publish_col)
     report_date = income_row[report_col]
     restated_date = income_row.get(meta["restated_date"])
-    as_of_date, as_of_source = _resolve_as_of_date(
+    income_as_of_date, income_as_of_source = _resolve_as_of_date(
         publish_date=publish_date,
         report_date=report_date,
         restated_date=restated_date,
         lag_days=int(mapping["missing_publish_lag_days"]),
     )
-    if as_of_source == "report_date_lag":
+    if income_as_of_source == "report_date_lag":
         issues.append(_issue_row(ticker=ticker, reason="missing_publish_date"))
         return None, issues
+    balance_as_of_date, balance_as_of_source = _resolve_as_of_date(
+        publish_date=balance_row.get(publish_col),
+        report_date=balance_row[report_col],
+        restated_date=balance_row.get(meta["restated_date"]),
+        lag_days=int(mapping["missing_publish_lag_days"]),
+    )
+    if balance_as_of_source == "report_date_lag":
+        issues.append(_issue_row(ticker=ticker, reason="missing_balance_publish_date"))
+        return None, issues
+    as_of_date = max(income_as_of_date, balance_as_of_date)
+    as_of_source = (
+        f"balance_{balance_as_of_source}"
+        if balance_as_of_date > income_as_of_date
+        else income_as_of_source
+    )
 
     currency = income_row.get(meta["currency"])
     if pd.notna(currency) and str(currency).upper() != "USD":
@@ -219,7 +245,7 @@ def _build_curated_row(
     if not is_valid_fiscal_period(period):
         issues.append(_issue_row(ticker=ticker, reason="invalid_period"))
         return None, issues
-    version_id = _version_id(income_row, meta)
+    version_id = _version_id(income_row, balance_row, meta=meta)
 
     row: dict[str, object] = {
         "cik": cik,
@@ -271,9 +297,8 @@ def _period_label(income_row: pd.Series, meta: dict, report_date: date) -> str:
     return fiscal_period_label(report_date)
 
 
-def _version_id(income_row: pd.Series, meta: dict) -> int:
-    restated = income_row.get(meta["restated_date"])
-    if pd.notna(restated):
+def _version_id(*rows: pd.Series, meta: dict) -> int:
+    if any(pd.notna(row.get(meta["restated_date"])) for row in rows):
         return 2
     return 1
 
