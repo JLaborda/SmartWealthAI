@@ -32,12 +32,24 @@ poetry run download-simfin --data-dir data --refresh-days 7
 poetry run download-simfin --as-of-date 2026-06-18 --force
 ```
 
-This command writes raw snapshots only. The demo price snapshot is built later by `poetry run download-prices` after the universe exists.
+This command writes raw snapshots only. Run the full demo pipeline in order:
 
 ```bash
+poetry run download-simfin --as-of-date 2026-06-18
 poetry run build-universe --run-date 2026-06-18
+poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
 poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
+poetry run compute-metrics --ticker AAPL --as-of-date 2026-06-18
 ```
+
+Or run all stages in one command (full universe normalize; pass `--ticker` to also compute ROC/EY):
+
+```bash
+poetry run run-demo-pipeline --run-date 2026-06-18 --ticker AAPL
+poetry run run-demo-pipeline --run-date 2026-06-18 --skip-download
+```
+
+`normalize-simfin` requires `--universe-run-date` (after `build-universe`) or `--ticker` for smoke tests. It does not process the full SimFin US table by default.
 
 ## Refresh and cache behaviour
 

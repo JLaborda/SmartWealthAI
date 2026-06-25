@@ -7,12 +7,32 @@ from pathlib import Path
 
 import pandas as pd
 
-from smartwealthai.lake_paths import curated_prices_snapshot_path
+from smartwealthai.lake_paths import (
+    curated_prices_snapshot_path,
+    curated_universe_path,
+    pad_cik,
+)
 from smartwealthai.magic_formula_metrics import MetricsResult, build_metrics
 
 
 class MetricsInputError(Exception):
     """Raised when curated lake inputs are missing for a ticker."""
+
+
+def resolve_ticker_cik(data_dir: Path, *, ticker: str, run_date: date) -> str:
+    """Resolve a ticker to padded CIK from the curated universe snapshot."""
+    path = curated_universe_path(data_dir, run_date=run_date)
+    if not path.exists():
+        msg = f"No universe snapshot for run_date {run_date}: {path}"
+        raise MetricsInputError(msg)
+
+    universe = pd.read_parquet(path)
+    normalized = ticker.upper()
+    subset = universe.loc[universe["ticker"].str.upper() == normalized]
+    if subset.empty:
+        msg = f"Ticker {ticker!r} not in universe for run_date {run_date}"
+        raise MetricsInputError(msg)
+    return pad_cik(str(subset.iloc[0]["cik"]))
 
 
 def load_pit_fundamentals_row(
@@ -22,15 +42,16 @@ def load_pit_fundamentals_row(
     as_of_date: date,
 ) -> pd.Series:
     """Return the latest curated fundamentals row for ``ticker`` on ``as_of_date``."""
-    fundamentals_dir = data_dir / "curated" / "fundamentals"
-    if not fundamentals_dir.exists():
-        msg = f"Curated fundamentals not found under {fundamentals_dir}"
+    cik = resolve_ticker_cik(data_dir, ticker=ticker, run_date=as_of_date)
+    cik_dir = data_dir / "curated" / "fundamentals" / f"cik={cik}"
+    if not cik_dir.exists():
+        msg = f"No curated fundamentals for ticker {ticker!r} (cik={cik})"
         raise MetricsInputError(msg)
 
     rows: list[pd.Series] = []
-    for path in fundamentals_dir.rglob("fundamentals.parquet"):
+    for path in cik_dir.glob("period=*/fundamentals.parquet"):
         frame = pd.read_parquet(path)
-        if frame.empty or frame.iloc[0]["ticker"] != ticker:
+        if frame.empty:
             continue
         rows.append(frame.iloc[0])
 

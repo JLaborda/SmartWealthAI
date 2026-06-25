@@ -127,8 +127,6 @@ def build_metrics(
         "shares_outstanding": shares_outstanding,
         "adj_close": adj_close,
         "long_term_debt": long_term_debt,
-        "preferred_equity": preferred_equity,
-        "minority_interest": minority_interest,
     }
     if any(value is None for value in required.values()):
         result.flags.append("missing_inputs")
