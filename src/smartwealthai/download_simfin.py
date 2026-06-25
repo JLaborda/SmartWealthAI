@@ -2,8 +2,8 @@
 
 Orchestrates the demo SimFin connector documented in
 ``docs/mvp/features/etl-data-lake.md``. Downloads ``companies``, ``industries``,
-``income`` (TTM), ``balance`` (quarterly), ``cashflow`` (TTM), and ``shareprices``
-(latest) for ``market=us``.
+``income`` (TTM), bank / insurance income sanity indices, ``balance`` (quarterly),
+``cashflow`` (TTM), and ``shareprices`` (latest) for ``market=us``.
 
 Usage::
 
@@ -76,6 +76,8 @@ DEMO_DATASETS: tuple[SimFinDatasetSpec, ...] = (
     SimFinDatasetSpec("companies", variant=None, market="us"),
     SimFinDatasetSpec("industries", variant=None, market=None),
     SimFinDatasetSpec("income", variant="ttm", market="us"),
+    SimFinDatasetSpec("income-banks", variant="ttm", market="us"),
+    SimFinDatasetSpec("income-insurance", variant="ttm", market="us"),
     SimFinDatasetSpec("balance", variant="quarterly", market="us"),
     SimFinDatasetSpec("cashflow", variant="ttm", market="us", critical=False),
     SimFinDatasetSpec("shareprices", variant="latest", market="us"),

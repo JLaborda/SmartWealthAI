@@ -123,6 +123,49 @@ def test_download_dataset_copies_csv_into_lake_layout(tmp_path: Path) -> None:
     assert lake_path.read_text() == cache_csv.read_text()
 
 
+def test_run_download_copies_bank_insurance_sanity_indices(tmp_path: Path) -> None:
+    data_dir = tmp_path / "lake"
+    cache_dir = tmp_path / "cache"
+
+    def fake_fetch(
+        *,
+        dataset: str,
+        variant: str | None,
+        market: str | None,
+        **_kwargs: object,
+    ) -> Path:
+        path = cache_dir / f"{market or 'global'}-{dataset}-{variant or 'default'}.csv"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("Ticker;Revenue\nSANBK;100\n")
+        return path
+
+    exit_code = run_download(
+        data_dir=data_dir,
+        as_of_date=date(2026, 6, 18),
+        refresh_days=7,
+        force=True,
+        api_key="test-key",
+        cache_dir=cache_dir,
+        fetch_csv=fake_fetch,
+    )
+
+    assert exit_code == 0
+    assert simfin_bulk_path(
+        data_dir,
+        dataset="income-banks",
+        variant="ttm",
+        market="us",
+        as_of_date=date(2026, 6, 18),
+    ).exists()
+    assert simfin_bulk_path(
+        data_dir,
+        dataset="income-insurance",
+        variant="ttm",
+        market="us",
+        as_of_date=date(2026, 6, 18),
+    ).exists()
+
+
 def test_download_dataset_skips_fresh_lake_copy(tmp_path: Path) -> None:
     spec = DEMO_DATASETS[2]
     lake_root = tmp_path / "lake"

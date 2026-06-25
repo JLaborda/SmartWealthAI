@@ -57,10 +57,10 @@ def build_universe(
     industry_sectors = _load_industry_sectors(data_dir, snapshot_date=effective_snapshot)
     excluded_industries = load_exclusions(exclusions_path).set_index("industry_id")
     bank_tickers = _load_statement_tickers(
-        data_dir, snapshot_date=effective_snapshot, dataset="income_banks"
+        data_dir, snapshot_date=effective_snapshot, dataset="income-banks"
     )
     insurance_tickers = _load_statement_tickers(
-        data_dir, snapshot_date=effective_snapshot, dataset="income_insurance"
+        data_dir, snapshot_date=effective_snapshot, dataset="income-insurance"
     )
 
     universe_rows: list[dict[str, object]] = []
@@ -174,7 +174,7 @@ def _load_statement_tickers(
     path = simfin_bulk_path(
         data_dir,
         dataset=dataset,
-        variant=None,
+        variant="ttm",
         market="us",
         as_of_date=snapshot_date,
     )

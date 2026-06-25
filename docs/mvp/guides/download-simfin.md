@@ -13,13 +13,15 @@ export SIMFIN_API_KEY="<from user secrets>"
 
 ## Download US bulk datasets
 
-Downloads six demo datasets into the raw lake under `data/raw/simfin/`:
+Downloads eight demo datasets into the raw lake under `data/raw/simfin/`:
 
 | Dataset | Variant | Lake partition |
 | --- | --- | --- |
 | `companies` | `default` | `dataset=companies/variant=default/market=us/` |
 | `industries` | `default` | `dataset=industries/variant=default/market=us/` |
 | `income` | `ttm` | `dataset=income/variant=ttm/market=us/` |
+| `income-banks` | `ttm` | `dataset=income-banks/variant=ttm/market=us/` |
+| `income-insurance` | `ttm` | `dataset=income-insurance/variant=ttm/market=us/` |
 | `balance` | `quarterly` | `dataset=balance/variant=quarterly/market=us/` |
 | `cashflow` | `ttm` | `dataset=cashflow/variant=ttm/market=us/` |
 | `shareprices` | `latest` | `dataset=shareprices/variant=latest/market=us/` |
@@ -49,7 +51,7 @@ poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
 
 - A failure for one dataset does not stop the rest.
 - Non-critical dataset (`cashflow`) failure still exits `0` when critical datasets succeed.
-- Exit code `1` when any critical dataset (`companies`, `industries`, `income`, `balance`, `shareprices`) fails, or when `SIMFIN_API_KEY` is missing.
+- Exit code `1` when any critical dataset (`companies`, `industries`, `income`, `income-banks`, `income-insurance`, `balance`, `shareprices`) fails, or when `SIMFIN_API_KEY` is missing.
 - Per-run errors are written to `raw/simfin/download_runs/as_of_date=<date>/errors.json` when any dataset fails.
 
 ## Module map

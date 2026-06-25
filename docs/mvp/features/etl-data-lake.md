@@ -13,7 +13,7 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 ### Demo slice (June 30 — primary)
 
 - Ingest US fundamentals from **SimFin** bulk download (`simfin` Python package, free tier).
-- Datasets: `companies`, `industries`, `income` (TTM), `balance` (quarterly), `cashflow` (TTM), `shareprices` (`latest`) for `market=us`.
+- Datasets: `companies`, `industries`, `income` (TTM), `income-banks` (TTM), `income-insurance` (TTM), `balance` (quarterly), `cashflow` (TTM), `shareprices` (`latest`) for `market=us`.
 - Store SimFin bulk responses verbatim under `raw/simfin/`.
 - Normalize into provider-agnostic `curated/fundamentals` (same schema scoring modules expect).
 - Point-in-time: `as_of_date` = SimFin `Publish Date`; restatements via `Restated Date` + new `version_id`.
@@ -231,7 +231,7 @@ poetry run download-simfin --refresh-days 7 --force
 ### Acceptance criteria (SimFin connector)
 
 - [x] `simfin` dependency in `pyproject.toml`; API key from `SIMFIN_API_KEY`.
-- [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
+- [x] CLI downloads all eight demo datasets into stable `raw/simfin/` partitions.
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
 - [x] Exit code is `1` when any critical demo dataset fails; only `cashflow` is non-critical for the demo run.

@@ -21,7 +21,7 @@ Produce the investable universe of US common stocks for each decision date. This
   - `insurer`: industry name contains `Insurance`
   - `utility`: SimFin sector exactly `Utilities`
 - Regenerate after SimFin industry label changes: `poetry run generate-simfin-industry-exclusions --industries <path-to-industries.csv>`
-- Sanity check: exclude tickers present in SimFin `income_banks` or `income_insurance` bulk datasets even if `IndustryId` is missing from the CSV.
+- Sanity check: exclude tickers present in SimFin `income-banks` or `income-insurance` bulk datasets even if `IndustryId` is missing from the CSV.
 - No S&P 500 historical file required for demo.
 - No market-cap or ADV floors in demo (optional parameters disabled).
 - Produce daily snapshot under `curated/universe/run_date=<YYYY-MM-DD>/`.
@@ -48,7 +48,7 @@ Produce the investable universe of US common stocks for each decision date. This
 | --- | --- | --- |
 | US company list | SimFin `companies` (demo) | `Ticker`, `CIK`, `IndustryId`. |
 | Industry metadata | SimFin `industries` + `simfin_industry_exclusions.csv` | Sector/industry names for audit. |
-| Bank/insurance sanity | SimFin `income_banks` / `income_insurance` ticker index | Secondary exclusion signal. |
+| Bank/insurance sanity | SimFin `income-banks` / `income-insurance` ticker index | Secondary exclusion signal. |
 | Historical S&P 500 constituents | `data/reference/sp500_constituents.csv` | Phase 2 only. |
 | SIC codes | SEC EDGAR submissions | Phase 2 only. |
 | Daily prices and volume | `curated/prices` | For ADV dedup and floors (phase 2). |

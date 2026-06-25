@@ -59,7 +59,7 @@ def _write_statement_index(lake: Path, *, dataset: str, rows: list[str]) -> None
     path = simfin_bulk_path(
         lake,
         dataset=dataset,
-        variant=None,
+        variant="ttm",
         market="us",
         as_of_date=SNAPSHOT_DATE,
     )
@@ -132,7 +132,7 @@ def test_bank_sanity_excludes_ticker_even_without_industry_match(lake: Path) -> 
     _write_industries(lake, ["50;Application Software;Technology"])
     _write_statement_index(
         lake,
-        dataset="income_banks",
+        dataset="income-banks",
         rows=["SANBK;222001;2024-12-31;2025-02-01;;USD;2024;Q4;1000000"],
     )
 
@@ -162,7 +162,7 @@ def test_insurance_sanity_excludes_ticker(lake: Path) -> None:
     _write_industries(lake, ["50;Application Software;Technology"])
     _write_statement_index(
         lake,
-        dataset="income_insurance",
+        dataset="income-insurance",
         rows=["SANIN;333001;2024-12-31;2025-02-01;;USD;2024;Q4;2000000"],
     )
 
