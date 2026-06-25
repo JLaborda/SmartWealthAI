@@ -1,4 +1,5 @@
 .venv
+mlruns/
 __pycache__/
 .coverage
 coverage.xml

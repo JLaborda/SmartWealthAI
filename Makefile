@@ -2,6 +2,9 @@
 
 install:
 	poetry install --with dev
+	# ponytail: mlflow metadata pins pandas<3; logging/UI work with pandas 3 (fat pkg --no-deps)
+	poetry run pip install "mlflow-skinny==2.22.5" -q
+	poetry run pip install "mlflow==2.22.5" --no-deps -q
 
 lint:
 	poetry run ruff check .
