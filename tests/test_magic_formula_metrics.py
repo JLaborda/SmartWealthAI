@@ -8,6 +8,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from smartwealthai.compute_metrics import cli_run, format_metrics_table
@@ -257,6 +258,76 @@ def test_format_metrics_table_includes_components() -> None:
     assert "Formula version: v1" in table
     assert "ROC:" in table
     assert "EY:" in table
+
+
+def test_format_metrics_table_shows_flags_and_na_values() -> None:
+    result = build_metrics(
+        ticker="BAD",
+        ebit=100.0,
+        current_assets=10.0,
+        current_liabilities=10.0,
+        cash=10.0,
+        short_term_debt=0.0,
+        net_fixed_assets=0.0,
+        shares_outstanding=1.0,
+        adj_close=10.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+    table = format_metrics_table(result)
+
+    assert "ROC:               n/a" in table
+    assert "Flags:" in table
+    assert "invalid_roc_denominator" in table
+
+
+def test_format_metrics_table_renders_na_for_none_components() -> None:
+    result = build_metrics(
+        ticker="X",
+        ebit=None,
+        current_assets=1.0,
+        current_liabilities=1.0,
+        cash=1.0,
+        short_term_debt=0.0,
+        net_fixed_assets=1.0,
+        shares_outstanding=1.0,
+        adj_close=1.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+    table = format_metrics_table(result)
+
+    assert "EBIT:              n/a" in table
+    assert "EY:                n/a" in table
+
+
+def test_cli_exits_nonzero_on_missing_inputs(lake: Path) -> None:
+    fundamentals_path = (
+        lake
+        / "curated"
+        / "fundamentals"
+        / "cik=0000320193"
+        / "period=2024Q4"
+        / "fundamentals.parquet"
+    )
+    row = pd.read_parquet(fundamentals_path).iloc[0].to_dict()
+    row["ebit"] = float("nan")
+    pd.DataFrame([row]).to_parquet(fundamentals_path, index=False)
+
+    exit_code = cli_run(
+        [
+            "--ticker",
+            "AAPL",
+            "--data-dir",
+            str(lake),
+            "--as-of-date",
+            RUN_DATE.isoformat(),
+        ]
+    )
+
+    assert exit_code == 1
 
 
 def test_cli_compute_metrics_succeeds_for_aapl(lake: Path) -> None:
