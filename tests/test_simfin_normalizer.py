@@ -160,7 +160,7 @@ def test_work_tickers_intersects_scoped_set(lake_with_simfin: Path) -> None:
 def test_work_tickers_returns_all_income_tickers_when_unscoped(lake_with_simfin: Path) -> None:
     income = _read_simfin_csv(_raw_paths(lake_with_simfin, SIMFIN_FIXTURE_DATE)["income"])
     work = _work_tickers(income, ticker_col="Ticker", tickers=None)
-    assert work == ["AAPL"]
+    assert work == ["AAPL", "BAR", "FOO", "LOST", "MSFT"]
 
 
 def test_work_tickers_logs_skipped_scoped_tickers(
@@ -251,8 +251,6 @@ def _add_msft_rows(lake_with_simfin: Path) -> None:
 def test_normalize_simfin_writes_multiple_partitions_with_progress(
     lake_with_simfin: Path,
 ) -> None:
-    _add_msft_rows(lake_with_simfin)
-
     result = normalize_simfin(
         lake_with_simfin,
         snapshot_date=SIMFIN_FIXTURE_DATE,
@@ -262,14 +260,12 @@ def test_normalize_simfin_writes_multiple_partitions_with_progress(
 
     assert result.written_rows == 2
     assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4").exists()
-    assert curated_fundamentals_path(lake_with_simfin, cik="0000789019", period="2024Q2").exists()
+    assert curated_fundamentals_path(lake_with_simfin, cik="0000789019", period="2024Q4").exists()
 
 
 def test_normalize_simfin_writes_multiple_partitions_without_progress(
     lake_with_simfin: Path,
 ) -> None:
-    _add_msft_rows(lake_with_simfin)
-
     result = normalize_simfin(
         lake_with_simfin,
         snapshot_date=SIMFIN_FIXTURE_DATE,
