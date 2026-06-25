@@ -314,11 +314,11 @@ def test_metrics_to_quality_frame_skips_non_rankable_rows() -> None:
 
 def test_score_universe_raises_when_universe_snapshot_missing(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="No universe snapshot"):
-        score_universe(tmp_path, run_date=RUN_DATE)
+        score_universe(tmp_path, run_date=RUN_DATE, skip_mlflow=True)
 
 
 def test_score_universe_writes_all_artifacts(lake: Path) -> None:
-    result = score_universe(lake, run_date=RUN_DATE, portfolio_size=3)
+    result = score_universe(lake, run_date=RUN_DATE, portfolio_size=3, skip_mlflow=True)
 
     assert result.rankable_count == 4
     assert result.portfolio_count == 3
@@ -351,7 +351,7 @@ def test_score_universe_writes_all_artifacts(lake: Path) -> None:
 
 
 def test_score_universe_fixture_ranking_order_is_deterministic(lake: Path) -> None:
-    score_universe(lake, run_date=RUN_DATE, portfolio_size=3)
+    score_universe(lake, run_date=RUN_DATE, portfolio_size=3, skip_mlflow=True)
     combined = pd.read_parquet(curated_combined_ranking_path(lake, run_date=RUN_DATE))
     portfolio = pd.read_parquet(curated_portfolio_path(lake, run_date=RUN_DATE))
 
@@ -362,7 +362,7 @@ def test_score_universe_fixture_ranking_order_is_deterministic(lake: Path) -> No
 
 
 def test_score_universe_fixture_metric_values_match_synthetic_inputs(lake: Path) -> None:
-    score_universe(lake, run_date=RUN_DATE, portfolio_size=30)
+    score_universe(lake, run_date=RUN_DATE, portfolio_size=30, skip_mlflow=True)
     quality = pd.read_parquet(curated_quality_scores_path(lake, run_date=RUN_DATE))
     cheap = pd.read_parquet(curated_cheap_scores_path(lake, run_date=RUN_DATE))
 
@@ -440,7 +440,7 @@ def test_bulk_metrics_match_per_ticker_on_fixture_lake(lake: Path) -> None:
 
 def test_score_universe_fixture_completes_under_5s(lake: Path) -> None:
     started = time.monotonic()
-    score_universe(lake, run_date=RUN_DATE, portfolio_size=3, show_progress=False)
+    score_universe(lake, run_date=RUN_DATE, portfolio_size=3, show_progress=False, skip_mlflow=True)
     assert time.monotonic() - started < 5.0
 
 
