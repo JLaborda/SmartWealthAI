@@ -18,7 +18,8 @@ dependencies = [
     "pyarrow (>=17.0.0,<25.0.0)",
     "requests (>=2.34.0,<3.0.0)",
     "click (>=8.1.0,<9.0.0)",
-    "simfin (>=1.0.2,<2.0.0)"
+    "simfin (>=1.0.2,<2.0.0)",
+    "streamlit (>=1.58.0,<2.0.0)"
 ]
 
 [project.scripts]
@@ -30,6 +31,7 @@ download-prices = "smartwealthai.download_prices:main"
 compute-metrics = "smartwealthai.compute_metrics:main"
 run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
 score-universe = "smartwealthai.score_universe:main"
+run-dashboard = "smartwealthai.run_dashboard:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]

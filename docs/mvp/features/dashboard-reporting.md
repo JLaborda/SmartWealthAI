@@ -2,7 +2,18 @@
 
 ## Implementation status
 
-planned — **demo slice** ships first ([`demo-slice.md`](../demo-slice.md)); full MVP pages in phase 2.
+**done** — demo slice three-page app ([#62](https://github.com/JLaborda/SmartWealthAI/issues/62)); full MVP pages in phase 2.
+
+### Demo run
+
+```bash
+# After score-universe (or full demo pipeline) for a run_date:
+poetry run run-dashboard --data-dir data --run-date 2026-06-18
+```
+
+Environment variables: `SMARTWEALTHAI_DATA_DIR` (lake root, default `data`), `SMARTWEALTHAI_RUN_DATE` (optional override).
+
+Code: `apps/dashboard/` (Streamlit UI), `src/smartwealthai/dashboard_data.py` (parquet readers), `tests/test_dashboard_data.py`.
 
 ## Objective
 
@@ -96,10 +107,10 @@ flowchart LR
 
 ### Demo slice
 
-- [ ] Dashboard shows combined rank, ROC/EY inputs, and top-30 equal-weight portfolio with explanations.
-- [ ] Dashboard is readable from cached parquet; no live SimFin or yfinance calls for display.
-- [ ] Every numeric score traces to a curated parquet row.
-- [ ] Dashboard renders correctly when curated parquet for a module is missing (clear empty state).
+- [x] Dashboard shows combined rank, ROC/EY inputs, and top-30 equal-weight portfolio with explanations.
+- [x] Dashboard is readable from cached parquet; no live SimFin or yfinance calls for display.
+- [x] Every numeric score traces to a curated parquet row.
+- [x] Dashboard renders correctly when curated parquet for a module is missing (clear empty state).
 
 ### Full MVP (phase 2)
 
