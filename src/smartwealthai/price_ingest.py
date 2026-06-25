@@ -34,9 +34,21 @@ class PriceIngestRun:
     missing_tickers: list[str] = field(default_factory=list)
 
 
-def should_skip_artifact(path: Path, *, force: bool) -> bool:
+def should_skip_artifact(
+    path: Path,
+    *,
+    force: bool,
+    tickers: list[str] | None = None,
+) -> bool:
     """Return True when an existing lake artifact should be reused."""
-    return not force and path.exists()
+    if force or not path.exists():
+        return False
+    if tickers is None:
+        return True
+
+    snapshot = pd.read_parquet(path, columns=["ticker"])
+    snapshot_tickers = set(snapshot["ticker"].astype(str))
+    return snapshot_tickers == set(tickers) and len(snapshot) == len(snapshot_tickers)
 
 
 def load_universe_tickers(data_dir: Path, *, run_date: date) -> list[str]:
@@ -133,11 +145,11 @@ def run_price_ingest(
 ) -> PriceIngestRun:
     """Build run-date prices for universe tickers from SimFin shareprices/latest."""
     curated_path = curated_prices_snapshot_path(data_dir, run_date=run_date)
-    if should_skip_artifact(curated_path, force=force):
+    tickers = load_universe_tickers(data_dir, run_date=run_date)
+    if should_skip_artifact(curated_path, force=force, tickers=tickers):
         return PriceIngestRun(curated_path=curated_path, run_skipped=True)
 
     snapshot = snapshot_date or run_date
-    tickers = load_universe_tickers(data_dir, run_date=run_date)
     shareprices = load_raw_shareprices(data_dir, snapshot_date=snapshot)
     rows, missing = build_price_rows(shareprices, tickers, run_date=run_date)
 

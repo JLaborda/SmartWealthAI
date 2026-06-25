@@ -49,7 +49,7 @@ poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
 
 - A failure for one dataset does not stop the rest.
 - Non-critical dataset (`cashflow`) failure still exits `0` when critical datasets succeed.
-- Exit code `1` when all critical datasets (`companies`, `industries`, `income`, `balance`, `shareprices`) fail, or when `SIMFIN_API_KEY` is missing.
+- Exit code `1` when any critical dataset (`companies`, `industries`, `income`, `balance`, `shareprices`) fails, or when `SIMFIN_API_KEY` is missing.
 - Per-run errors are written to `raw/simfin/download_runs/as_of_date=<date>/errors.json` when any dataset fails.
 
 ## Module map

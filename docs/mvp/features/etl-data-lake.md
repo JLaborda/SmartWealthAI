@@ -182,7 +182,8 @@ Phase 2 yfinance cache semantics:
   SimFin connector + normalizer are the active demo path ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 - SimFin shareprices snapshot in `price_ingest.py` and `download_prices.py` CLI
   (`poetry run download-prices`). Requires `shareprices/latest` from `download-simfin`.
-  Writes `curated/prices/run_date=<date>/prices.parquet`. Hermetic tests in
+  Writes `curated/prices/run_date=<date>/prices.parquet`; an existing snapshot is reused
+  only when its ticker set matches the current same-date universe. Hermetic tests in
   `tests/test_download_prices.py`.
 
 **Operator sequence (demo prices):**
@@ -233,6 +234,7 @@ poetry run download-simfin --refresh-days 7 --force
 - [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
+- [x] Exit code is `1` when any critical demo dataset fails; only `cashflow` is non-critical for the demo run.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
 - [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
 - [x] Operator steps in [`download-simfin.md`](../guides/download-simfin.md).

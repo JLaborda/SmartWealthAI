@@ -169,6 +169,30 @@ def test_run_skips_when_curated_snapshot_exists(lake: Path) -> None:
     assert second.run_skipped is True
 
 
+def test_run_rebuilds_stale_snapshot_after_universe_changes(lake: Path) -> None:
+    run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+    companies_path = simfin_bulk_path(
+        lake,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=SNAPSHOT_DATE,
+    )
+    companies_path.write_text(
+        companies_path.read_text().rstrip("\n")
+        + "\nMSFT;59265;Microsoft Corporation;50;USA;0000789019\n"
+    )
+    build_universe(lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    second = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    assert second.run_skipped is False
+    assert second.included == 2
+    assert second.curated_path is not None
+    prices = pd.read_parquet(second.curated_path)
+    assert set(prices["ticker"]) == {"AAPL", "MSFT"}
+
+
 def test_cli_records_missing_tickers(lake: Path) -> None:
     universe_path = curated_universe_path(lake, run_date=RUN_DATE)
     universe = pd.read_parquet(universe_path)
