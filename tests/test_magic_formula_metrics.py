@@ -54,15 +54,17 @@ def lake(tmp_path: Path) -> Path:
     """Curated lake with fundamentals, universe, and prices for AAPL."""
     shutil.copytree(FIXTURE_LAKE, tmp_path / "lake")
     root = tmp_path / "lake"
+    build_universe(root, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
     normalize_cli_run(
         [
             "--data-dir",
             str(root),
             "--snapshot-date",
             SNAPSHOT_DATE.isoformat(),
+            "--universe-run-date",
+            RUN_DATE.isoformat(),
         ]
     )
-    build_universe(root, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
     run_price_ingest(data_dir=root, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
     return root
 
@@ -202,6 +204,26 @@ def test_build_metrics_flags_missing_inputs() -> None:
     assert result.flags == ["missing_inputs"]
 
 
+def test_build_metrics_defaults_null_preferred_and_minority_to_zero() -> None:
+    result = build_metrics(
+        ticker="AAPL",
+        ebit=AAPL_EBIT,
+        current_assets=AAPL_CURRENT_ASSETS,
+        current_liabilities=AAPL_CURRENT_LIABILITIES,
+        cash=AAPL_CASH,
+        short_term_debt=AAPL_SHORT_TERM_DEBT,
+        net_fixed_assets=AAPL_PPE_NET,
+        shares_outstanding=AAPL_SHARES,
+        adj_close=AAPL_ADJ_CLOSE,
+        long_term_debt=AAPL_LONG_TERM_DEBT,
+        preferred_equity=None,
+        minority_interest=None,
+    )
+
+    assert result.ev == pytest.approx(AAPL_EV)
+    assert result.flags == []
+
+
 def test_compute_metrics_for_ticker_end_to_end(lake: Path) -> None:
     result = compute_metrics_for_ticker(lake, ticker="AAPL", as_of_date=RUN_DATE)
 
@@ -211,7 +233,7 @@ def test_compute_metrics_for_ticker_end_to_end(lake: Path) -> None:
 
 
 def test_compute_metrics_raises_when_fundamentals_missing(lake: Path) -> None:
-    with pytest.raises(MetricsInputError, match="No curated fundamentals"):
+    with pytest.raises(MetricsInputError, match="not in universe"):
         compute_metrics_for_ticker(lake, ticker="MISSING", as_of_date=RUN_DATE)
 
 

@@ -15,12 +15,18 @@ from smartwealthai.lake_paths import (
     fiscal_period_label,
     simfin_bulk_path,
 )
-from smartwealthai.normalize_simfin import cli_run
+from smartwealthai.normalize_simfin import cli_run, load_universe_tickers
 from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
+    _index_balance_by_ticker,
+    _latest_balance_row,
+    _raw_paths,
+    _read_simfin_csv,
+    _work_tickers,
     load_simfin_mapping,
     normalize_simfin,
 )
+from smartwealthai.universe_builder import build_universe
 
 SIMFIN_FIXTURE_DATE = date(2026, 6, 18)
 
@@ -122,6 +128,100 @@ def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin
 
 def test_fiscal_period_label_uses_calendar_quarter() -> None:
     assert fiscal_period_label(date(2024, 9, 28)) == "2024Q3"
+
+
+def test_cli_normalize_simfin_requires_scope(lake_with_simfin: Path) -> None:
+    exit_code = cli_run(
+        [
+            "--data-dir",
+            str(lake_with_simfin),
+            "--snapshot-date",
+            SIMFIN_FIXTURE_DATE.isoformat(),
+        ]
+    )
+
+    assert exit_code != 0
+
+
+def test_work_tickers_intersects_scoped_set(lake_with_simfin: Path) -> None:
+    income = _read_simfin_csv(_raw_paths(lake_with_simfin, SIMFIN_FIXTURE_DATE)["income"])
+    work = _work_tickers(income, ticker_col="Ticker", tickers={"AAPL", "MISSING"})
+    assert work == ["AAPL"]
+
+
+def test_cli_progress_and_quiet_mutually_exclusive(lake_with_simfin: Path) -> None:
+    exit_code = cli_run(
+        [
+            "--data-dir",
+            str(lake_with_simfin),
+            "--snapshot-date",
+            SIMFIN_FIXTURE_DATE.isoformat(),
+            "--ticker",
+            "AAPL",
+            "--progress",
+            "--quiet",
+        ]
+    )
+    assert exit_code != 0
+
+
+def test_normalize_simfin_with_universe_run_date(lake_with_simfin: Path) -> None:
+    build_universe(
+        lake_with_simfin,
+        run_date=SIMFIN_FIXTURE_DATE,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    exit_code = cli_run(
+        [
+            "--data-dir",
+            str(lake_with_simfin),
+            "--snapshot-date",
+            SIMFIN_FIXTURE_DATE.isoformat(),
+            "--universe-run-date",
+            SIMFIN_FIXTURE_DATE.isoformat(),
+        ]
+    )
+
+    assert exit_code == 0
+    assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4").exists()
+
+
+def test_load_universe_tickers_reads_curated_snapshot(lake_with_simfin: Path) -> None:
+    build_universe(
+        lake_with_simfin,
+        run_date=SIMFIN_FIXTURE_DATE,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    tickers = load_universe_tickers(lake_with_simfin, SIMFIN_FIXTURE_DATE)
+
+    assert "AAPL" in tickers
+
+
+def test_balance_index_returns_same_row_as_full_scan(lake_with_simfin: Path) -> None:
+    paths = _raw_paths(lake_with_simfin, SIMFIN_FIXTURE_DATE)
+    balance = _read_simfin_csv(paths["balance"])
+    indexed = _index_balance_by_ticker(
+        balance,
+        ticker_col="Ticker",
+        report_col="Report Date",
+    )
+    report_date = pd.Timestamp("2024-09-28")
+    row = _latest_balance_row(
+        indexed,
+        ticker="AAPL",
+        report_date=report_date,
+        report_col="Report Date",
+    )
+    naive = (
+        balance.loc[(balance["Ticker"] == "AAPL") & (balance["Report Date"] <= report_date)]
+        .sort_values("Report Date")
+        .iloc[-1]
+    )
+
+    assert row is not None
+    assert row["Total Assets"] == naive["Total Assets"]
 
 
 def test_cli_normalize_simfin_writes_curated_output(lake_with_simfin: Path) -> None:
