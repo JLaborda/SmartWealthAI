@@ -185,11 +185,18 @@ Phase 2 yfinance cache semantics:
   Writes `curated/prices/run_date=<date>/prices.parquet`. Hermetic tests in
   `tests/test_download_prices.py`.
 
-**Operator sequence (demo prices):**
+**Operator sequence (demo pipeline):**
+
+```bash
+poetry run run-demo-pipeline --run-date 2026-06-19 --ticker AAPL
+```
+
+Equivalent manual steps:
 
 ```bash
 poetry run download-simfin --as-of-date 2026-06-19
 poetry run build-universe --run-date 2026-06-19
+poetry run normalize-simfin --snapshot-date 2026-06-19 --universe-run-date 2026-06-19
 poetry run download-prices --run-date 2026-06-19 --snapshot-date 2026-06-19
 ```
 
@@ -239,7 +246,7 @@ poetry run download-simfin --refresh-days 7 --force
 
 ## SimFin normalizer (demo)
 
-Transforms SimFin bulk statements into curated canonical parquet. Joins income TTM with the latest quarterly balance row per ticker subject to PIT filters.
+Transforms SimFin bulk statements into curated canonical parquet. Joins income TTM with the latest quarterly balance row per ticker subject to PIT filters. Curated rows are accumulated in memory and written in bulk (one `to_parquet` per `cik`/`period` partition; deduped `mkdir`; parallel thread pool for I/O). Interactive runs show two Click progress bars: tickers during transform, partitions during write (`--quiet` to suppress; `--progress` to force on non-TTY).
 
 ### Configuration
 
@@ -274,8 +281,9 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 | `smartwealthai.lake_paths` | `curated_fundamentals_path`, `curated_issues_path`, `fiscal_period_label`. |
 
 ```bash
-poetry run normalize-simfin --data-dir data --snapshot-date 2026-06-18
-poetry run normalize-simfin --ticker AAPL --ticker MSFT
+poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
+poetry run normalize-simfin --snapshot-date 2026-06-18 --ticker AAPL --ticker MSFT
+poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18 --quiet
 ```
 
 ## SEC fundamentals normalizer (phase 2)
