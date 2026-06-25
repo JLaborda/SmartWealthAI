@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+import os
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import click
 import pandas as pd
 
 from smartwealthai.lake_paths import (
@@ -41,6 +46,11 @@ CANONICAL_VALUE_FIELDS: tuple[str, ...] = (
 
 DATE_COLUMNS = ("Report Date", "Publish Date", "Restated Date")
 
+# ponytail: I/O-bound cap; raise if profiling shows disk saturation
+_WRITE_WORKERS = min(8, (os.cpu_count() or 4) + 2)
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class NormalizeResult:
@@ -62,8 +72,10 @@ def normalize_simfin(
     mapping_path: Path = DEFAULT_MAPPING_PATH,
     tickers: set[str] | None = None,
     run_date: date | None = None,
+    show_progress: bool | None = None,
 ) -> NormalizeResult:
     """Transform raw SimFin bulk CSVs into curated fundamentals parquet."""
+    progress_enabled = _resolve_show_progress(show_progress)
     mapping = load_simfin_mapping(mapping_path)
     paths = _raw_paths(data_dir, snapshot_date)
 
@@ -71,63 +83,71 @@ def normalize_simfin(
     balance = _read_simfin_csv(paths["balance"])
     companies = pd.read_csv(paths["companies"], sep=";", dtype={"CIK": "string"})
 
-    company_lookup = companies.set_index(mapping["meta"]["ticker"], drop=False)
+    ticker_col = mapping["meta"]["ticker"]
+    report_col = mapping["meta"]["report_date"]
+    company_lookup = companies.set_index(ticker_col, drop=False)
     curated_rows: list[dict[str, object]] = []
     issue_rows: list[dict[str, object]] = []
     effective_run_date = run_date or snapshot_date
 
-    for _, income_row in income.iterrows():
-        ticker = str(income_row[mapping["meta"]["ticker"]])
-        if tickers is not None and ticker not in tickers:
-            continue
+    if tickers is not None:
+        income = income.loc[income[ticker_col].isin(tickers)]
 
-        if ticker not in company_lookup.index:
-            issue_rows.append(_issue_row(ticker=ticker, reason="missing_company_metadata"))
-            continue
+    balance_by_ticker = _index_balance_by_ticker(
+        balance,
+        ticker_col=ticker_col,
+        report_col=report_col,
+    )
 
-        company = company_lookup.loc[ticker]
-        cik_raw = company.get(mapping["meta"]["cik"])
-        if pd.isna(cik_raw) or not str(cik_raw).strip():
-            issue_rows.append(_issue_row(ticker=ticker, reason="missing_cik"))
-            continue
+    work_tickers = _work_tickers(income, ticker_col=ticker_col, tickers=tickers)
+    ticker_iter = _ticker_progress_iter(work_tickers, enabled=progress_enabled)
+    for ticker in ticker_iter:
+        ticker_income = income.loc[income[ticker_col] == ticker]
+        for _, income_row in ticker_income.iterrows():
+            if ticker not in company_lookup.index:
+                issue_rows.append(_issue_row(ticker=ticker, reason="missing_company_metadata"))
+                continue
 
-        cik = pad_cik(str(cik_raw))
-        if not is_valid_cik(cik):
-            issue_rows.append(_issue_row(ticker=ticker, reason="invalid_cik"))
-            continue
+            company = company_lookup.loc[ticker]
+            cik_raw = company.get(mapping["meta"]["cik"])
+            if pd.isna(cik_raw) or not str(cik_raw).strip():
+                issue_rows.append(_issue_row(ticker=ticker, reason="missing_cik"))
+                continue
 
-        report_date = income_row[mapping["meta"]["report_date"]]
-        balance_row = _latest_balance_row(
-            balance,
-            ticker=ticker,
-            report_date=report_date,
-            ticker_col=mapping["meta"]["ticker"],
-            report_col=mapping["meta"]["report_date"],
-        )
-        if balance_row is None:
-            issue_rows.append(_issue_row(ticker=ticker, reason="missing_balance_row"))
-            continue
+            cik = pad_cik(str(cik_raw))
+            if not is_valid_cik(cik):
+                issue_rows.append(_issue_row(ticker=ticker, reason="invalid_cik"))
+                continue
 
-        row, issues = _build_curated_row(
-            income_row=income_row,
-            balance_row=balance_row,
-            ticker=ticker,
-            cik=cik,
-            mapping=mapping,
-        )
-        if issues:
-            issue_rows.extend(issues)
-        if row is not None:
-            curated_rows.append(row)
+            report_date = income_row[report_col]
+            balance_row = _latest_balance_row(
+                balance_by_ticker,
+                ticker=ticker,
+                report_date=report_date,
+                report_col=report_col,
+            )
+            if balance_row is None:
+                issue_rows.append(_issue_row(ticker=ticker, reason="missing_balance_row"))
+                continue
+
+            row, issues = _build_curated_row(
+                income_row=income_row,
+                balance_row=balance_row,
+                ticker=ticker,
+                cik=cik,
+                mapping=mapping,
+            )
+            if issues:
+                issue_rows.extend(issues)
+            if row is not None:
+                curated_rows.append(row)
 
     result = NormalizeResult()
-    for row in curated_rows:
-        period = str(row["period"])
-        cik = str(row["cik"])
-        out_path = curated_fundamentals_path(data_dir, cik=cik, period=period)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([row]).to_parquet(out_path, index=False)
-        result.written_rows += 1
+    result.written_rows = _write_curated_fundamentals(
+        data_dir,
+        curated_rows,
+        show_progress=progress_enabled,
+    )
 
     if issue_rows:
         issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
@@ -136,6 +156,99 @@ def normalize_simfin(
         result.issue_rows = len(issue_rows)
 
     return result
+
+
+def _write_curated_fundamentals(
+    data_dir: Path,
+    curated_rows: list[dict[str, object]],
+    *,
+    show_progress: bool = False,
+) -> int:
+    """Write curated rows to per-partition parquet (bulk path, same lake layout)."""
+    if not curated_rows:
+        return 0
+
+    frame = pd.DataFrame(curated_rows)
+    grouped = frame.groupby(["cik", "period"], sort=False)
+
+    for parent in {
+        curated_fundamentals_path(data_dir, cik=str(cik), period=str(period)).parent
+        for cik, period in grouped.groups
+    }:
+        parent.mkdir(parents=True, exist_ok=True)
+
+    partitions: list[tuple[Path, pd.DataFrame]] = []
+    for (cik, period), group in grouped:
+        out_path = curated_fundamentals_path(
+            data_dir,
+            cik=str(cik),
+            period=str(period),
+        )
+        # ponytail: last row wins on duplicate partition (matches sequential overwrite)
+        partitions.append((out_path, group.iloc[[-1]]))
+
+    if len(partitions) == 1:
+        partitions[0][1].to_parquet(partitions[0][0], index=False)
+    elif show_progress:
+        with (
+            click.progressbar(
+                length=len(partitions),
+                label="Writing curated partitions",
+                show_eta=True,
+            ) as bar,
+            ThreadPoolExecutor(max_workers=_WRITE_WORKERS) as pool,
+        ):
+            futures = [pool.submit(_write_partition, item) for item in partitions]
+            for future in as_completed(futures):
+                future.result()
+                bar.update(1)
+    else:
+        with ThreadPoolExecutor(max_workers=_WRITE_WORKERS) as pool:
+            list(pool.map(_write_partition, partitions, chunksize=128))
+
+    return len(curated_rows)
+
+
+def _resolve_show_progress(show_progress: bool | None) -> bool:
+    if show_progress is None:
+        return sys.stderr.isatty()
+    return show_progress
+
+
+def _work_tickers(
+    income: pd.DataFrame,
+    *,
+    ticker_col: str,
+    tickers: set[str] | None,
+) -> list[str]:
+    """Return sorted tickers to process (scoped set intersected with income rows)."""
+    income_tickers = {str(ticker) for ticker in income[ticker_col].unique()}
+    if tickers is not None:
+        work = sorted(ticker for ticker in tickers if ticker in income_tickers)
+        skipped = len(tickers) - len(work)
+        if skipped:
+            logger.info("%d scoped ticker(s) have no income rows", skipped)
+        return work
+    return sorted(income_tickers)
+
+
+def _ticker_progress_iter(work_tickers: list[str], *, enabled: bool):
+    if not enabled or not work_tickers:
+        yield from work_tickers
+        return
+    with click.progressbar(
+        length=len(work_tickers),
+        label="Normalizing tickers",
+        show_eta=True,
+    ) as bar:
+        for ticker in work_tickers:
+            yield ticker
+            bar.update(1)
+
+
+def _write_partition(item: tuple[Path, pd.DataFrame]) -> None:
+    path, frame = item
+    frame.to_parquet(path, index=False)
 
 
 def _raw_paths(data_dir: Path, snapshot_date: date) -> dict[str, Path]:
@@ -168,18 +281,33 @@ def _read_simfin_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, sep=";", parse_dates=list(DATE_COLUMNS))
 
 
-def _latest_balance_row(
+def _index_balance_by_ticker(
     balance: pd.DataFrame,
+    *,
+    ticker_col: str,
+    report_col: str,
+) -> dict[str, pd.DataFrame]:
+    """Pre-group balance rows by ticker sorted by report date (ponytail: dict of frames)."""
+    indexed: dict[str, pd.DataFrame] = {}
+    for ticker, group in balance.groupby(ticker_col, sort=False):
+        indexed[str(ticker)] = group.sort_values(report_col)
+    return indexed
+
+
+def _latest_balance_row(
+    balance_by_ticker: dict[str, pd.DataFrame],
     *,
     ticker: str,
     report_date: pd.Timestamp,
-    ticker_col: str,
     report_col: str,
 ) -> pd.Series | None:
-    subset = balance.loc[(balance[ticker_col] == ticker) & (balance[report_col] <= report_date)]
+    group = balance_by_ticker.get(ticker)
+    if group is None:
+        return None
+    subset = group.loc[group[report_col] <= report_date]
     if subset.empty:
         return None
-    return subset.sort_values(report_col).iloc[-1]
+    return subset.iloc[-1]
 
 
 def _build_curated_row(
