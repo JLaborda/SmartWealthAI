@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-in progress — tracer bullet for single-ticker ROC/EY: `src/smartwealthai/magic_formula_metrics.py`, `src/smartwealthai/pit_fundamentals.py`, CLI `compute-metrics` ([#44](https://github.com/JLaborda/SmartWealthAI/issues/44)). Cross-sectional scoring parquet output is [#60](https://github.com/JLaborda/SmartWealthAI/issues/60).
+done (demo cross-sectional slice) — EY scoring and ranks: `src/smartwealthai/magic_formula_ranking.py`, CLI `score-universe` ([#60](https://github.com/JLaborda/SmartWealthAI/issues/60)). Single-ticker tracer: `magic_formula_metrics.py`, `pit_fundamentals.py`, `compute-metrics` ([#44](https://github.com/JLaborda/SmartWealthAI/issues/44)).
 
 ## Objective
 

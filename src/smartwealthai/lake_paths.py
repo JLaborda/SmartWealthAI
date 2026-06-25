@@ -211,6 +211,63 @@ def curated_issues_path(data_dir: Path, *, run_date: date) -> Path:
     )
 
 
+def curated_quality_scores_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for cross-sectional ROC scores on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "scores"
+        / "quality"
+        / f"run_date={run_date.isoformat()}"
+        / "scores.parquet"
+    )
+
+
+def curated_cheap_scores_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for cross-sectional EY scores on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "scores"
+        / "cheap"
+        / f"run_date={run_date.isoformat()}"
+        / "scores.parquet"
+    )
+
+
+def curated_combined_ranking_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the combined Greenblatt ranking on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "scores"
+        / "combined"
+        / f"run_date={run_date.isoformat()}"
+        / "ranking.parquet"
+    )
+
+
+def curated_portfolio_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for the demo model portfolio on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "portfolio"
+        / f"run_date={run_date.isoformat()}"
+        / "portfolio.parquet"
+    )
+
+
+def curated_quality_issues_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for quality review-queue rows on a run date."""
+    return data_dir / "curated" / "issues" / f"run_date={run_date.isoformat()}" / "quality.parquet"
+
+
+def curated_cheap_issues_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for cheapness review-queue rows on a run date."""
+    return data_dir / "curated" / "issues" / f"run_date={run_date.isoformat()}" / "cheap.parquet"
+
+
 def curated_universe_path(data_dir: Path, *, run_date: date) -> Path:
     """Build the path for the daily investable universe snapshot."""
     return (

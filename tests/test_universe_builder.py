@@ -82,7 +82,7 @@ def test_build_universe_writes_included_ticker_from_companies(lake: Path) -> Non
     assert universe["run_date"].eq(RUN_DATE.isoformat()).all()
     assert "AAPL" in universe["ticker"].values
     assert universe.loc[universe["ticker"] == "AAPL", "sector"].iloc[0] == "Technology"
-    assert result.universe_rows == 1
+    assert result.universe_rows == 5
     assert result.exclusion_rows == 0
 
 

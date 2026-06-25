@@ -156,7 +156,7 @@ def test_run_price_ingest_writes_curated_snapshot(lake: Path) -> None:
         snapshot_date=SNAPSHOT_DATE,
     )
 
-    assert ingest_run.included == 1
+    assert ingest_run.included == 5
     assert ingest_run.missing_tickers == []
     assert ingest_run.curated_path is not None
     curated = pd.read_parquet(ingest_run.curated_path)
