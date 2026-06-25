@@ -7,7 +7,7 @@ fields:
   net_income: "Net Income"
   current_assets: "Total Current Assets"
   current_liabilities: "Total Current Liabilities"
-  cash: "Cash & Cash Equivalents"
+  cash: "Cash, Cash Equivalents & Short Term Investments"
   short_term_debt: "Short Term Debt"
   ppe_net: "Property, Plant & Equipment, Net"
   long_term_debt: "Long Term Debt"

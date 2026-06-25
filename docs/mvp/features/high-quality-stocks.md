@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-planned — **in scope** for the June 30 demo slice ([`demo-slice.md`](../demo-slice.md)). Demo path skips the permanent loss filter upstream.
+in progress — tracer bullet for single-ticker ROC/EY: `src/smartwealthai/magic_formula_metrics.py`, `src/smartwealthai/pit_fundamentals.py`, CLI `compute-metrics` ([#44](https://github.com/JLaborda/SmartWealthAI/issues/44)). Cross-sectional scoring parquet output is [#60](https://github.com/JLaborda/SmartWealthAI/issues/60).
 
 ## Objective
 
@@ -99,7 +99,7 @@ flowchart TD
 ## Open questions
 
 - Greenblatt himself uses Pre-Tax Operating Earnings; do we use `EBIT` straight from EDGAR (`OperatingIncomeLoss + InterestAndDebtExpense`) or compute Pre-Tax Operating Earnings explicitly? Recommendation: use `OperatingIncomeLoss` from EDGAR and document the choice as `formula_version = v1`.
-- Excess cash definition for `Net Working Capital`: Greenblatt uses operating cash; we approximate by excluding `CashAndCashEquivalents` from `CurrentAssets`. Confirm in the YAML.
+- ~~Excess cash definition for `Net Working Capital`~~ **Closed (v1):** curated `cash` uses SimFin `Cash, Cash Equivalents & Short Term Investments` for both NWC and EV (known approximation — NWC excess-cash adjustment is slightly aggressive vs cash-equivalents-only).
 - Should very small ROC differences (e.g., < 0.1 percentage point) be treated as ties for the market-cap tie-break? Recommendation: no in the MVP; revisit if rank stability becomes a problem.
 - For companies with negative EBIT but positive denominator, ROC is negative. Do we exclude them, or rank them at the bottom? Recommendation: rank them at the bottom; they will likely never enter the top 30 anyway.
 

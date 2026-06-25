@@ -27,6 +27,8 @@ download-simfin = "smartwealthai.download_simfin:main"
 normalize-simfin = "smartwealthai.normalize_simfin:main"
 build-universe = "smartwealthai.build_universe:main"
 download-prices = "smartwealthai.download_prices:main"
+compute-metrics = "smartwealthai.compute_metrics:main"
+run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]

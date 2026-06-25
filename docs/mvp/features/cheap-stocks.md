@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-planned — **in scope** for the June 30 demo slice ([`demo-slice.md`](../demo-slice.md)). Demo path skips the permanent loss filter upstream.
+in progress — tracer bullet for single-ticker ROC/EY: `src/smartwealthai/magic_formula_metrics.py`, `src/smartwealthai/pit_fundamentals.py`, CLI `compute-metrics` ([#44](https://github.com/JLaborda/SmartWealthAI/issues/44)). Cross-sectional scoring parquet output is [#60](https://github.com/JLaborda/SmartWealthAI/issues/60).
 
 ## Objective
 
@@ -101,7 +101,7 @@ flowchart TD
 ## Open questions
 
 - For Enterprise Value, do we use `Long Term Debt + Short Term Debt + Capital Lease Obligations` for `Total Debt`, or a narrower definition? Recommendation: include capital leases under `Total Debt` and document as `formula_version = v1`.
-- Cash definition: `CashAndCashEquivalents` only, or `CashAndCashEquivalents + ShortTermInvestments`? Recommendation: include short-term investments for `formula_version = v1`.
+- ~~Cash definition: `CashAndCashEquivalents` only, or `CashAndCashEquivalents + ShortTermInvestments`?~~ **Closed (v1):** include short-term investments — SimFin column `Cash, Cash Equivalents & Short Term Investments` maps to curated `cash`.
 - Preferred equity: use book value or market value? Recommendation: book value (market is rarely available for free).
 - Should the EY rank skip companies that fail to score on quality (i.e., invalid ROC denominator)? Recommendation: no; keep the two ranks independent so the combined score only excludes a name when both fail.
 

@@ -65,7 +65,7 @@ _Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for
 _Avoid_: ROE, ROIC (unless explicitly that metric)
 
 **Net working capital (NWC)**:
-`max(Current Assets − Excess Cash − Current Liabilities + Short-Term Debt, 0)` per versioned Greenblatt-style config.
+`max(Current Assets − Excess Cash − Current Liabilities + Short-Term Debt, 0)` per versioned Greenblatt-style config. **v1:** excess cash uses curated `cash` (SimFin cash + cash equivalents + short-term investments — same field as EV).
 _Avoid_: total working capital without the excess-cash adjustment
 
 **Earnings yield (EY)**:
@@ -73,7 +73,7 @@ _Avoid_: total working capital without the excess-cash adjustment
 _Avoid_: dividend yield, earnings/price without EV
 
 **Enterprise value (EV)**:
-`Market Cap + Total Debt + Preferred Equity + Minority Interest − Cash and Equivalents`. Denominator for EY.
+`Market Cap + Total Debt + Preferred Equity + Minority Interest − Cash`. **v1:** cash is SimFin cash + cash equivalents + short-term investments (curated `cash`).
 _Avoid_: market cap alone as “value”
 
 **Combined rank**:
