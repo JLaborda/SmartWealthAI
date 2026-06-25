@@ -24,6 +24,7 @@ from smartwealthai.magic_formula_metrics import build_metrics
 from smartwealthai.magic_formula_ranking import (
     CombinedRankingRow,
     RankInput,
+    _metrics_to_quality_frame,
     assign_metric_ranks,
     build_combined_ranking,
     build_equal_weight_portfolio,
@@ -38,6 +39,7 @@ from smartwealthai.pit_fundamentals import (
 )
 from smartwealthai.price_ingest import run_price_ingest
 from smartwealthai.score_universe import cli_run as score_cli_run
+from smartwealthai.score_universe import format_scoring_summary
 from smartwealthai.score_universe import main as score_main
 from smartwealthai.universe_builder import build_universe
 
@@ -102,6 +104,17 @@ def test_assign_metric_ranks_breaks_ties_by_ascending_market_cap() -> None:
     assert ranked[0].rank == 1
     assert ranked[1].ticker == "BIG"
     assert ranked[1].rank == 2
+
+
+def test_assign_metric_ranks_orders_ascending_when_lower_is_better() -> None:
+    rows = [
+        RankInput(ticker="HIGH", metric_value=0.30, market_cap=100.0),
+        RankInput(ticker="LOW", metric_value=0.10, market_cap=200.0),
+    ]
+    ranked = assign_metric_ranks(rows, higher_is_better=False)
+
+    assert [row.ticker for row in ranked] == ["LOW", "HIGH"]
+    assert [row.rank for row in ranked] == [1, 2]
 
 
 def test_partition_metrics_excludes_invalid_and_negative_ebit_from_rankable() -> None:
@@ -255,6 +268,55 @@ def test_build_equal_weight_portfolio_selects_top_n_with_equal_weights() -> None
     assert portfolio[1].weight == pytest.approx(0.5)
 
 
+def test_build_equal_weight_portfolio_returns_empty_for_empty_ranking() -> None:
+    assert build_equal_weight_portfolio([]) == []
+
+
+def test_metrics_to_quality_frame_skips_non_rankable_rows() -> None:
+    valid = build_metrics(
+        ticker="OK",
+        ebit=100.0,
+        current_assets=200.0,
+        current_liabilities=80.0,
+        cash=20.0,
+        short_term_debt=0.0,
+        net_fixed_assets=100.0,
+        shares_outstanding=10.0,
+        adj_close=25.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+    invalid = build_metrics(
+        ticker="BAD",
+        ebit=None,
+        current_assets=None,
+        current_liabilities=None,
+        cash=None,
+        short_term_debt=None,
+        net_fixed_assets=None,
+        shares_outstanding=None,
+        adj_close=None,
+        long_term_debt=None,
+        preferred_equity=None,
+        minority_interest=0.0,
+    )
+
+    frame = _metrics_to_quality_frame(
+        [invalid, valid],
+        {"OK": 1},
+        run_date=RUN_DATE,
+        cik_by_ticker={"OK": "0000000001", "BAD": "0000000002"},
+    )
+
+    assert list(frame["ticker"]) == ["OK"]
+
+
+def test_score_universe_raises_when_universe_snapshot_missing(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="No universe snapshot"):
+        score_universe(tmp_path, run_date=RUN_DATE)
+
+
 def test_score_universe_writes_all_artifacts(lake: Path) -> None:
     result = score_universe(lake, run_date=RUN_DATE, portfolio_size=3)
 
@@ -397,3 +459,24 @@ def test_cli_progress_and_quiet_mutually_exclusive(lake: Path) -> None:
     )
     assert result.exit_code != 0
     assert "only one of --progress or --quiet" in result.output
+
+
+def test_format_scoring_summary_raises_for_non_scoring_result() -> None:
+    with pytest.raises(TypeError, match="expected ScoringResult"):
+        format_scoring_summary(object())
+
+
+def test_cli_score_universe_fails_when_universe_missing(tmp_path: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score_main,
+        [
+            "--data-dir",
+            str(tmp_path),
+            "--run-date",
+            RUN_DATE.isoformat(),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "No universe snapshot" in result.output

@@ -128,11 +128,22 @@ def _fundamentals_paths_for_ciks(data_dir: Path, ciks: set[str]) -> list[Path]:
     return paths
 
 
+def _cik_from_partition_path(path: Path) -> str:
+    for part in path.parts:
+        if part.startswith("cik="):
+            return pad_cik(part.removeprefix("cik="))
+    msg = f"Could not resolve CIK from fundamentals path: {path}"
+    raise MetricsInputError(msg)
+
+
 def _read_fundamentals_partition(path: Path) -> pd.DataFrame | None:
     frame = pd.read_parquet(path)
     if frame.empty:
         return None
-    return frame.iloc[[0]]
+    row = frame.iloc[[0]].copy()
+    if "cik" not in row.columns:
+        row["cik"] = _cik_from_partition_path(path)
+    return row
 
 
 def load_pit_fundamentals_bulk(
