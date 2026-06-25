@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-planned — **in scope** for the June 30 demo slice ([`demo-slice.md`](../demo-slice.md)). Demo path skips the permanent loss filter upstream.
+in progress — tracer bullet for single-ticker ROC/EY: `src/smartwealthai/magic_formula_metrics.py`, `src/smartwealthai/pit_fundamentals.py`, CLI `compute-metrics` ([#44](https://github.com/JLaborda/SmartWealthAI/issues/44)). Cross-sectional scoring parquet output is [#60](https://github.com/JLaborda/SmartWealthAI/issues/60).
 
 ## Objective
 
