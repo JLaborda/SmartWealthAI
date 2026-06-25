@@ -16,7 +16,7 @@ dependencies = [
     "pandas (>=3.0.1,<4.0.0)",
     "edgartools (>=5.35.1,<6.0.0)",
     "pyarrow (>=17.0.0,<25.0.0)",
-    "requests (>=2.32.0,<3.0.0)",
+    "requests (>=2.34.0,<3.0.0)",
     "click (>=8.1.0,<9.0.0)",
     "simfin (>=1.0.2,<2.0.0)"
 ]
@@ -29,6 +29,7 @@ build-universe = "smartwealthai.build_universe:main"
 download-prices = "smartwealthai.download_prices:main"
 compute-metrics = "smartwealthai.compute_metrics:main"
 run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
+score-universe = "smartwealthai.score_universe:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]
