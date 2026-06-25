@@ -46,6 +46,17 @@ poetry install
 poetry run pytest
 ```
 
+### MLflow (demo pipeline runs)
+
+`mlflow` is installed by `make install` (metadata pins `pandas<3` while the project uses pandas 3.0.1; fat package via `--no-deps`). `protobuf` is capped at `<7` because MLflow 2.22 UI breaks on protobuf 7.x.
+
+```bash
+export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
+# or http://localhost:5000 for the tracking server (devcontainer port 5000)
+```
+
+Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)).
+
 ### Fundamentals — demo path (SimFin)
 
 Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never commit).
