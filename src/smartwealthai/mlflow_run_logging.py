@@ -39,6 +39,12 @@ def resolve_tracking_uri(tracking_uri: str | None = None) -> str:
     return Path.cwd().joinpath("mlruns").as_uri()
 
 
+def _prepare_file_store(uri: str) -> None:
+    # ponytail: MLflow 3.14+ blocks file:// unless opted in; demo slice uses local mlruns
+    if uri.startswith("file:"):
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
+
 def summarize_metric_distribution(values: list[float]) -> dict[str, float]:
     """Return p25/p50/p75 for a metric sample; empty input yields no quantiles."""
     if not values:
@@ -69,6 +75,7 @@ def log_demo_pipeline_run(
 ) -> str:
     """Log a demo scoring run to MLflow and return the run id."""
     uri = resolve_tracking_uri(tracking_uri)
+    _prepare_file_store(uri)
     mlflow.set_tracking_uri(uri)
     mlflow.set_experiment(experiment_name)
 

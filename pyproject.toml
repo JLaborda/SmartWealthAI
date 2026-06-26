@@ -19,7 +19,7 @@ dependencies = [
     "requests (>=2.34.0,<3.0.0)",
     "click (>=8.1.0,<9.0.0)",
     "simfin (>=1.0.2,<2.0.0)",
-    "protobuf (>=3.19,<7)"
+    "mlflow-skinny (==3.14.0)"
 ]
 
 [project.scripts]
