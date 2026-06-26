@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import streamlit as st
-
 from apps.dashboard.common import load_snapshot, render_empty_state, render_footer
 
 st.set_page_config(page_title="Ranking", page_icon="📊", layout="wide")
