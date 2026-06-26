@@ -7,10 +7,14 @@ import subprocess
 import sys
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
+import pandas as pd
 import pytest
+from click.testing import CliRunner
 
 from smartwealthai.dashboard_data import (
+    DashboardSnapshot,
     discover_latest_run_date,
     load_dashboard_snapshot,
     overview_headline,
@@ -19,6 +23,8 @@ from smartwealthai.dashboard_data import (
 from smartwealthai.magic_formula_ranking import score_universe
 from smartwealthai.normalize_simfin import cli_run as normalize_cli_run
 from smartwealthai.price_ingest import run_price_ingest
+from smartwealthai.run_dashboard import _repo_root
+from smartwealthai.run_dashboard import main as run_dashboard_main
 from smartwealthai.universe_builder import build_universe
 
 FIXTURE_LAKE = Path("tests/fixtures/lake")
@@ -76,6 +82,27 @@ def test_discover_latest_run_date_finds_scored_partition(scored_lake: Path) -> N
     assert discover_latest_run_date(scored_lake) == RUN_DATE
 
 
+def test_discover_latest_run_date_returns_none_when_portfolio_root_missing(tmp_path: Path) -> None:
+    assert discover_latest_run_date(tmp_path) is None
+
+
+def test_discover_latest_run_date_ignores_invalid_partitions(tmp_path: Path) -> None:
+    portfolio_root = tmp_path / "curated" / "portfolio"
+    portfolio_root.mkdir(parents=True)
+    (portfolio_root / "not-a-partition").mkdir()
+    stale = portfolio_root / "run_date=2026-06-01"
+    stale.mkdir()
+    assert discover_latest_run_date(tmp_path) is None
+
+
+def test_discover_latest_run_date_picks_newest_partition(scored_lake: Path) -> None:
+    older = scored_lake / "curated" / "portfolio" / "run_date=2026-06-01"
+    older.mkdir()
+    pd.DataFrame({"ticker": ["OLD"]}).to_parquet(older / "portfolio.parquet")
+
+    assert discover_latest_run_date(scored_lake) == RUN_DATE
+
+
 def test_overview_headline_summarizes_portfolio(scored_lake: Path) -> None:
     snapshot = load_dashboard_snapshot(scored_lake, run_date=RUN_DATE)
     headline = overview_headline(snapshot)
@@ -84,6 +111,21 @@ def test_overview_headline_summarizes_portfolio(scored_lake: Path) -> None:
     assert headline.portfolio_count == 3
     assert headline.ranked_count == 4
     assert headline.top_ticker == "FOO"
+
+
+def test_overview_headline_empty_portfolio_has_no_top_ticker() -> None:
+    snapshot = DashboardSnapshot(
+        run_date=RUN_DATE,
+        ranking=pd.DataFrame(),
+        portfolio=pd.DataFrame(),
+        has_ranking=False,
+        has_portfolio=True,
+    )
+    headline = overview_headline(snapshot)
+
+    assert headline.portfolio_count == 0
+    assert headline.ranked_count == 0
+    assert headline.top_ticker is None
 
 
 def test_resolve_data_dir_defaults_to_data(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -105,3 +147,46 @@ def test_run_dashboard_entry_point_registered() -> None:
     )
     assert result.returncode == 0
     assert "--data-dir" in result.stdout
+
+
+def test_run_dashboard_sets_env_and_launches_streamlit() -> None:
+    runner = CliRunner()
+    with patch("smartwealthai.run_dashboard.subprocess.run") as mock_run:
+        result = runner.invoke(
+            run_dashboard_main,
+            ["--data-dir", "/tmp/lake", "--run-date", "2026-06-18"],
+            env={"PYTHONPATH": "/existing"},
+        )
+
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    command, kwargs = mock_run.call_args
+    assert command[0][1:4] == ["-m", "streamlit", "run"]
+    assert kwargs["check"] is True
+    env = kwargs["env"]
+    assert env["SMARTWEALTHAI_DATA_DIR"] == "/tmp/lake"
+    assert env["SMARTWEALTHAI_RUN_DATE"] == "2026-06-18"
+    assert env["PYTHONPATH"].startswith(str(_repo_root()))
+    assert env["PYTHONPATH"].endswith("/existing")
+
+
+def test_run_dashboard_launches_without_optional_flags() -> None:
+    runner = CliRunner()
+    with patch("smartwealthai.run_dashboard.subprocess.run") as mock_run:
+        result = runner.invoke(run_dashboard_main, [])
+
+    assert result.exit_code == 0
+    env = mock_run.call_args.kwargs["env"]
+    assert "SMARTWEALTHAI_DATA_DIR" not in env
+    assert "SMARTWEALTHAI_RUN_DATE" not in env
+    assert env["PYTHONPATH"] == str(_repo_root())
+
+
+def test_run_dashboard_main_module_entrypoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    import runpy
+
+    monkeypatch.setattr(sys, "argv", ["run-dashboard"])
+    with patch("smartwealthai.run_dashboard.subprocess.run"):
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_module("smartwealthai.run_dashboard", run_name="__main__")
+    assert exc_info.value.code == 0
