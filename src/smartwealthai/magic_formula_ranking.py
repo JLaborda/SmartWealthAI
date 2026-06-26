@@ -18,7 +18,7 @@ from smartwealthai.lake_paths import (
     curated_universe_path,
     pad_cik,
 )
-from smartwealthai.magic_formula_metrics import MetricsResult
+from smartwealthai.magic_formula_metrics import FORMULA_VERSION, MetricsResult
 from smartwealthai.pit_fundamentals import compute_metrics_for_tickers
 
 DEFAULT_PORTFOLIO_SIZE = 30
@@ -95,6 +95,7 @@ class ScoringResult:
     cheap_issues_path: Path
     rankable_count: int
     portfolio_count: int
+    mlflow_run_id: str | None = None
 
 
 def assign_metric_ranks(
@@ -350,6 +351,7 @@ def score_universe(
     run_date: date,
     portfolio_size: int = DEFAULT_PORTFOLIO_SIZE,
     show_progress: bool | None = None,
+    skip_mlflow: bool = False,
 ) -> ScoringResult:
     """Score every universe ticker, rank cross-sectionally, and write lake artifacts."""
     universe = _load_universe_tickers(data_dir, run_date=run_date)
@@ -443,6 +445,30 @@ def score_universe(
         cheap_issues_path,
     )
 
+    mlflow_run_id: str | None = None
+    if not skip_mlflow:
+        from smartwealthai.mlflow_run_logging import log_demo_pipeline_run
+
+        roc_values = [
+            result.roc for result in partitioned.quality_scorable if result.roc is not None
+        ]
+        ey_values = [result.ey for result in partitioned.cheap_scorable if result.ey is not None]
+        mlflow_run_id = log_demo_pipeline_run(
+            run_date=run_date,
+            formula_version=FORMULA_VERSION,
+            universe_count=len(tickers),
+            portfolio_size=portfolio_size,
+            quality_n_valid=len(partitioned.quality_scorable),
+            quality_n_invalid=len(partitioned.quality_review),
+            cheap_n_valid=len(partitioned.cheap_scorable),
+            cheap_n_invalid=len(partitioned.cheap_review),
+            rankable_count=len(partitioned.rankable),
+            portfolio_count=len(portfolio),
+            roc_values=roc_values,
+            ey_values=ey_values,
+            portfolio_parquet=portfolio_path,
+        )
+
     return ScoringResult(
         run_date=run_date,
         quality_path=quality_path,
@@ -453,4 +479,5 @@ def score_universe(
         cheap_issues_path=cheap_issues_path,
         rankable_count=len(partitioned.rankable),
         portfolio_count=len(portfolio),
+        mlflow_run_id=mlflow_run_id,
     )
