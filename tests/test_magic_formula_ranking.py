@@ -24,6 +24,7 @@ from smartwealthai.magic_formula_metrics import build_metrics
 from smartwealthai.magic_formula_ranking import (
     CombinedRankingRow,
     RankInput,
+    ScoringResult,
     _metrics_to_quality_frame,
     assign_metric_ranks,
     build_combined_ranking,
@@ -464,6 +465,44 @@ def test_cli_progress_and_quiet_mutually_exclusive(lake: Path) -> None:
 def test_format_scoring_summary_raises_for_non_scoring_result() -> None:
     with pytest.raises(TypeError, match="expected ScoringResult"):
         format_scoring_summary(object())
+
+
+def test_format_scoring_summary_includes_mlflow_run_id(tmp_path: Path) -> None:
+    result = ScoringResult(
+        run_date=RUN_DATE,
+        quality_path=tmp_path / "quality.parquet",
+        cheap_path=tmp_path / "cheap.parquet",
+        combined_path=tmp_path / "combined.parquet",
+        portfolio_path=tmp_path / "portfolio.parquet",
+        quality_issues_path=tmp_path / "quality_issues.parquet",
+        cheap_issues_path=tmp_path / "cheap_issues.parquet",
+        rankable_count=3,
+        portfolio_count=2,
+        mlflow_run_id="run-abc",
+    )
+
+    summary = format_scoring_summary(result)
+
+    assert "MLflow run id: run-abc" in summary
+
+
+def test_format_scoring_summary_omits_mlflow_when_skipped(tmp_path: Path) -> None:
+    result = ScoringResult(
+        run_date=RUN_DATE,
+        quality_path=tmp_path / "quality.parquet",
+        cheap_path=tmp_path / "cheap.parquet",
+        combined_path=tmp_path / "combined.parquet",
+        portfolio_path=tmp_path / "portfolio.parquet",
+        quality_issues_path=tmp_path / "quality_issues.parquet",
+        cheap_issues_path=tmp_path / "cheap_issues.parquet",
+        rankable_count=3,
+        portfolio_count=2,
+        mlflow_run_id=None,
+    )
+
+    summary = format_scoring_summary(result)
+
+    assert "MLflow run id" not in summary
 
 
 def test_cli_score_universe_fails_when_universe_missing(tmp_path: Path) -> None:

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from smartwealthai.magic_formula_metrics import FORMULA_VERSION
 from smartwealthai.magic_formula_ranking import score_universe
 from smartwealthai.mlflow_run_logging import (
     DEMO_PIPELINE_EXPERIMENT,
+    _prepare_file_store,
     log_demo_pipeline_run,
     resolve_git_sha,
     resolve_tracking_uri,
@@ -166,6 +169,34 @@ def test_resolve_git_sha_returns_nonempty_string() -> None:
 def test_resolve_tracking_uri_prefers_argument(tmp_path: Path) -> None:
     uri = tmp_path.joinpath("mlruns").as_uri()
     assert resolve_tracking_uri(uri) == uri
+
+
+def test_resolve_tracking_uri_defaults_to_cwd_mlruns(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
+    assert resolve_tracking_uri() == Path.cwd().joinpath("mlruns").as_uri()
+
+
+def test_resolve_git_sha_returns_unknown_when_git_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_git(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise subprocess.CalledProcessError(1, "git")
+
+    monkeypatch.setattr("smartwealthai.mlflow_run_logging.subprocess.run", fail_git)
+    assert resolve_git_sha() == "unknown"
+
+
+def test_prepare_file_store_sets_allow_for_file_uri(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.delenv("MLFLOW_ALLOW_FILE_STORE", raising=False)
+    _prepare_file_store(tmp_path.joinpath("mlruns").as_uri())
+    assert os.environ["MLFLOW_ALLOW_FILE_STORE"] == "true"
+
+
+def test_prepare_file_store_noop_for_http_uri(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MLFLOW_ALLOW_FILE_STORE", raising=False)
+    _prepare_file_store("http://localhost:5000")
+    assert "MLFLOW_ALLOW_FILE_STORE" not in os.environ
 
 
 @pytest.fixture
