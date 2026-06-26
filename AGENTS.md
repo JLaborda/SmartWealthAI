@@ -48,14 +48,16 @@ poetry run pytest
 
 ### MLflow (demo pipeline runs)
 
-`mlflow` is installed by `make install` (metadata pins `pandas<3` while the project uses pandas 3.0.1; fat package via `--no-deps`). `protobuf` is capped at `<7` because MLflow 2.22 UI breaks on protobuf 7.x.
+`mlflow-skinny` is a Poetry dependency (`poetry install` is enough for logging). No local MLflow UI server is required for #61.
 
 ```bash
 export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
-# or http://localhost:5000 for the tracking server (devcontainer port 5000)
+export MLFLOW_ALLOW_FILE_STORE=true                 # required for file:// with MLflow 3.14+ (set automatically by score-universe)
 ```
 
 Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)).
+
+To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING_URI` to that server **before** `score-universe` and use a shared artifact store (e.g. S3). Local `mlruns/` are not visible to a remote server unless you log there at run time.
 
 ### Fundamentals — demo path (SimFin)
 
