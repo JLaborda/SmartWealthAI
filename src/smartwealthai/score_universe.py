@@ -23,13 +23,19 @@ def format_scoring_summary(result: object) -> str:
         f"Scoring run for {result.run_date}",
         f"  Rankable tickers: {result.rankable_count}",
         f"  Portfolio holdings: {result.portfolio_count}",
-        "",
-        "Artifacts:",
-        f"  quality:  {result.quality_path}",
-        f"  cheap:    {result.cheap_path}",
-        f"  combined: {result.combined_path}",
-        f"  portfolio:{result.portfolio_path}",
     ]
+    if result.mlflow_run_id:
+        lines.append(f"  MLflow run id: {result.mlflow_run_id}")
+    lines.extend(
+        [
+            "",
+            "Artifacts:",
+            f"  quality:  {result.quality_path}",
+            f"  cheap:    {result.cheap_path}",
+            f"  combined: {result.combined_path}",
+            f"  portfolio:{result.portfolio_path}",
+        ]
+    )
     return "\n".join(lines)
 
 

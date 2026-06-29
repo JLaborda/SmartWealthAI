@@ -19,7 +19,7 @@ Deliver a working, explainable Greenblatt-style Magic Formula pipeline on real U
 | 5 | Ranking | Combined rank = ROC rank + EY rank (lower is better); tie-break ascending market cap |
 | 6 | Model portfolio | Top **30** names, **equal-weight** only |
 | 7 | Dashboard | [`dashboard-reporting.md`](features/dashboard-reporting.md) — ranking table, portfolio, per-name explainability |
-| 8 | MLflow | Log each pipeline run (params, scoring metrics, portfolio artifact) |
+| 8 | MLflow | Log each pipeline run (params, scoring metrics, portfolio artifact) — `src/smartwealthai/mlflow_run_logging.py`, wired in `score-universe` ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)) |
 
 ## Out of scope (phase 2)
 
@@ -85,7 +85,7 @@ flowchart LR
 - [ ] Dashboard shows combined rank, ROC/EY inputs, and top-30 portfolio with explanations.
 - [ ] Every curated fundamental row has `as_of_date <= run_date` when queried PIT.
 - [ ] No bank/insurer/utility from the exclusion list appears in the ranked universe.
-- [ ] MLflow run exists with portfolio parquet artifact and git commit SHA tag.
+- [x] MLflow run exists with portfolio parquet artifact and git commit SHA tag.
 - [ ] Hermetic CI tests do not call SimFin or yfinance live.
 
 ## After the demo (phase 2 order)
