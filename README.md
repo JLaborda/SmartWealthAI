@@ -5,7 +5,7 @@
 
 **A quantitative value-investing MVP: Greenblatt-style ranking on US equities.**
 
-*Status: MVP spec refinement — [June 30 demo slice](docs/mvp/demo-slice.md) is the current delivery target.*
+*Status: **v0.1.0** — [June 30 demo slice](docs/mvp/demo-slice.md) runnable from CLI (Poetry + SimFin API key).*
 
 ## Project vision
 
@@ -37,15 +37,16 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 3.  **Demo slice docs** — start here before coding:
     [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)
 
-4.  **SimFin demo raw download:**
+4.  **Run the full demo pipeline** (one command for a `run_date`):
+
     ```bash
     export SIMFIN_API_KEY="<from user secrets>"
-    poetry run download-simfin
+    poetry run run-demo-pipeline --run-date 2026-06-18
     ```
 
-    Guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md).
+    Individual stages (`download-simfin`, `normalize-simfin`, `build-universe`, `score-universe`, …) are also available. Guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md).
 
-5.  **Demo dashboard** (after `score-universe` for a `run_date`):
+5.  **Demo dashboard** (after the pipeline for the same `run_date`):
 
     ```bash
     poetry run run-dashboard --data-dir data --run-date 2026-06-18
@@ -65,13 +66,16 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 
 See [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md) for the **June 30, 2026** delivery target and [`docs/mvp/architecture/architecture.md`](docs/mvp/architecture/architecture.md) for the full MVP north star.
 
-### Demo slice (current)
+### Demo slice (v0.1.0)
 
-- [ ] SimFin bulk ETL → raw + curated fundamentals
-- [ ] US universe (SimFin minus banks / insurers / utilities)
-- [ ] ROC + EY ranking → top-30 equal-weight portfolio
+- [x] SimFin bulk ETL → raw + curated fundamentals
+- [x] US universe (SimFin minus banks / insurers / utilities)
+- [x] ROC + EY ranking → top-30 equal-weight portfolio
+- [x] End-to-end CLI (`run-demo-pipeline`)
 - [x] Streamlit dashboard (Overview, Ranking, Portfolio)
-- [ ] MLflow run logging
+- [x] MLflow run logging
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Phase 2 (after demo)
 
