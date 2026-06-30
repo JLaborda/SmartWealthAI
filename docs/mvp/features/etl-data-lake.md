@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-in_progress — **demo path:** SimFin connector + normalizer + SimFin shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
+**done** (demo slice) — SimFin connector + normalizer + shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 
 ## Objective
 

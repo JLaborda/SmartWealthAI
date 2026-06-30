@@ -197,9 +197,7 @@ def run_demo_pipeline(
     )
     elapsed = time.monotonic() - started
     result.scoring = scoring
-    scoring_detail = (
-        f"{scoring.rankable_count} rankable, {scoring.portfolio_count} in portfolio"
-    )
+    scoring_detail = f"{scoring.rankable_count} rankable, {scoring.portfolio_count} in portfolio"
     logger.info("[score-universe] finished in %.1fs — %s", elapsed, scoring_detail)
     result.steps.append(
         PipelineStepResult(
