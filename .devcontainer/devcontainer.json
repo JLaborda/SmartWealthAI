@@ -9,7 +9,7 @@
   },
   "forwardPorts": [8501, 5000],
   "portsAttributes": {
-    "8501": { "label": "Streamlit" },
+    "8501": { "label": "Streamlit", "onAutoForward": "openBrowser" },
     "5000": { "label": "MLflow" }
   },
   "customizations": {
@@ -25,5 +25,8 @@
       }
     }
   },
-  "postCreateCommand": "pipx install poetry && poetry config virtualenvs.in-project true && poetry install"
+  "postCreateCommand": "pipx install poetry && poetry config virtualenvs.in-project true && poetry install && bash .devcontainer/install-env-hook.sh",
+  "remoteEnv": {
+    "SIMFIN_API_KEY": "${localEnv:SIMFIN_API_KEY}"
+  }
 }
