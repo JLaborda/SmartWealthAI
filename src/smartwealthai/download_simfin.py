@@ -28,6 +28,7 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.lake_paths import simfin_bulk_path, simfin_errors_path
 from smartwealthai.simfin_client import configure_simfin, fetch_dataset_csv
 
@@ -181,13 +182,7 @@ def run_download(
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--as-of-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -207,16 +202,22 @@ def run_download(
     help="Re-download and overwrite lake copies regardless of age.",
 )
 def main(
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     as_of_date: datetime | None,
     refresh_days: int,
     force: bool,
 ) -> None:
     """Download SimFin bulk US fundamentals into the raw lake."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     snapshot_date = as_of_date.date() if as_of_date is not None else datetime.now(UTC).date()
     raise SystemExit(
         run_download(
-            data_dir=data_dir,
+            data_dir=lake_path,
             as_of_date=snapshot_date,
             refresh_days=refresh_days,
             force=force,

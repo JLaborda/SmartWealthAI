@@ -62,6 +62,19 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 
     Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
 
+## Cloud foundation (Phase 2a)
+
+Pipeline batch work targets AWS with a **configurable lake root**; the Streamlit dashboard stays local for now.
+
+| Concern | Local dev | AWS integration |
+| --- | --- | --- |
+| Lake root | `LAKE_ROOT_URI=file://…` or `--data-dir data` | `LAKE_ROOT_URI=s3://dev-bucket/prefix/` (I/O slice: file backend in pytest) |
+| PR CI | `make lint` + `make test` on fixtures | No credentials |
+| Ingest-smoke | N/A | [`.github/workflows/ingest-smoke.yml`](.github/workflows/ingest-smoke.yml) via OIDC |
+| Pipeline image | `make docker-build` | ECR/ECS in [#95](https://github.com/JLaborda/SmartWealthAI/issues/95) |
+
+Guide: [`docs/mvp/guides/cloud-foundation.md`](docs/mvp/guides/cloud-foundation.md).
+
 ## Roadmap
 
 See [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md) for the **June 30, 2026** delivery target and [`docs/mvp/architecture/architecture.md`](docs/mvp/architecture/architecture.md) for the full MVP north star.

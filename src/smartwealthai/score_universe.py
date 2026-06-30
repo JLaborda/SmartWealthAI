@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.magic_formula_ranking import score_universe
 from smartwealthai.normalize_simfin import resolve_show_progress
 
@@ -40,13 +41,7 @@ def format_scoring_summary(result: object) -> str:
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--run-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -72,17 +67,23 @@ def format_scoring_summary(result: object) -> str:
     help="Suppress progress bars.",
 )
 def main(
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     run_date: datetime,
     portfolio_size: int,
     progress: bool,
     quiet: bool,
 ) -> None:
     """Score the demo universe and write ranking + portfolio parquets."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     decision_date = run_date.date()
     try:
         result = score_universe(
-            data_dir,
+            lake_path,
             run_date=decision_date,
             portfolio_size=portfolio_size,
             show_progress=resolve_show_progress(progress=progress, quiet=quiet),

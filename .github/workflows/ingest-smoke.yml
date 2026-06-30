@@ -1,0 +1,75 @@
+name: Ingest smoke (dev S3)
+
+# Separate from PR CI: proves GitHub OIDC → AWS dev bucket access.
+# Requires GitHub Environment "dev" with repository variables (see docs/mvp/guides/cloud-foundation.md).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ingest-smoke:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Write smoke marker to dev lake raw zone
+        env:
+          DEV_LAKE_BUCKET: ${{ vars.DEV_LAKE_BUCKET }}
+          DEV_LAKE_PREFIX: ${{ vars.DEV_LAKE_PREFIX }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEV_LAKE_BUCKET:-}" ]; then
+            echo "Missing DEV_LAKE_BUCKET. See docs/mvp/guides/cloud-foundation.md"
+            exit 1
+          fi
+          prefix="${DEV_LAKE_PREFIX:-}"
+          key="${prefix}raw/_smoke/ingest-smoke.txt"
+          echo "smartwealthai ingest-smoke $(date -u +%Y-%m-%dT%H:%M:%SZ)" > smoke.txt
+          aws s3 cp smoke.txt "s3://${DEV_LAKE_BUCKET}/${key}"
+
+      - name: Validate smoke object
+        env:
+          DEV_LAKE_BUCKET: ${{ vars.DEV_LAKE_BUCKET }}
+          DEV_LAKE_PREFIX: ${{ vars.DEV_LAKE_PREFIX }}
+        run: |
+          set -euo pipefail
+          prefix="${DEV_LAKE_PREFIX:-}"
+          key="${prefix}raw/_smoke/ingest-smoke.txt"
+          aws s3api head-object --bucket "${DEV_LAKE_BUCKET}" --key "${key}"
+          aws s3 cp "s3://${DEV_LAKE_BUCKET}/${key}" -
+          echo
+          echo "ingest-smoke OK: s3://${DEV_LAKE_BUCKET}/${key}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a
+        with:
+          virtualenvs-in-project: true
+
+      - name: Validate lake root URI parsing (no live S3 I/O)
+        run: |
+          poetry install --with dev
+          poetry run python -c "
+          from smartwealthai.lake_root import resolve_lake_root
+          root = resolve_lake_root('s3://${{ vars.DEV_LAKE_BUCKET }}/${{ vars.DEV_LAKE_PREFIX }}')
+          assert root.backend == 's3'
+          print('lake root:', root.uri, 'bucket=', root.s3_bucket)
+          "

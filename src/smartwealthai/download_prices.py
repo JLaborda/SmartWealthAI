@@ -10,6 +10,7 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.lake_paths import price_ingest_errors_path
 from smartwealthai.price_ingest import run_price_ingest
 
@@ -17,13 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--run-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -42,19 +37,25 @@ logger = logging.getLogger(__name__)
     help="Rebuild curated snapshot even when it already exists.",
 )
 def main(
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     run_date: datetime,
     snapshot_date: datetime | None,
     force: bool,
 ) -> None:
     """Build curated run-date prices from SimFin bulk shareprices/latest."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     decision_date = run_date.date()
     snapshot = snapshot_date.date() if snapshot_date is not None else decision_date
 
     try:
         ingest_run = run_price_ingest(
-            data_dir=data_dir,
+            data_dir=lake_path,
             run_date=decision_date,
             snapshot_date=snapshot,
             force=force,
@@ -77,7 +78,7 @@ def main(
             {"ticker": ticker, "error": "no SimFin share price on or before run_date"}
             for ticker in ingest_run.missing_tickers
         ]
-        error_file = price_ingest_errors_path(data_dir, run_date=decision_date)
+        error_file = price_ingest_errors_path(lake_path, run_date=decision_date)
         error_file.parent.mkdir(parents=True, exist_ok=True)
         error_file.write_text(json.dumps(payload, indent=2))
         click.echo(f"Wrote error summary: {error_file}")

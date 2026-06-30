@@ -9,6 +9,7 @@ import click
 import pandas as pd
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.lake_paths import curated_universe_path
 from smartwealthai.simfin_normalizer import DEFAULT_MAPPING_PATH, normalize_simfin
 
@@ -61,13 +62,7 @@ def resolve_normalize_tickers(
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--snapshot-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -105,7 +100,8 @@ def resolve_normalize_tickers(
     help="Suppress progress bars.",
 )
 def main(
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     snapshot_date: datetime,
     universe_run_date: datetime | None,
     mapping: Path,
@@ -114,15 +110,20 @@ def main(
     quiet: bool,
 ) -> None:
     """Normalize raw SimFin bulk snapshots into curated PIT fundamentals."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     snapshot = snapshot_date.date()
     universe_date = universe_run_date.date() if universe_run_date is not None else None
     ticker_set = resolve_normalize_tickers(
-        data_dir,
+        lake_path,
         universe_run_date=universe_date,
         explicit_tickers=tickers,
     )
     result = normalize_simfin(
-        data_dir,
+        lake_path,
         snapshot_date=snapshot,
         mapping_path=mapping,
         tickers=ticker_set,

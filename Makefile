@@ -1,4 +1,4 @@
-.PHONY: install lint test download-fundamentals
+.PHONY: install lint test download-fundamentals docker-build
 
 install:
 	poetry install --with dev
@@ -9,6 +9,9 @@ lint:
 
 test:
 	poetry run pytest --cov=smartwealthai --cov-report=term-missing
+
+docker-build:
+	docker build -f Dockerfile -t smartwealthai-pipeline .
 
 # Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
 download-fundamentals:

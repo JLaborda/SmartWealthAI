@@ -24,6 +24,7 @@ from pathlib import Path
 
 import click
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.edgartools_client import EdgartoolsClientError, download_statements
 from smartwealthai.lake_paths import (
     STATEMENT_NAMES,
@@ -189,13 +190,7 @@ def run_download(
     type=click.Path(path_type=Path, dir_okay=False),
     help="Path to a universe CSV with columns ticker,cik.",
 )
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--periods",
     type=int,
@@ -217,18 +212,24 @@ def run_download(
 def main(
     universe: str | None,
     universe_file: Path | None,
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     periods: int,
     as_of_date: datetime | None,
     force: bool,
 ) -> None:
     """Download SEC companyfacts and edgartools annual statements for a universe."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     snapshot_date = as_of_date.date() if as_of_date is not None else None
     raise SystemExit(
         run_download(
             universe=universe,
             universe_file=universe_file,
-            data_dir=data_dir,
+            data_dir=lake_path,
             periods=periods,
             as_of_date=snapshot_date,
             force=force,

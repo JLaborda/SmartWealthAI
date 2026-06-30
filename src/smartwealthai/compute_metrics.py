@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.magic_formula_metrics import MetricsResult
 from smartwealthai.pit_fundamentals import MetricsInputError, compute_metrics_for_ticker
 
@@ -18,13 +19,7 @@ from smartwealthai.pit_fundamentals import MetricsInputError, compute_metrics_fo
     required=True,
     help="Ticker symbol (e.g. AAPL).",
 )
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--as-of-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -32,12 +27,22 @@ from smartwealthai.pit_fundamentals import MetricsInputError, compute_metrics_fo
     show_default="today (UTC)",
     help="Decision date (PIT fundamentals and price snapshot).",
 )
-def main(ticker: str, data_dir: Path, as_of_date: datetime) -> None:
+def main(
+    ticker: str,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
+    as_of_date: datetime,
+) -> None:
     """Compute ROC and EY for one ticker using curated fundamentals and prices."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     decision_date = as_of_date.date()
     try:
         result = compute_metrics_for_ticker(
-            data_dir,
+            lake_path,
             ticker=ticker.upper(),
             as_of_date=decision_date,
         )

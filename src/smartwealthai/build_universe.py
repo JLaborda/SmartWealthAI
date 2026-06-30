@@ -8,18 +8,13 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
+from smartwealthai.cli_lake import lake_root_options, resolve_cli_data_dir
 from smartwealthai.simfin_industry_exclusions import REFERENCE_PATH
 from smartwealthai.universe_builder import build_universe
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--data-dir",
-    type=click.Path(path_type=Path, file_okay=False),
-    default=Path("data"),
-    show_default=True,
-    help="Data lake root.",
-)
+@lake_root_options
 @click.option(
     "--run-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -40,16 +35,22 @@ from smartwealthai.universe_builder import build_universe
     help="Industry exclusions reference CSV.",
 )
 def main(
-    data_dir: Path,
+    lake_root_uri: str | None,
+    data_dir: Path | None,
     run_date: datetime,
     snapshot_date: datetime | None,
     exclusions_file: Path,
 ) -> None:
     """Build curated universe and exclusion artifacts for one run date."""
+    try:
+        lake_path = resolve_cli_data_dir(lake_root_uri=lake_root_uri, data_dir=data_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     decision_date = run_date.date()
     snapshot = snapshot_date.date() if snapshot_date is not None else decision_date
     result = build_universe(
-        data_dir,
+        lake_path,
         run_date=decision_date,
         snapshot_date=snapshot,
         exclusions_path=exclusions_file,
