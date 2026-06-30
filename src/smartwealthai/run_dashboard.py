@@ -43,7 +43,17 @@ def main(data_dir: Path | None, run_date: click.DateTime | None) -> None:
 
     home = root / "apps" / "dashboard" / "Home.py"
     subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(home)],
+        [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            str(home),
+            "--server.headless=true",
+            "--server.address=0.0.0.0",
+            "--server.port=8501",
+            "--browser.gatherUsageStats=false",
+        ],
         check=True,
         env=env,
     )
