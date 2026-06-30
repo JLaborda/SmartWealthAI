@@ -42,12 +42,15 @@ poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
 poetry run compute-metrics --ticker AAPL --as-of-date 2026-06-18
 ```
 
-Or run all stages in one command (full universe normalize; pass `--ticker` to also compute ROC/EY):
+Or run ingest → score in one command (then launch the dashboard):
 
 ```bash
-poetry run run-demo-pipeline --run-date 2026-06-18 --ticker AAPL
+poetry run run-demo-pipeline --run-date 2026-06-18
 poetry run run-demo-pipeline --run-date 2026-06-18 --skip-download
+poetry run run-dashboard --data-dir data --run-date 2026-06-18
 ```
+
+Pass `--ticker` to limit the normalize step to specific names (intersect universe). Use `compute-metrics` for single-ticker ROC/EY smoke tests without a full scoring run.
 
 `normalize-simfin` requires `--universe-run-date` (after `build-universe`) or `--ticker` for smoke tests. It does not process the full SimFin US table by default.
 

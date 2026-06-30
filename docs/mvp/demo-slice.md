@@ -81,12 +81,12 @@ flowchart LR
 
 ## Acceptance criteria
 
-- [ ] One command (or Prefect flow) runs the full demo pipeline for a `run_date`.
-- [ ] Dashboard shows combined rank, ROC/EY inputs, and top-30 portfolio with explanations.
+- [x] One command (or Prefect flow) runs the full demo pipeline for a `run_date`.
+- [x] Dashboard shows combined rank, ROC/EY inputs, and top-30 portfolio with explanations.
 - [ ] Every curated fundamental row has `as_of_date <= run_date` when queried PIT.
 - [ ] No bank/insurer/utility from the exclusion list appears in the ranked universe.
 - [x] MLflow run exists with portfolio parquet artifact and git commit SHA tag.
-- [ ] Hermetic CI tests do not call SimFin or yfinance live.
+- [x] Hermetic CI tests do not call SimFin or yfinance live.
 
 ## After the demo (phase 2 order)
 

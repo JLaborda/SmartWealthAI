@@ -13,7 +13,8 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from smartwealthai.magic_formula_metrics import MetricsResult
+from smartwealthai.lake_paths import curated_portfolio_path
+from smartwealthai.magic_formula_ranking import ScoringResult
 from smartwealthai.price_ingest import PriceIngestRun
 from smartwealthai.run_demo_pipeline import (
     PipelineResult,
@@ -44,11 +45,10 @@ def test_pipeline_result_ok_false_when_step_failed() -> None:
     assert not result.ok
 
 
-def test_pipeline_result_ok_false_when_metrics_errors() -> None:
+def test_pipeline_result_ok_false_when_scoring_step_failed() -> None:
     result = PipelineResult(
         run_date=RUN_DATE,
-        steps=[PipelineStepResult("compute-metrics", True, 0.1, "0 ok, 1 failed")],
-        metrics_errors=[("BAD", "missing_inputs")],
+        steps=[PipelineStepResult("score-universe", False, 0.1, "scoring failed")],
     )
 
     assert not result.ok
@@ -127,51 +127,47 @@ def test_run_demo_pipeline_aborts_when_no_prices(
     assert result.steps[-1].name == "download-prices"
 
 
-def test_run_demo_pipeline_records_metrics_input_error(lake: Path) -> None:
+def test_run_demo_pipeline_limits_normalize_to_requested_tickers(lake: Path) -> None:
     result = run_demo_pipeline(
         lake,
         run_date=RUN_DATE,
         snapshot_date=SNAPSHOT_DATE,
         skip_download=True,
-        tickers=("MISSING",),
-    )
-
-    assert not result.ok
-    assert result.metrics_errors == [
-        ("MISSING", "Ticker 'MISSING' not in universe for run_date 2026-06-18"),
-    ]
-
-
-@patch("smartwealthai.run_demo_pipeline.compute_metrics_for_ticker")
-def test_run_demo_pipeline_records_missing_inputs_flag(
-    mock_compute: object,
-    lake: Path,
-) -> None:
-    mock_compute.return_value = MetricsResult(ticker="AAPL", flags=["missing_inputs"])  # type: ignore[attr-defined]
-
-    result = run_demo_pipeline(
-        lake,
-        run_date=RUN_DATE,
-        snapshot_date=SNAPSHOT_DATE,
-        skip_download=True,
+        skip_mlflow=True,
         tickers=("AAPL",),
     )
 
-    assert not result.ok
-    assert result.metrics_errors == [("AAPL", "missing_inputs")]
+    assert result.ok
+    normalize_step = next(step for step in result.steps if step.name == "normalize-simfin")
+    assert "1 tickers" in normalize_step.detail
 
 
-def test_format_pipeline_summary_includes_metrics_errors() -> None:
+def test_format_pipeline_summary_includes_scoring_artifacts(tmp_path: Path) -> None:
+    portfolio_path = tmp_path / "portfolio.parquet"
+    portfolio_path.touch()
+    scoring = ScoringResult(
+        run_date=RUN_DATE,
+        quality_path=tmp_path / "quality.parquet",
+        cheap_path=tmp_path / "cheap.parquet",
+        combined_path=tmp_path / "combined.parquet",
+        portfolio_path=portfolio_path,
+        quality_issues_path=tmp_path / "quality_issues.parquet",
+        cheap_issues_path=tmp_path / "cheap_issues.parquet",
+        rankable_count=3,
+        portfolio_count=3,
+        mlflow_run_id="abc123",
+    )
     result = PipelineResult(
         run_date=RUN_DATE,
-        steps=[PipelineStepResult("compute-metrics", False, 0.2, "0 ok, 1 failed")],
-        metrics_errors=[("BAD", "missing_inputs")],
+        steps=[PipelineStepResult("score-universe", True, 0.2, "3 rankable, 3 in portfolio")],
+        scoring=scoring,
     )
 
     summary = format_pipeline_summary(result)
 
-    assert "Metrics failures:" in summary
-    assert "BAD: missing_inputs" in summary
+    assert "Artifacts:" in summary
+    assert str(portfolio_path) in summary
+    assert "MLflow run id: abc123" in summary
 
 
 def test_run_demo_pipeline_skips_download_and_completes(lake: Path) -> None:
@@ -180,6 +176,7 @@ def test_run_demo_pipeline_skips_download_and_completes(lake: Path) -> None:
         run_date=RUN_DATE,
         snapshot_date=SNAPSHOT_DATE,
         skip_download=True,
+        skip_mlflow=True,
         tickers=("AAPL",),
     )
 
@@ -189,29 +186,26 @@ def test_run_demo_pipeline_skips_download_and_completes(lake: Path) -> None:
         "build-universe",
         "normalize-simfin",
         "download-prices",
-        "compute-metrics",
+        "score-universe",
     ]
-    assert len(result.metrics_results) == 1
-    assert result.metrics_results[0].ticker == "AAPL"
-    assert result.metrics_results[0].roc is not None
-    assert result.metrics_results[0].ey is not None
+    assert result.scoring is not None
+    assert result.scoring.portfolio_count >= 0
 
 
-def test_run_demo_pipeline_without_tickers_skips_metrics(lake: Path) -> None:
+def test_run_demo_pipeline_scores_universe_and_writes_portfolio(lake: Path) -> None:
     result = run_demo_pipeline(
         lake,
         run_date=RUN_DATE,
         snapshot_date=SNAPSHOT_DATE,
         skip_download=True,
+        skip_mlflow=True,
     )
 
     assert result.ok
-    assert [step.name for step in result.steps] == [
-        "build-universe",
-        "normalize-simfin",
-        "download-prices",
-    ]
-    assert result.metrics_results == []
+    assert result.scoring is not None
+    assert any(step.name == "score-universe" and step.ok for step in result.steps)
+    assert curated_portfolio_path(lake, run_date=RUN_DATE).exists()
+    assert result.scoring.portfolio_count > 0
 
 
 @patch("smartwealthai.run_demo_pipeline.run_download", return_value=1)
@@ -263,8 +257,7 @@ def test_cli_run_demo_pipeline_with_fixture_lake(lake: Path) -> None:
             "--snapshot-date",
             SNAPSHOT_DATE.isoformat(),
             "--skip-download",
-            "--ticker",
-            "AAPL",
+            "--skip-mlflow",
         ]
     )
 

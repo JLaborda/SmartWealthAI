@@ -11,11 +11,9 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
-from smartwealthai.compute_metrics import format_metrics_table
 from smartwealthai.download_simfin import run_download
-from smartwealthai.magic_formula_metrics import MetricsResult
+from smartwealthai.magic_formula_ranking import ScoringResult, score_universe
 from smartwealthai.normalize_simfin import resolve_normalize_tickers
-from smartwealthai.pit_fundamentals import MetricsInputError, compute_metrics_for_ticker
 from smartwealthai.price_ingest import run_price_ingest
 from smartwealthai.simfin_normalizer import normalize_simfin
 from smartwealthai.universe_builder import build_universe
@@ -39,14 +37,11 @@ class PipelineResult:
 
     run_date: date
     steps: list[PipelineStepResult] = field(default_factory=list)
-    metrics_results: list[MetricsResult] = field(default_factory=list)
-    metrics_errors: list[tuple[str, str]] = field(default_factory=list)
+    scoring: ScoringResult | None = None
 
     @property
     def ok(self) -> bool:
-        if not all(step.ok for step in self.steps):
-            return False
-        return not self.metrics_errors
+        return all(step.ok for step in self.steps)
 
 
 def run_demo_pipeline(
@@ -58,8 +53,10 @@ def run_demo_pipeline(
     refresh_days: int = 7,
     force: bool = False,
     skip_download: bool = False,
+    portfolio_size: int = 30,
+    skip_mlflow: bool = False,
 ) -> PipelineResult:
-    """Execute download → universe → normalize → prices → optional per-ticker metrics."""
+    """Execute download → universe → normalize → prices → score-universe."""
     snapshot = snapshot_date or run_date
     result = PipelineResult(run_date=run_date)
     logger.info(
@@ -190,61 +187,29 @@ def run_demo_pipeline(
         logger.error("[download-prices] failed — aborting pipeline")
         return result
 
-    metrics_tickers = tuple(ticker.upper() for ticker in tickers)
-    if not metrics_tickers:
-        logger.info("[compute-metrics] skipped (pass --ticker to compute ROC/EY)")
-        logger.info("Demo pipeline finished successfully")
-        return result
-
-    logger.info("[compute-metrics] starting — %d ticker(s)", len(metrics_tickers))
+    logger.info("[score-universe] starting (portfolio_size=%d)", portfolio_size)
     started = time.monotonic()
-    for ticker in metrics_tickers:
-        logger.info("[compute-metrics] processing %s", ticker)
-        try:
-            metrics = compute_metrics_for_ticker(
-                data_dir,
-                ticker=ticker,
-                as_of_date=run_date,
-            )
-        except MetricsInputError as exc:
-            logger.warning("[compute-metrics] %s failed — %s", ticker, exc)
-            result.metrics_errors.append((ticker, str(exc)))
-            continue
-        if "missing_inputs" in metrics.flags:
-            logger.warning("[compute-metrics] %s failed — missing_inputs", ticker)
-            result.metrics_errors.append((ticker, "missing_inputs"))
-            continue
-        logger.info(
-            "[compute-metrics] %s ok — ROC=%s EY=%s",
-            ticker,
-            f"{metrics.roc:.4f}" if metrics.roc is not None else "n/a",
-            f"{metrics.ey:.4f}" if metrics.ey is not None else "n/a",
-        )
-        result.metrics_results.append(metrics)
-
-    elapsed = time.monotonic() - started
-    metrics_ok = not result.metrics_errors
-    logger.info(
-        "[compute-metrics] finished in %.1fs — %d ok, %d failed",
-        elapsed,
-        len(result.metrics_results),
-        len(result.metrics_errors),
+    scoring = score_universe(
+        data_dir,
+        run_date=run_date,
+        portfolio_size=portfolio_size,
+        skip_mlflow=skip_mlflow,
     )
+    elapsed = time.monotonic() - started
+    result.scoring = scoring
+    scoring_detail = (
+        f"{scoring.rankable_count} rankable, {scoring.portfolio_count} in portfolio"
+    )
+    logger.info("[score-universe] finished in %.1fs — %s", elapsed, scoring_detail)
     result.steps.append(
         PipelineStepResult(
-            name="compute-metrics",
-            ok=metrics_ok,
+            name="score-universe",
+            ok=True,
             elapsed_s=elapsed,
-            detail=(
-                f"{len(result.metrics_results)} ok, {len(result.metrics_errors)} failed "
-                f"of {len(metrics_tickers)} requested"
-            ),
+            detail=scoring_detail,
         )
     )
-    if result.ok:
-        logger.info("Demo pipeline finished successfully")
-    else:
-        logger.error("Demo pipeline finished with errors")
+    logger.info("Demo pipeline finished successfully")
     return result
 
 
@@ -254,15 +219,19 @@ def format_pipeline_summary(result: PipelineResult) -> str:
     for step in result.steps:
         status = "OK" if step.ok else "FAIL"
         lines.append(f"  [{status}] {step.name} ({step.elapsed_s:.1f}s) — {step.detail}")
-    if result.metrics_results:
-        lines.append("")
-        for metrics in result.metrics_results:
-            lines.append(format_metrics_table(metrics))
-            lines.append("")
-    if result.metrics_errors:
-        lines.append("Metrics failures:")
-        for ticker, error in result.metrics_errors:
-            lines.append(f"  {ticker}: {error}")
+    if result.scoring is not None:
+        lines.extend(
+            [
+                "",
+                "Artifacts:",
+                f"  quality:   {result.scoring.quality_path}",
+                f"  cheap:     {result.scoring.cheap_path}",
+                f"  combined:  {result.scoring.combined_path}",
+                f"  portfolio: {result.scoring.portfolio_path}",
+            ]
+        )
+        if result.scoring.mlflow_run_id:
+            lines.append(f"  MLflow run id: {result.scoring.mlflow_run_id}")
     return "\n".join(lines).rstrip()
 
 
@@ -290,7 +259,19 @@ def format_pipeline_summary(result: PipelineResult) -> str:
     "--ticker",
     "tickers",
     multiple=True,
-    help="Limit normalize scope to these tickers (intersect universe) and compute ROC/EY.",
+    help="Limit normalize scope to these tickers (intersect universe).",
+)
+@click.option(
+    "--portfolio-size",
+    type=int,
+    default=30,
+    show_default=True,
+    help="Top-N equal-weight holdings in the model portfolio.",
+)
+@click.option(
+    "--skip-mlflow",
+    is_flag=True,
+    help="Skip MLflow run logging (useful for hermetic tests).",
 )
 @click.option(
     "--refresh-days",
@@ -314,11 +295,13 @@ def main(
     run_date: datetime,
     snapshot_date: datetime | None,
     tickers: tuple[str, ...],
+    portfolio_size: int,
+    skip_mlflow: bool,
     refresh_days: int,
     force: bool,
     skip_download: bool,
 ) -> None:
-    """Run the demo slice: SimFin ingest, universe, normalize, prices, optional metrics."""
+    """Run the demo slice: SimFin ingest, universe, normalize, prices, score-universe."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     decision_date = run_date.date()
     snapshot = snapshot_date.date() if snapshot_date is not None else decision_date
@@ -332,6 +315,8 @@ def main(
             refresh_days=refresh_days,
             force=force,
             skip_download=skip_download,
+            portfolio_size=portfolio_size,
+            skip_mlflow=skip_mlflow,
         )
     except click.ClickException as exc:
         click.echo(str(exc), err=True)
