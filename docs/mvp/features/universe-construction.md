@@ -2,9 +2,7 @@
 
 ## Implementation status
 
-**in progress** — universe builder implemented ([#58](https://github.com/JLaborda/SmartWealthAI/issues/58)); industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)) done.
-
-Demo mode ships first ([`demo-slice.md`](../demo-slice.md)); full S&P 500 historical mode in phase 2.
+**done** (demo slice) — universe builder ([#58](https://github.com/JLaborda/SmartWealthAI/issues/58)); industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)). Full S&P 500 historical mode in phase 2.
 
 ## Objective
 

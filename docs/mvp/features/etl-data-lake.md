@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-in_progress — **demo path:** SimFin connector + normalizer + SimFin shareprices snapshot ([#59](https://github.com/JLaborda/SmartWealthAI/issues/59)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
+**done** (demo slice) — SimFin connector + normalizer + shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 
 ## Objective
 
@@ -188,7 +188,8 @@ Phase 2 yfinance cache semantics:
 **Operator sequence (demo pipeline):**
 
 ```bash
-poetry run run-demo-pipeline --run-date 2026-06-19 --ticker AAPL
+poetry run run-demo-pipeline --run-date 2026-06-19
+poetry run run-dashboard --data-dir data --run-date 2026-06-19
 ```
 
 Equivalent manual steps:
@@ -198,6 +199,7 @@ poetry run download-simfin --as-of-date 2026-06-19
 poetry run build-universe --run-date 2026-06-19
 poetry run normalize-simfin --snapshot-date 2026-06-19 --universe-run-date 2026-06-19
 poetry run download-prices --run-date 2026-06-19 --snapshot-date 2026-06-19
+poetry run score-universe --run-date 2026-06-19
 ```
 
 ## Decisions made (fundamentals)
