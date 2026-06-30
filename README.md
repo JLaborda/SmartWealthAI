@@ -45,7 +45,15 @@ Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`]
 
     Guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md).
 
-5.  **SEC fundamentals spike (frozen, phase 2):**
+5.  **Demo dashboard** (after `score-universe` for a `run_date`):
+
+    ```bash
+    poetry run run-dashboard --data-dir data --run-date 2026-06-18
+    ```
+
+    Spec: [`docs/mvp/features/dashboard-reporting.md`](docs/mvp/features/dashboard-reporting.md).
+
+6.  **SEC fundamentals spike (frozen, phase 2):**
     ```bash
     export SEC_IDENTITY="Your Name your@email.com"
     poetry run download-fundamentals --universe dow30
@@ -62,7 +70,8 @@ See [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md) for the **June 30, 2026**
 - [ ] SimFin bulk ETL → raw + curated fundamentals
 - [ ] US universe (SimFin minus banks / insurers / utilities)
 - [ ] ROC + EY ranking → top-30 equal-weight portfolio
-- [ ] Streamlit dashboard + MLflow run logging
+- [x] Streamlit dashboard (Overview, Ranking, Portfolio)
+- [ ] MLflow run logging
 
 ### Phase 2 (after demo)
 

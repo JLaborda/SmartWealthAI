@@ -1,4 +1,6 @@
 .venv
+.env
+.env.local
 mlruns/
 __pycache__/
 .coverage

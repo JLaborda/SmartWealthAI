@@ -63,6 +63,10 @@ To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING
 
 Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never commit).
 
+**Local dev:** copy `.env.example` → `.env`, set the key, open a new terminal (devcontainer loads `.env` via `.devcontainer/install-env-hook.sh`). `.env` is gitignored.
+
+**Cloud agents / CI:** do not rely on `.env` — inject `SIMFIN_API_KEY` via Cursor cloud agent secrets, GitHub Actions secrets (CI), or AWS Secrets Manager (runtime per architecture).
+
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
 poetry run download-simfin
