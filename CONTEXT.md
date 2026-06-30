@@ -77,12 +77,40 @@ _Avoid_: dividend yield, earnings/price without EV
 _Avoid_: market cap alone as “value”
 
 **Combined rank**:
-Sum of ROC rank and EY rank; lower is better. Used for portfolio selection and sell-watch opportunity cost.
-_Avoid_: average of ranks, z-score blend (not MVP)
+Sum of ROC rank and EY rank; lower is better. **Benchmark only** (Magic Formula replica) — not production portfolio selection after Phase 2. Sell-watch opportunity-cost triggers on MF path are superseded by QV triggers in production.
+_Avoid_: production ranking term post–Phase 2; average of ranks, z-score blend
 
 **Magic Formula replica**:
-Canonical benchmark portfolio using the same ROC, EY, combined rank, universe, and annual rebalance as production. Used to gate backtest pass vs strategy Sharpe.
-_Avoid_: live Greenblatt fund, generic “value factor”
+Canonical **benchmark** portfolio using ROC, EY, combined rank, universe, and annual rebalance. Used to gate backtest pass vs strategy Sharpe. **Not** the Phase 2+ production scoring path.
+_Avoid_: live Greenblatt fund, generic “value factor”, conflating with Quantitative Value production
+
+**Quantitative Value (QV) funnel**:
+Phase 2+ **production** scoring: universe → forensic hard exclusion (incl. Beneish bottom-5%) → EBIT/TEV value decile → FS-Score quality screen → ~50-name equal-weight model portfolio. Spec: `docs/mvp/features/quantitative-value.md`.
+_Avoid_: Magic Formula path, ROC+EY combined rank for production
+
+**Quality (production)**:
+**FS-Score** composite (0–10, Gray/Carlisle variant) on the EBIT/TEV value pool — not ROC rank alone.
+_Avoid_: ROC rank as production quality after Phase 2; ESG or subjective moat
+
+**Cheap (production)**:
+Membership in the **EBIT/TEV value pool** (top decile among forensic survivors) — not EY rank alone.
+_Avoid_: EY rank as production cheapness after Phase 2; low P/E without EV
+
+**EBIT/TEV**:
+`EBIT / Enterprise Value`; value-screen metric for QV production. Same EV definition as **Earnings yield**; ranked within forensic survivors to form the value pool. Spec: `docs/mvp/features/quantitative-value.md`.
+_Avoid_: MF EY rank, market cap alone
+
+**FS-Score**:
+Ten binary financial-strength components (profitability, stability, recent operational improvements) summed to 0–10. Production quality factor after Phase 2. `formula_version` on every scored row.
+_Avoid_: Piotroski F-Score (different formula), ROC as production quality
+
+**QV funnel rank**:
+Order within the value pool after the FS-Score quality screen; determines portfolio membership. Supersedes **combined rank** for production.
+_Avoid_: combined rank, ROC rank + EY rank for production selection
+
+**Forensic evaluator**:
+Hard `exclude` / `pass` before value or quality scoring; distress and fraud rules from permanent-loss filter plus Beneish M-Score bottom-5% gate. Every exclusion carries `rule_id`, `rule_version`, `triggered_value`, `threshold`, `explanation`.
+_Avoid_: soft penalty, scoring before forensics
 
 **Cross-sectional rank**:
 Rank across all passing companies on one run date. Not comparable across dates without re-running the pipeline.
@@ -93,7 +121,7 @@ Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
-Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper-traded in full MVP (phase 2).
+Target long-only holdings from the pipeline. **June 30 demo:** top 30 by MF combined rank, equal-weight, market-cap tie-break. **Phase 2+ production (QV):** ~50 names by FS-Score within the EBIT/TEV value pool, equal-weight, market-cap tie-break (configurable cap). Paper-traded in full MVP (phase 2).
 _Avoid_: personal portfolio, watchlist (demo slice)
 
 **Watchlist**:
@@ -130,7 +158,9 @@ _Avoid_: ad-hoc snapshot without run id
 
 ## Relationships
 
-- A **run date** drives **universe** → **permanent loss filter** → **ROC** and **EY** ranks → **combined rank** → **model portfolio**
+- **Demo:** **run date** → **universe** → **ROC** and **EY** ranks → **combined rank** → **model portfolio** (top 30)
+- **Phase 2+ production:** **run date** → **universe** → **forensic evaluator** → **EBIT/TEV value pool** → **FS-Score** → **QV funnel rank** → **model portfolio** (~50)
+- **Benchmark (all phases):** MF replica path (ROC + EY + combined rank) for backtest Sharpe gate — parallel to production, not mixed into QV funnel
 - **As-of date** tags each fundamental row; PIT queries filter `as_of_date <= run_date`
 - **Watchlist** superset of names that may enter the **model portfolio** on rebalance
 - **Magic Formula replica** is the strategy’s primary benchmark comparator for Sharpe pass/fail
@@ -142,11 +172,12 @@ Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
 - SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
-- **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
+- **Phase 2 (Quantitative Value):** production scoring follows the **QV funnel** (`docs/mvp/features/quantitative-value.md`); requires multi-period fundamentals for FS-Score YoY deltas.
 
 Terminology reminders:
 
-- “Cheap” means high **EY**, not low P/E—use **EY rank** in issues and code names.
-- “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
+- **Demo / MF benchmark:** “cheap” = high **EY**; “quality” = high **ROC** — use **EY rank** and **ROC rank** in MF code paths.
+- **Production (Phase 2+):** “cheap” = **EBIT/TEV value pool** membership; “quality” = **FS-Score** — do not use ROC/EY ranks for production portfolio selection.
+- **Combined rank** is **benchmark-only** after Phase 2; production uses **QV funnel rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
 - MVP specs in `docs/mvp/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.

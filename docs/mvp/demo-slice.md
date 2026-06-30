@@ -90,9 +90,15 @@ flowchart LR
 
 ## After the demo (phase 2 order)
 
-1. Historical S&P 500 universe + permanent loss filter  
-2. Minimal backtest (annual rebalance, 20 years) — custom pandas/DuckDB loop, not Zipline  
-3. Walk-forward, Monte Carlo, benchmark gate  
-4. Sell-watch + paper trading  
-5. SEC EDGAR normalizer (optional PIT upgrade)  
-6. Quantitative Value metrics (multi-period fundamentals from raw SimFin archives)
+Per [`prds/phase2/prd.md`](prds/phase2/prd.md) — **Quantitative Value is production scoring**; Magic Formula (ROC + EY + combined rank) remains **benchmark-only**.
+
+1. **QV feature spec** — [`quantitative-value.md`](features/quantitative-value.md) (canonical funnel; blocks scoring implementation)  
+2. Multi-period fundamentals + daily prices (FS-Score YoY deltas, backtest NAV)  
+3. Forensic evaluator + Beneish bottom-5% gate (extends [`permanent-loss-filter.md`](features/permanent-loss-filter.md))  
+4. **QV funnel** — EBIT/TEV value decile → FS-Score → ~50-name EW model portfolio  
+5. Light backtest (5–10 years, annual rebalance) vs S&P 500 CW + MF replica  
+6. Cloud pipeline (S3 lake, ECS, MLflow S3 artifacts)  
+7. Sell-watch with QV-adapted triggers + dashboard  
+8. Historical S&P 500 universe (delisted names) + full backtest (20+ years, walk-forward, Sharpe gate)  
+9. SEC EDGAR normalizer (optional PIT upgrade)  
+10. Paper trading + broker (after passing full backtest)
