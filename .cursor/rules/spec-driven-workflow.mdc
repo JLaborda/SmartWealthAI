@@ -1,0 +1,29 @@
+---
+description: Spec-driven workflow before and after implementation
+alwaysApply: true
+---
+
+# Spec-driven workflow
+
+## Before coding
+
+1. Name the feature spec file (e.g. `docs/mvp/features/cheap-stocks.md`).
+2. Read `docs/mvp/architecture/architecture.md` for global constraints: point-in-time data, hard exclusions, MLflow runs, paper trading, universe rules.
+3. If scope is unclear, ask the user and record the answer in the spec (open questions or decisions tables).
+
+## During work
+
+- Do not add features without a corresponding `docs/mvp/features/` document. Create or extend the spec first.
+- Keep changes aligned with MVP scope and "Out of MVP scope" sections in the spec.
+
+## After implementation
+
+Update the same feature spec:
+
+- **Implementation status** (planned | in progress | done)
+- Closed decisions and acceptance criteria
+- Links to modules or paths when code exists
+
+## No orphan work
+
+If the user requests code without a spec, propose the spec outline first or draft the minimal spec section needed, then implement.

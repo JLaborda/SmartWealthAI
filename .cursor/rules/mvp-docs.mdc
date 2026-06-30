@@ -1,0 +1,36 @@
+---
+description: MVP Markdown spec structure and editing conventions
+globs: docs/**
+alwaysApply: false
+---
+
+# MVP documentation conventions
+
+When creating or editing specs under `docs/mvp/`:
+
+## Feature specs
+
+Follow the structure used in existing features (e.g. `docs/mvp/features/cheap-stocks.md`):
+
+- Objective
+- MVP scope / Out of MVP scope
+- Inputs (tables where helpful)
+- Flow or logic (include at least one **Mermaid** diagram when the flow changes)
+- Acceptance criteria
+- Risks
+
+Add **Implementation status** when coding starts: `planned` | `in_progress` | `done`.
+
+## Architecture spec
+
+- Record closed decisions in tables (see "Decisions made so far" in `docs/mvp/architecture/architecture.md`).
+- Cross-link feature files from the module table.
+- Do not contradict a closed architecture decision without updating the architecture doc first.
+
+## Cross-links
+
+Link related feature specs and point to shared definitions (e.g. shared `EBIT` between quality and cheapness modules).
+
+## Language
+
+All spec text must be in English.

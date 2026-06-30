@@ -1,0 +1,30 @@
+---
+description: SmartWealthAI MVP context and canonical docs paths
+alwaysApply: true
+---
+
+# SmartWealthAI project context
+
+SmartWealthAI is a modular **quantitative value investing** system (MVP): US equities, Greenblatt-style quality + cheapness ranking, point-in-time correctness, explainable decisions, paper trading only (phase 2), AWS-oriented data lake design.
+
+## Current phase
+
+**MVP planning and spec refinement** in `docs/mvp/`. **June 30, 2026 demo slice** ([`demo-slice.md`](../../docs/mvp/demo-slice.md)) is the active delivery target. Prefer updating specs over writing code unless the user explicitly moves to implementation.
+
+## Canonical documentation
+
+- Demo slice: `docs/mvp/demo-slice.md`
+- ADRs: `docs/adr/`
+- Architecture: `docs/mvp/architecture/architecture.md`
+- Features: `docs/mvp/features/*.md`
+- Ubiquitous language: `CONTEXT.md`
+- Requirements (historical): `docs/mvp/requirements/requirements.md`
+- Backlog: `docs/mvp/backlog/backlog.md`
+
+## Not canonical
+
+Do not use `src/` or `notebooks/` as reference architecture. Legacy exploration there does not define MVP boundaries.
+
+## Code changes
+
+Every implementation change must trace to a feature spec under `docs/mvp/features/` or the demo slice (`docs/mvp/demo-slice.md`). Read the architecture doc for cross-cutting rules before proposing design or code.

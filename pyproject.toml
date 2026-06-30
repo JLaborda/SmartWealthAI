@@ -1,3 +1,7 @@
+[tool.poetry]
+package-mode = true
+packages = [{ include = "smartwealthai", from = "src" }]
+
 [project]
 name = "smartwealthai"
 version = "0.1.0"
@@ -6,13 +10,72 @@ authors = [
     {name = "Jorge Laborda",email = "jdlsicilia@gmail.com"}
 ]
 readme = "README.md"
-requires-python = "^3.13"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "yfinance (>=1.2.0,<2.0.0)",
-    "pandas (>=3.0.1,<4.0.0)"
+    "pandas (>=3.0.1,<4.0.0)",
+    "edgartools (>=5.35.1,<6.0.0)",
+    "pyarrow (>=17.0.0,<25.0.0)",
+    "requests (>=2.34.0,<3.0.0)",
+    "click (>=8.1.0,<9.0.0)",
+    "simfin (>=1.0.2,<2.0.0)",
+    "mlflow-skinny (==3.14.0)",
+    "streamlit (>=1.58.0,<2.0.0)"
 ]
 
+[project.scripts]
+download-fundamentals = "smartwealthai.download_fundamentals:main"
+download-simfin = "smartwealthai.download_simfin:main"
+normalize-simfin = "smartwealthai.normalize_simfin:main"
+build-universe = "smartwealthai.build_universe:main"
+download-prices = "smartwealthai.download_prices:main"
+compute-metrics = "smartwealthai.compute_metrics:main"
+run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
+score-universe = "smartwealthai.score_universe:main"
+run-dashboard = "smartwealthai.run_dashboard:main"
+generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.3,<10.0.0)",
+    "pytest-cov (>=6.0.0,<7.0.0)",
+    "ruff (>=0.15.14,<0.16.0)"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: requires network or AWS (excluded from PR CI)",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.coverage.run]
+source = ["smartwealthai"]
+branch = true
+# Frozen SEC ETL spike (phase 2) — excluded from demo coverage metrics.
+omit = [
+    "src/smartwealthai/sec_client.py",
+    "src/smartwealthai/edgartools_client.py",
+    "src/smartwealthai/download_fundamentals.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

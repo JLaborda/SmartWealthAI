@@ -1,0 +1,17 @@
+---
+description: English-only code and documentation
+alwaysApply: true
+---
+
+# English language
+
+Write all project artifacts in **English**:
+
+- Source code, comments, and docstrings
+- Markdown specs under `docs/`
+- Commit messages and pull request descriptions
+- Variable names and user-facing strings in code
+
+The user may chat in Spanish or other languages; still produce English deliverables unless they explicitly ask for another language in the artifact itself.
+
+When editing `docs/` files that still contain Spanish, translate them to English or add an English section and mark legacy text as superseded.
