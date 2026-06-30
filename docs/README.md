@@ -47,6 +47,7 @@ Short notes on hard-to-reverse choices. See [`docs/adr/`](../adr/).
 | --- | --- |
 | [devcontainer/prd.md](mvp/prds/devcontainer/prd.md) | Reproducible dev environment (Cursor / EC2) |
 | [ci-cd/ci-cd-prd.md](mvp/prds/ci-cd/ci-cd-prd.md) | Phase 0 CI/CD, AWS integration, ECS deploy path |
+| [phase2/prd.md](mvp/prds/phase2/prd.md) | Phase 2: Quantitative Value funnel, cloud deploy, light/full backtest, sell-watch |
 
 ## Feature specs
 
