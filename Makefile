@@ -10,7 +10,7 @@ lint:
 test:
 	poetry run pytest --cov=smartwealthai --cov-report=term-missing
 
-# Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
+# Requires SEC_IDENTITY in the environment. See spec/guides/download-fundamentals.md
 download-fundamentals:
 	poetry run download-fundamentals --universe dow30
 
