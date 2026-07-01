@@ -42,6 +42,11 @@ CANONICAL_VALUE_FIELDS: tuple[str, ...] = (
     "total_assets",
     "total_liabilities",
     "shares_outstanding",
+    "accounts_receivable",
+    "cost_of_revenue",
+    "depreciation_amortization",
+    "sga_expense",
+    "operating_cash_flow",
 )
 
 DATE_COLUMNS = ("Report Date", "Publish Date", "Restated Date")
@@ -50,6 +55,23 @@ DATE_COLUMNS = ("Report Date", "Publish Date", "Restated Date")
 _WRITE_WORKERS = min(8, (os.cpu_count() or 4) + 2)
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class StatementBundle:
+    """One income/balance/cashflow variant group for normalization."""
+
+    income_variant: str
+    balance_variant: str
+    cashflow_variant: str | None
+    enforce_qv_fields: bool
+
+
+STATEMENT_BUNDLES: tuple[StatementBundle, ...] = (
+    StatementBundle("ttm", "quarterly", None, enforce_qv_fields=False),
+    StatementBundle("annual", "annual", "annual", enforce_qv_fields=True),
+    StatementBundle("quarterly", "quarterly", "quarterly", enforce_qv_fields=True),
+)
 
 
 @dataclass
@@ -77,30 +99,94 @@ def normalize_simfin(
     """Transform raw SimFin bulk CSVs into curated fundamentals parquet."""
     progress_enabled = _resolve_show_progress(show_progress)
     mapping = load_simfin_mapping(mapping_path)
-    paths = _raw_paths(data_dir, snapshot_date)
+    companies_path = simfin_bulk_path(
+        data_dir,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=snapshot_date,
+    )
+    companies = pd.read_csv(companies_path, sep=";", dtype={"CIK": "string"})
+    company_lookup = companies.set_index(mapping["meta"]["ticker"], drop=False)
 
-    income = _read_simfin_csv(paths["income"])
-    balance = _read_simfin_csv(paths["balance"])
-    companies = pd.read_csv(paths["companies"], sep=";", dtype={"CIK": "string"})
-
-    ticker_col = mapping["meta"]["ticker"]
-    report_col = mapping["meta"]["report_date"]
-    company_lookup = companies.set_index(ticker_col, drop=False)
     curated_rows: list[dict[str, object]] = []
     issue_rows: list[dict[str, object]] = []
     effective_run_date = run_date or snapshot_date
 
+    for bundle in STATEMENT_BUNDLES:
+        bundle_rows, bundle_issues = _normalize_statement_bundle(
+            data_dir,
+            snapshot_date=snapshot_date,
+            bundle=bundle,
+            mapping=mapping,
+            company_lookup=company_lookup,
+            tickers=tickers,
+            show_progress=progress_enabled,
+        )
+        curated_rows.extend(bundle_rows)
+        issue_rows.extend(bundle_issues)
+
+    result = NormalizeResult()
+    result.written_rows = _write_curated_fundamentals(
+        data_dir,
+        curated_rows,
+        show_progress=progress_enabled,
+    )
+
+    if issue_rows:
+        issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
+        issues_path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(issue_rows).to_parquet(issues_path, index=False)
+        result.issue_rows = len(issue_rows)
+
+    return result
+
+
+def _normalize_statement_bundle(
+    data_dir: Path,
+    *,
+    snapshot_date: date,
+    bundle: StatementBundle,
+    mapping: dict,
+    company_lookup: pd.DataFrame,
+    tickers: set[str] | None,
+    show_progress: bool,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    paths = _raw_paths_for_bundle(data_dir, snapshot_date, bundle)
+    if not paths["income"].exists():
+        return [], []
+
+    income = _read_simfin_csv(paths["income"])
+    balance = _read_simfin_csv(paths["balance"]) if paths["balance"].exists() else pd.DataFrame()
+    cashflow = (
+        _read_simfin_csv(paths["cashflow"])
+        if paths["cashflow"] is not None and paths["cashflow"].exists()
+        else pd.DataFrame()
+    )
+
+    ticker_col = mapping["meta"]["ticker"]
+    report_col = mapping["meta"]["report_date"]
+    curated_rows: list[dict[str, object]] = []
+    issue_rows: list[dict[str, object]] = []
+
     if tickers is not None:
         income = income.loc[income[ticker_col].isin(tickers)]
 
-    balance_by_ticker = _index_balance_by_ticker(
+    balance_by_ticker = _index_statement_by_ticker(
         balance,
+        ticker_col=ticker_col,
+        report_col=report_col,
+    )
+    cashflow_by_ticker = _index_statement_by_ticker(
+        cashflow,
         ticker_col=ticker_col,
         report_col=report_col,
     )
 
     work_tickers = _work_tickers(income, ticker_col=ticker_col, tickers=tickers)
-    ticker_iter = _ticker_progress_iter(work_tickers, enabled=progress_enabled)
+    ticker_iter = _ticker_progress_iter(work_tickers, enabled=show_progress)
+    exact_balance_match = bundle.income_variant != "ttm"
+
     for ticker in ticker_iter:
         ticker_income = income.loc[income[ticker_col] == ticker]
         for _, income_row in ticker_income.iterrows():
@@ -120,42 +206,43 @@ def normalize_simfin(
                 continue
 
             report_date = income_row[report_col]
-            balance_row = _latest_balance_row(
+            balance_row = _matching_statement_row(
                 balance_by_ticker,
                 ticker=ticker,
                 report_date=report_date,
                 report_col=report_col,
+                exact_match=exact_balance_match,
             )
             if balance_row is None:
                 issue_rows.append(_issue_row(ticker=ticker, reason="missing_balance_row"))
                 continue
 
+            cashflow_row = None
+            if paths["cashflow"] is not None:
+                cashflow_row = _matching_statement_row(
+                    cashflow_by_ticker,
+                    ticker=ticker,
+                    report_date=report_date,
+                    report_col=report_col,
+                    exact_match=True,
+                )
+
             row, issues = _build_curated_row(
                 income_row=income_row,
                 balance_row=balance_row,
+                cashflow_row=cashflow_row,
                 ticker=ticker,
                 cik=cik,
                 mapping=mapping,
+                statement_variant=bundle.income_variant,
+                enforce_qv_fields=bundle.enforce_qv_fields,
             )
             if issues:
                 issue_rows.extend(issues)
             if row is not None:
                 curated_rows.append(row)
 
-    result = NormalizeResult()
-    result.written_rows = _write_curated_fundamentals(
-        data_dir,
-        curated_rows,
-        show_progress=progress_enabled,
-    )
-
-    if issue_rows:
-        issues_path = curated_issues_path(data_dir, run_date=effective_run_date)
-        issues_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(issue_rows).to_parquet(issues_path, index=False)
-        result.issue_rows = len(issue_rows)
-
-    return result
+    return curated_rows, issue_rows
 
 
 def _write_curated_fundamentals(
@@ -184,8 +271,12 @@ def _write_curated_fundamentals(
             cik=str(cik),
             period=str(period),
         )
-        # ponytail: last row wins on duplicate partition (matches sequential overwrite)
-        partitions.append((out_path, group.iloc[[-1]]))
+        deduped = (
+            group.drop_duplicates(subset=["statement_variant"], keep="last")
+            if "statement_variant" in group.columns
+            else group.iloc[[-1]]
+        )
+        partitions.append((out_path, deduped))
 
     if len(partitions) == 1:
         partitions[0][1].to_parquet(partitions[0][0], index=False)
@@ -251,34 +342,77 @@ def _write_partition(item: tuple[Path, pd.DataFrame]) -> None:
     frame.to_parquet(path, index=False)
 
 
-def _raw_paths(data_dir: Path, snapshot_date: date) -> dict[str, Path]:
+def _raw_paths_for_bundle(
+    data_dir: Path,
+    snapshot_date: date,
+    bundle: StatementBundle,
+) -> dict[str, Path | None]:
+    cashflow_path = None
+    if bundle.cashflow_variant is not None:
+        cashflow_path = simfin_bulk_path(
+            data_dir,
+            dataset="cashflow",
+            variant=bundle.cashflow_variant,
+            market="us",
+            as_of_date=snapshot_date,
+        )
     return {
         "income": simfin_bulk_path(
             data_dir,
             dataset="income",
-            variant="ttm",
+            variant=bundle.income_variant,
             market="us",
             as_of_date=snapshot_date,
         ),
         "balance": simfin_bulk_path(
             data_dir,
             dataset="balance",
-            variant="quarterly",
+            variant=bundle.balance_variant,
             market="us",
             as_of_date=snapshot_date,
         ),
-        "companies": simfin_bulk_path(
-            data_dir,
-            dataset="companies",
-            variant=None,
-            market="us",
-            as_of_date=snapshot_date,
-        ),
+        "cashflow": cashflow_path,
+    }
+
+
+def _raw_paths(data_dir: Path, snapshot_date: date) -> dict[str, Path]:
+    """Demo TTM paths (tests and legacy callers)."""
+    bundle_paths = _raw_paths_for_bundle(
+        data_dir,
+        snapshot_date,
+        STATEMENT_BUNDLES[0],
+    )
+    companies = simfin_bulk_path(
+        data_dir,
+        dataset="companies",
+        variant=None,
+        market="us",
+        as_of_date=snapshot_date,
+    )
+    return {
+        "income": bundle_paths["income"],
+        "balance": bundle_paths["balance"],
+        "companies": companies,
     }
 
 
 def _read_simfin_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, sep=";", parse_dates=list(DATE_COLUMNS))
+
+
+def _index_statement_by_ticker(
+    frame: pd.DataFrame,
+    *,
+    ticker_col: str,
+    report_col: str,
+) -> dict[str, pd.DataFrame]:
+    """Pre-group statement rows by ticker sorted by report date."""
+    if frame.empty:
+        return {}
+    indexed: dict[str, pd.DataFrame] = {}
+    for ticker, group in frame.groupby(ticker_col, sort=False):
+        indexed[str(ticker)] = group.sort_values(report_col)
+    return indexed
 
 
 def _index_balance_by_ticker(
@@ -287,11 +421,34 @@ def _index_balance_by_ticker(
     ticker_col: str,
     report_col: str,
 ) -> dict[str, pd.DataFrame]:
-    """Pre-group balance rows by ticker sorted by report date (ponytail: dict of frames)."""
-    indexed: dict[str, pd.DataFrame] = {}
-    for ticker, group in balance.groupby(ticker_col, sort=False):
-        indexed[str(ticker)] = group.sort_values(report_col)
-    return indexed
+    """Alias kept for tests importing the demo helper name."""
+    return _index_statement_by_ticker(
+        balance,
+        ticker_col=ticker_col,
+        report_col=report_col,
+    )
+
+
+def _matching_statement_row(
+    rows_by_ticker: dict[str, pd.DataFrame],
+    *,
+    ticker: str,
+    report_date: pd.Timestamp,
+    report_col: str,
+    exact_match: bool,
+) -> pd.Series | None:
+    group = rows_by_ticker.get(ticker)
+    if group is None:
+        return None
+    if exact_match:
+        subset = group.loc[group[report_col] == report_date]
+        if subset.empty:
+            return None
+        return subset.iloc[-1]
+    subset = group.loc[group[report_col] <= report_date]
+    if subset.empty:
+        return None
+    return subset.iloc[-1]
 
 
 def _latest_balance_row(
@@ -301,22 +458,26 @@ def _latest_balance_row(
     report_date: pd.Timestamp,
     report_col: str,
 ) -> pd.Series | None:
-    group = balance_by_ticker.get(ticker)
-    if group is None:
-        return None
-    subset = group.loc[group[report_col] <= report_date]
-    if subset.empty:
-        return None
-    return subset.iloc[-1]
+    """Demo TTM join: latest balance on or before income report date."""
+    return _matching_statement_row(
+        balance_by_ticker,
+        ticker=ticker,
+        report_date=report_date,
+        report_col=report_col,
+        exact_match=False,
+    )
 
 
 def _build_curated_row(
     *,
     income_row: pd.Series,
     balance_row: pd.Series,
+    cashflow_row: pd.Series | None,
     ticker: str,
     cik: str,
     mapping: dict,
+    statement_variant: str,
+    enforce_qv_fields: bool,
 ) -> tuple[dict[str, object] | None, list[dict[str, object]]]:
     meta = mapping["meta"]
     fields = mapping["fields"]
@@ -356,17 +517,22 @@ def _build_curated_row(
         "as_of_date": as_of_date,
         "version_id": version_id,
         "period": period,
+        "statement_variant": statement_variant,
         "mapping_version": mapping["version"],
         "currency": "USD",
         "as_of_source": as_of_source,
     }
 
+    statement_sources = (income_row, balance_row, cashflow_row)
     for canonical, simfin_col in fields.items():
-        source = income_row if simfin_col in income_row.index else balance_row
-        row[canonical] = _numeric(source.get(simfin_col))
+        row[canonical] = _field_value(simfin_col, statement_sources)
 
     if _missing_mandatory(row):
         issues.append(_issue_row(ticker=ticker, reason="missing_mandatory_fields"))
+        return None, issues
+
+    if enforce_qv_fields and _missing_qv_fields(row, mapping):
+        issues.append(_issue_row(ticker=ticker, reason="missing_qv_inputs"))
         return None, issues
 
     if as_of_date < fiscal_period_end:
@@ -374,6 +540,13 @@ def _build_curated_row(
         return None, issues
 
     return row, issues
+
+
+def _field_value(simfin_col: str, sources: tuple[pd.Series | None, ...]) -> float | None:
+    for source in sources:
+        if source is not None and simfin_col in source.index:
+            return _numeric(source.get(simfin_col))
+    return None
 
 
 def _resolve_as_of_date(
@@ -424,6 +597,11 @@ def _missing_mandatory(row: dict[str, object]) -> bool:
     return any(row.get(field) is None for field in mandatory)
 
 
+def _missing_qv_fields(row: dict[str, object], mapping: dict) -> bool:
+    required = mapping.get("qv_required_fields", [])
+    return any(row.get(field) is None for field in required)
+
+
 def _issue_row(*, ticker: str, reason: str) -> dict[str, str]:
     return {"ticker": ticker, "reason": reason}
 
@@ -431,7 +609,7 @@ def _issue_row(*, ticker: str, reason: str) -> dict[str, str]:
 def _load_mapping_yaml(path: Path) -> dict:
     """Parse the project mapping YAML (two-level dict + top-level scalars only)."""
     root: dict[str, object] = {}
-    section: dict[str, str] | None = None
+    section: dict[str, str] | list[str] | None = None
     for raw in path.read_text().splitlines():
         line = raw.split("#", 1)[0].rstrip()
         if not line.strip():
@@ -443,6 +621,9 @@ def _load_mapping_yaml(path: Path) -> dict:
                 if name in {"fields", "meta"}:
                     section = {}
                     root[name] = section
+                elif name == "qv_required_fields":
+                    section = []
+                    root[name] = section
                 else:
                     section = None
                 continue
@@ -451,11 +632,14 @@ def _load_mapping_yaml(path: Path) -> dict:
             root[key.strip()] = parsed
             section = None
             continue
+        if isinstance(section, list) and stripped.startswith("- "):
+            section.append(stripped[2:].strip())
+            continue
         key, sep, value = line.partition(":")
         if not sep:
             continue
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        if section is not None:
+        if isinstance(section, dict):
             section[key] = value
     return root
