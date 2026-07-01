@@ -54,7 +54,7 @@ def resolve_normalize_tickers(
     if ticker_set is None:
         msg = (
             "Pass --universe-run-date (after build-universe) or --ticker to limit scope. "
-            "See docs/mvp/guides/download-simfin.md."
+            "See spec/guides/download-simfin.md."
         )
         raise click.ClickException(msg)
     return ticker_set
