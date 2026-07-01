@@ -19,12 +19,12 @@ First public release: the **June 30 demo slice** — a runnable Greenblatt-style
 - **Streamlit dashboard** — Overview, Ranking, and Portfolio pages (`run-dashboard`).
 - **MLflow run logging** — params, metrics, portfolio parquet artifact, and git commit SHA tag per pipeline run.
 - **Hermetic CI** — pytest fixtures; no live SimFin or yfinance calls in PR workflows.
-- **MVP specs and ADRs** under `docs/mvp/` and `docs/adr/`.
+- **MVP specs and ADRs** under `spec/` and `spec/adr/`.
 
 ### Requirements
 
 - Python 3.11+, Poetry.
-- `SIMFIN_API_KEY` for live data download (see [download-simfin guide](docs/mvp/guides/download-simfin.md)).
+- `SIMFIN_API_KEY` for live data download (see [download-simfin guide](spec/guides/download-simfin.md)).
 
 ### Quickstart
 

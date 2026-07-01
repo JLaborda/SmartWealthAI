@@ -7,7 +7,7 @@ statements via ``.income_statement()``, ``.balance_sheet()``, and
 Output parquets preserve the edgartools dataframe shape (``concept``, ``label``, ``section``,
 ``FY 20xx`` columns).
 
-Operator guide: ``docs/mvp/guides/download-fundamentals.md``.
+Operator guide: ``spec/guides/download-fundamentals.md``.
 """
 
 from __future__ import annotations

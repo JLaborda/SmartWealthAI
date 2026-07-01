@@ -6,7 +6,7 @@ Implements SEC fair-access rules:
 - Request throttling (~8 req/s).
 - Retries with exponential backoff on transient failures.
 
-Operator guide: ``docs/mvp/guides/download-fundamentals.md``.
+Operator guide: ``spec/guides/download-fundamentals.md``.
 """
 
 from __future__ import annotations

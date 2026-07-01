@@ -1,7 +1,7 @@
 """CLI to download SimFin bulk US fundamentals into the raw data lake.
 
 Orchestrates the demo SimFin connector documented in
-``docs/mvp/features/etl-data-lake.md``. Downloads ``companies``, ``industries``,
+``spec/features/006-etl-data-lake/spec.md``. Downloads ``companies``, ``industries``,
 ``income`` (TTM), ``balance`` (quarterly), ``cashflow`` (TTM), and ``shareprices``
 (latest) for ``market=us``.
 
@@ -10,7 +10,7 @@ Usage::
     export SIMFIN_API_KEY="<from secrets>"
     poetry run download-simfin
 
-See ``docs/mvp/guides/download-simfin.md`` for the operator guide.
+See ``spec/guides/download-simfin.md`` for the operator guide.
 """
 
 from __future__ import annotations

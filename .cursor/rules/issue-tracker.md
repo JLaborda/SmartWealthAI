@@ -18,15 +18,15 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone (`JLaborda/SmartWealthAI`).
 
-## Relationship to Git specs and Notion
+## Relationship to Git specs
 
 | Layer | Where | Role |
 | --- | --- | --- |
-| **MVP specs (canonical)** | `docs/mvp/features/*.md`, `docs/mvp/architecture/architecture.md` | Product and engineering truth; update before closing work |
-| **GitHub issues** | This repo's GitHub Issues | PRDs, vertical slices, and triage for Matt Pocock engineering skills (`to-issues`, `to-prd`, `triage`) |
-| **Notion tasks** | Board `Cursor Agent Tasks` | Optional execution tracking via Notion MCP; see `AGENTS.md` and `docs/mvp/NOTION_SETUP.md` |
+| **MVP specs (canonical)** | `spec/features/00N-slug/spec.md`, `spec/constitution/mission.md` | Product and engineering truth; update before closing work |
+| **GitHub issues** | This repo's GitHub Issues | Feature implementation tracking, PRDs, vertical slices, triage |
+| **`tasks.md`** | `spec/features/00N-slug/tasks.md` | Versioned checklist when a feature is in progress |
 
-When a skill publishes to the issue tracker, create or update a **GitHub issue**. Link the relevant `docs/mvp/features/...` path in the issue body. Do not treat Notion as the issue tracker for those skills unless the user explicitly asks to sync there.
+When a skill publishes to the issue tracker, create or update a **GitHub issue**. Link the relevant `spec/features/.../spec.md` path in the issue body. See [`spec/meta/github-issues.md`](../../spec/meta/github-issues.md).
 
 ## When a skill says "publish to the issue tracker"
 

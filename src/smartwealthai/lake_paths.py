@@ -1,6 +1,6 @@
 """Path builders for the local data lake raw zone.
 
-Paths follow the layout documented in ``docs/mvp/features/etl-data-lake.md`` (Fundamentals
+Paths follow the layout documented in ``spec/features/006-etl-data-lake/spec.md`` (Fundamentals
 download spike) so local runs can move to S3 without renaming partitions.
 
 Example::

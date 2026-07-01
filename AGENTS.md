@@ -4,7 +4,7 @@ Instructions for AI agents working in the SmartWealthAI repository.
 
 ## Project phase
 
-SmartWealthAI is in **MVP planning and spec refinement**, with a **June 30, 2026 demo slice** as the current delivery target. Architecture and features are defined in Markdown under `docs/mvp/`. Implementation work must align with a feature spec in `docs/mvp/features/` and respect cross-cutting rules in `docs/mvp/architecture/architecture.md`.
+SmartWealthAI is in **MVP planning and spec refinement**, with a **June 30, 2026 demo slice** as the current delivery target. Specifications live under `spec/`. Implementation work must align with a feature `spec.md` under `spec/features/` and respect cross-cutting rules in `spec/constitution/mission.md`.
 
 Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy exploration and out of scope for planning context.
 
@@ -13,13 +13,15 @@ Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy e
 | Path | Purpose |
 | --- | --- |
 | `CONTEXT.md` | Ubiquitous language (domain terms; extend via `/grill-with-docs`) |
-| `docs/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
-| `docs/mvp/demo-slice.md` | June 30 delivery target (narrow vertical slice) |
-| `docs/mvp/architecture/architecture.md` | MVP vision, principles, module table, closed decisions |
-| `docs/mvp/features/*.md` | Per-module specs (scope, acceptance criteria, diagrams) |
-| `docs/mvp/requirements/requirements.md` | Sprint 0 spike (superseded by MVP specs; historical reference) |
-| `docs/mvp/backlog/backlog.md` | Informal product ideas mapped to MVP features |
-| `docs/README.md` | Index of the docs tree |
+| `spec/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
+| `spec/constitution/roadmap.md` | June 30 delivery target (narrow vertical slice) |
+| `spec/constitution/mission.md` | MVP vision, principles, module table, closed decisions |
+| `spec/features/00N-slug/spec.md` | Per-module specs (scope, acceptance criteria); optional `plan.md` / `tasks.md` |
+| `spec/constitution/tech-stack.md` | Technologies, infrastructure, runtime conventions |
+| `spec/meta/github-issues.md` | GitHub Issues workflow for feature implementation |
+| `spec/archive/requirements.md` | Sprint 0 spike (superseded by MVP specs; historical reference) |
+| `spec/backlog/backlog.md` | Informal product ideas mapped to MVP features |
+| `spec/README.md` | Index of the docs tree |
 
 See also `.cursor/rules/*.mdc` for persistent agent guidance.
 
@@ -29,8 +31,8 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Spec-driven workflow
 
-1. Identify the feature spec (e.g. `docs/mvp/features/cheap-stocks.md`).
-2. Read `docs/mvp/architecture/architecture.md` for constraints (point-in-time data, exclusions, MLflow, paper trading, etc.).
+1. Identify the feature spec (e.g. `spec/features/003-cheap-stocks/spec.md`).
+2. Read `spec/constitution/mission.md` for constraints (point-in-time data, exclusions, MLflow, paper trading, etc.).
 3. Resolve open questions in the spec; record decisions in the spec or architecture doc.
 4. Implement only what the spec allows for the current phase.
 5. After implementation, update the feature spec (implementation status, acceptance criteria, links to code when it exists).
@@ -72,7 +74,7 @@ export SIMFIN_API_KEY="<from user secrets>"
 poetry run download-simfin
 ```
 
-Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Operator guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
+Spec: [`spec/features/006-etl-data-lake/spec.md`](spec/features/006-etl-data-lake/spec.md). Operator guide: [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md). Delivery target: [`spec/constitution/roadmap.md`](spec/constitution/roadmap.md).
 
 ### Fundamentals — SEC spike (frozen, phase 2)
 
@@ -81,7 +83,7 @@ export SEC_IDENTITY="Your Name your@email.com"
 poetry run download-fundamentals --universe dow30
 ```
 
-Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+Guide: [`spec/guides/download-fundamentals.md`](spec/guides/download-fundamentals.md).
 
 ## Gotchas
 
@@ -91,23 +93,14 @@ Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fun
 - `data/` is gitignored except `data/reference/**` (versioned universe and mapping CSVs).
   Never commit personal finance files or raw broker exports.
 
-## Notion (task tracking)
+## GitHub Issues (task tracking)
 
-Git specs in `docs/mvp/` are canonical. Notion tracks execution tasks only. Setup: [`docs/mvp/NOTION_SETUP.md`](docs/mvp/NOTION_SETUP.md).
+Git specs in `spec/` are canonical. **GitHub Issues** track feature implementation. See [`spec/meta/github-issues.md`](spec/meta/github-issues.md).
 
-### Default task board
-
-| Setting | Value |
-| --- | --- |
-| **Board name** | `Cursor Agent Tasks` |
-| **Location** | This project's Notion workspace (connected via Cursor Notion MCP) |
-| **Board URL in repo** | Not stored — use MCP OAuth and search by board name |
-
-Agents must use the Notion MCP server (authenticated in **Cursor → Settings → MCP**) to find and update this board. Search the workspace for `Cursor Agent Tasks` before creating or editing tasks. Do not ask the user to commit a Notion URL to the repository.
-
-Each task should reference a spec path (e.g. `docs/mvp/features/universe-construction.md`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
-
-**Skills (after MCP auth):** `spec-to-implementation`, `create-task`, `tasks-build`, `tasks-explain-diff`. For `tasks-build`, the user supplies a single task URL in chat (not in this file).
+- **One issue per feature** when implementation starts.
+- Issue body must link `spec/features/00N-slug/spec.md` (and `plan.md` / `tasks.md` when they exist).
+- Label `ready-for-agent` when the spec is complete and work can start.
+- On completion: update `spec.md` and `tasks.md`, then close the issue.
 
 **Commit workflow:** `/commit_split` — project skill [`.cursor/skills/commit-split/SKILL.md`](.cursor/skills/commit-split/SKILL.md); splits into conventional commits; out-of-scope paths follow [`.gitignore`](.gitignore).
 
@@ -117,7 +110,7 @@ Matt Pocock engineering skills ([`mattpocock/skills`](https://github.com/mattpoc
 
 ### Issue tracker
 
-GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. MVP specs in `docs/mvp/` remain canonical; Notion is optional for execution only. See [`.cursor/rules/issue-tracker.md`](.cursor/rules/issue-tracker.md).
+GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. MVP specs in `spec/` remain canonical. See [`.cursor/rules/issue-tracker.md`](.cursor/rules/issue-tracker.md) and [`spec/meta/github-issues.md`](spec/meta/github-issues.md).
 
 ### Triage labels
 
@@ -125,4 +118,4 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root; MVP specs in `docs/mvp/` during planning. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).
+Single-context: `CONTEXT.md` + `spec/adr/`; MVP specs in `spec/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).

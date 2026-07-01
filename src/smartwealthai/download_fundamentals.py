@@ -1,7 +1,7 @@
 """CLI to download raw SEC companyfacts and edgartools statements for a universe.
 
 Orchestrates the fundamentals download spike documented in
-``docs/mvp/features/etl-data-lake.md``. For each ``(ticker, cik)`` in the universe:
+``spec/features/006-etl-data-lake/spec.md``. For each ``(ticker, cik)`` in the universe:
 
 1. SEC REST — verbatim ``companyfacts`` JSON.
 2. edgartools — annual income, balance, and cash-flow statements as parquet.
@@ -11,7 +11,7 @@ Usage::
     export SEC_IDENTITY="Your Name your@email.com"
     poetry run download-fundamentals --universe dow30
 
-See ``docs/mvp/guides/download-fundamentals.md`` for the full operator guide.
+See ``spec/guides/download-fundamentals.md`` for the full operator guide.
 """
 
 from __future__ import annotations
@@ -181,7 +181,7 @@ def run_download(
 
 @click.command(
     context_settings={"help_option_names": ["-h", "--help"]},
-    epilog="Guide: docs/mvp/guides/download-fundamentals.md",
+    epilog="Guide: spec/guides/download-fundamentals.md",
 )
 @click.option("--universe", help="Universe preset name (e.g. dow30).")
 @click.option(

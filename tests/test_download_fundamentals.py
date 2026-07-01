@@ -2,7 +2,7 @@
 
 Covers universe loading, raw-zone path layout, and skip/force cache semantics.
 Network integration tests are intentionally excluded from PR CI; see
-``docs/mvp/guides/download-fundamentals.md``.
+``spec/guides/download-fundamentals.md``.
 """
 
 from __future__ import annotations

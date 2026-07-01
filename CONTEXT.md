@@ -1,6 +1,6 @@
 # SmartWealthAI
 
-Ubiquitous language for the quantitative value-investing MVP. Canonical formulas and acceptance criteria live in `docs/mvp/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
+Ubiquitous language for the quantitative value-investing MVP. Canonical formulas and acceptance criteria live in `spec/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
 
 ## Language
 
@@ -29,7 +29,7 @@ Backtesting only companies that still exist today, overstating returns. Mitigate
 _Avoid_: living-universe backtest
 
 **Universe**:
-Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Phase 2:** historical S&P 500 constituents including delisted names. Spec: `docs/mvp/features/universe-construction.md`.
+Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Phase 2:** historical S&P 500 constituents including delisted names. Spec: `spec/features/011-universe-construction/spec.md`.
 _Avoid_: watchlist, portfolio, benchmark index today
 
 **Industry classification**:
@@ -45,7 +45,7 @@ A company removed entirely from ranking (not a score penalty). Permanent loss an
 _Avoid_: penalize, down-rank, soft filter
 
 **Permanent loss filter**:
-Hard exclusion for fraud or bankruptcy/distress risk before any score. Spec: `docs/mvp/features/permanent-loss-filter.md`.
+Hard exclusion for fraud or bankruptcy/distress risk before any score. Spec: `spec/features/008-permanent-loss-filter/spec.md`.
 _Avoid_: risk score, stop-loss, drawdown rule
 
 **Review queue**:
@@ -61,7 +61,7 @@ Income and cash-flow statements use SimFin **TTM**; balance sheet uses the lates
 _Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for ranking between rebalance dates
 
 **Return on capital (ROC)**:
-`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `docs/mvp/features/high-quality-stocks.md`.
+`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `spec/features/007-high-quality-stocks/spec.md`.
 _Avoid_: ROE, ROIC (unless explicitly that metric)
 
 **Net working capital (NWC)**:
@@ -69,7 +69,7 @@ _Avoid_: ROE, ROIC (unless explicitly that metric)
 _Avoid_: total working capital without the excess-cash adjustment
 
 **Earnings yield (EY)**:
-`EBIT / Enterprise Value`. Cheapness factor; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `docs/mvp/features/cheap-stocks.md`.
+`EBIT / Enterprise Value`. Cheapness factor; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `spec/features/003-cheap-stocks/spec.md`.
 _Avoid_: dividend yield, earnings/price without EV
 
 **Enterprise value (EV)**:
@@ -105,7 +105,7 @@ Simulated orders only; no real capital in the MVP.
 _Avoid_: live trading, shadow trading with real broker
 
 **Sell-watch**:
-Daily monitor of model holdings for quality drop, fraud/bankruptcy, overvaluation, or opportunity cost; emits signals, no auto-execution. Spec: `docs/mvp/features/sell-watch.md`.
+Daily monitor of model holdings for quality drop, fraud/bankruptcy, overvaluation, or opportunity cost; emits signals, no auto-execution. Spec: `spec/features/010-sell-watch/spec.md`.
 _Avoid_: stop-loss, trailing stop (deferred)
 
 **Sell signal**:
@@ -113,7 +113,7 @@ Recommendation to exit a holding; requires explicit user confirmation before ord
 _Avoid_: auto-sell, trim (deferred state)
 
 **Walk-forward backtest**:
-Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred to phase 2** for the June 30 demo MVP; demo slice stops at ranked model portfolio + dashboard.
+Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `spec/features/001-backtesting/spec.md`. **Deferred to phase 2** for the June 30 demo MVP; demo slice stops at ranked model portfolio + dashboard.
 _Avoid_: single in-sample fit, peeking at hold-out (when backtest ships)
 
 **Block bootstrap**:
@@ -138,7 +138,7 @@ _Avoid_: ad-hoc snapshot without run id
 
 ## Flagged ambiguities
 
-Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)):
+Resolved scope cuts (see ADRs and [`spec/constitution/roadmap.md`](spec/constitution/roadmap.md)):
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
 - SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
@@ -149,4 +149,4 @@ Terminology reminders:
 - “Cheap” means high **EY**, not low P/E—use **EY rank** in issues and code names.
 - “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
-- MVP specs in `docs/mvp/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
+- MVP specs in `spec/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
