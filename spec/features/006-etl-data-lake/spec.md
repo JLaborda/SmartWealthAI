@@ -195,6 +195,12 @@ Phase 2 yfinance cache semantics:
   writes `statement_variant` rows and QV columns; `load_pit_fundamentals_history` in
   `pit_fundamentals.py` returns one PIT row per fiscal period for annual/quarterly history.
   Hermetic tests in `tests/test_simfin_normalizer.py` and `tests/test_pit_fundamentals.py`.
+- Phase 2 daily price history ([#88](https://github.com/JLaborda/SmartWealthAI/issues/88)):
+  `price_history_ingest.py` and `download-price-history` CLI ingest SimFin
+  `shareprices/daily` into `curated/prices/ticker=<ticker>/year=<YYYY>/prices.parquet`.
+  `lookup_daily_adj_close()` supports run-date / rebalance-date joins for backtest NAV.
+  Hermetic tests in `tests/test_price_history_ingest.py`. Operator notes in
+  [`spec/guides/download-simfin.md`](../../guides/download-simfin.md).
 
 **Operator sequence (demo pipeline):**
 
@@ -346,6 +352,27 @@ Extend SimFin ingest and normalization so Quantitative Value downstream modules 
 
 - SimFin free-tier bulk size grows with extra variants; monitor download time on weekly refresh.
 - Same fiscal `period` partition holds multiple `statement_variant` rows; MF loaders filter to `ttm`.
+
+## Daily price history (phase 2)
+
+**GitHub issue:** [#88](https://github.com/JLaborda/SmartWealthAI/issues/88) — feeds backtest NAV simulation ([#91](https://github.com/JLaborda/SmartWealthAI/issues/91)).
+
+Ingest SimFin bulk `shareprices/daily` for a configurable date window; write curated partitions by ticker and calendar year. Demo `shareprices/latest` path is unchanged.
+
+### Expected flow
+
+1. `download-price-history` downloads (or reuses) `raw/simfin/.../variant=daily/...`.
+2. Filter to universe tickers and `[start_date, end_date]`.
+3. Write `curated/prices/ticker=<ticker>/year=<YYYY>/prices.parquet`.
+4. Downstream backtests call `lookup_daily_adj_close()` for rebalance-date joins.
+
+### Acceptance criteria (phase 2 daily prices)
+
+- [x] Curated daily price parquet by ticker/year (`curated/prices/ticker=*/year=*/prices.parquet`).
+- [x] CLI populates prices for demo universe over configurable date range (`download-price-history`).
+- [x] `adj_close` usable for historical market cap and backtest NAV (`lookup_daily_adj_close`).
+- [x] Fixture tests for price ingest and run-date join (`tests/test_price_history_ingest.py`).
+- [x] Operator note in [`spec/guides/download-simfin.md`](../../guides/download-simfin.md) for SimFin free-tier limits.
 
 ## SEC fundamentals normalizer (phase 2)
 

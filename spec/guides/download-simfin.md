@@ -61,6 +61,29 @@ Pass `--ticker` to limit the normalize step to specific names (intersect univers
 
 Phase 2 annual/quarterly rows require the matching cashflow variant on disk; missing QV inputs route to `curated/issues/` with reason `missing_qv_inputs`.
 
+## Daily price history (phase 2)
+
+Backtests and historical market cap need **full daily adjusted prices**, not the demo `shareprices/latest` snapshot. Use `download-price-history` after `build-universe` (or pass `--ticker` for smoke tests).
+
+```bash
+poetry run download-price-history \
+  --universe-run-date 2026-06-18 \
+  --start-date 2016-01-01 \
+  --end-date 2026-06-18 \
+  --snapshot-date 2026-06-18
+```
+
+| Step | Output |
+| --- | --- |
+| SimFin bulk download | `raw/simfin/dataset=shareprices/variant=daily/market=us/as_of_date=<date>/us-shareprices-daily.csv` |
+| Normalize + partition | `curated/prices/ticker=<T>/year=<YYYY>/prices.parquet` |
+
+Curated columns: `ticker`, `price_date`, `close`, `adj_close`, `volume`. Use `lookup_daily_adj_close()` from `price_history_ingest` for the latest `adj_close` on or before a rebalance date.
+
+**Free-tier notes:** `shareprices/daily` is a large bulk file. Re-download weekly (`--refresh-days 7`, default) unless `--force`. The demo pipeline does **not** call this step. Per-ticker yfinance fallback is deferred; see phase 2 architecture when SimFin limits block a backfill.
+
+Flags: `--skip-download` (offline/tests), `--force` (overwrite raw + curated partitions), `--ticker` (repeatable).
+
 ## Refresh and cache behaviour
 
 - **Skip:** Re-run without `--force` when the on-disk lake copy is younger than `--refresh-days` (default `7`).
@@ -80,8 +103,10 @@ Phase 2 annual/quarterly rows require the matching cashflow variant on disk; mis
 | --- | --- |
 | `smartwealthai.simfin_client` | Configure API key, safe bulk download (zip-slip guarded), resolve cache CSV path. |
 | `smartwealthai.download_simfin` | CLI orchestration, skip/force logic, run summary. |
+| `smartwealthai.price_history_ingest` | Phase 2 daily price normalize + run-date lookup. |
+| `smartwealthai.download_price_history` | CLI for `shareprices/daily` → curated ticker/year partitions. |
 | `smartwealthai.lake_paths` | Raw lake path builders for `raw/simfin/`. |
 
 ## Tests
 
-Hermetic tests live in `tests/test_download_simfin.py`. They mock SimFin network calls; PR CI does not require a live API key.
+Hermetic tests live in `tests/test_download_simfin.py` and `tests/test_price_history_ingest.py`. They mock SimFin network calls; PR CI does not require a live API key.
