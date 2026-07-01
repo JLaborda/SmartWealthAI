@@ -16,12 +16,15 @@ from smartwealthai.pit_fundamentals import (
     _fundamentals_paths_for_ciks,
     _optional_float,
     _read_fundamentals_partition,
+    _read_fundamentals_partition_all,
     _resolve_show_progress,
     _select_pit_fundamentals,
+    _select_pit_fundamentals_by_period,
     _ticker_progress_iter,
     compute_metrics_for_ticker,
     compute_metrics_for_tickers,
     load_pit_fundamentals_bulk,
+    load_pit_fundamentals_history,
     load_pit_fundamentals_row,
     load_ticker_price_row,
     resolve_ticker_cik,
@@ -59,7 +62,9 @@ def _write_prices(lake: Path, *, rows: list[dict[str, object]]) -> None:
 def _base_fundamentals_row(**overrides: object) -> dict[str, object]:
     row = {
         "as_of_date": pd.Timestamp("2026-06-01"),
+        "fiscal_period_end": pd.Timestamp("2024-09-28"),
         "version_id": 1,
+        "statement_variant": "ttm",
         "ebit": 100.0,
         "current_assets": 200.0,
         "current_liabilities": 80.0,
@@ -311,6 +316,70 @@ def test_compute_metrics_for_tickers_skips_missing_inputs(pit_lake: Path) -> Non
     assert [result.ticker for result in results] == ["AAPL"]
 
 
+def test_select_pit_fundamentals_by_period_excludes_lookahead_rows() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2024-11-01"),
+                "version_id": 1,
+                "statement_variant": "quarterly",
+            },
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2027-01-01"),
+                "version_id": 2,
+                "statement_variant": "quarterly",
+            },
+        ]
+    )
+
+    selected = _select_pit_fundamentals_by_period(frame, date(2026, 6, 18))
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["version_id"] == 1
+
+
+def test_load_pit_fundamentals_history_returns_multi_period_rows(pit_lake: Path) -> None:
+    _write_fundamentals(
+        pit_lake,
+        period="2023Q4",
+        row=_base_fundamentals_row(
+            as_of_date=pd.Timestamp("2023-11-03"),
+            fiscal_period_end=pd.Timestamp("2023-09-30"),
+            statement_variant="quarterly",
+            accounts_receivable=29_508_000_000,
+        ),
+    )
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q4",
+        row=_base_fundamentals_row(
+            statement_variant="quarterly",
+            accounts_receivable=33_410_000_000,
+        ),
+    )
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 2
+    assert history.iloc[0]["fiscal_period_end"] == pd.Timestamp("2023-09-30")
+    assert history.iloc[1]["accounts_receivable"] == 33_410_000_000
+
+
+def test_load_pit_fundamentals_history_ignores_ttm_rows(pit_lake: Path) -> None:
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q4",
+        row=_base_fundamentals_row(statement_variant="ttm"),
+    )
+
+    with pytest.raises(MetricsInputError, match="No PIT fundamentals history"):
+        load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+
 def test_compute_metrics_for_tickers_loads_universe_when_cik_map_omitted(pit_lake: Path) -> None:
     results = compute_metrics_for_tickers(
         pit_lake,
@@ -321,3 +390,170 @@ def test_compute_metrics_for_tickers_loads_universe_when_cik_map_omitted(pit_lak
 
     assert len(results) == 1
     assert results[0].ticker == "AAPL"
+
+
+def test_select_pit_fundamentals_without_cik_column() -> None:
+    frame = pd.DataFrame(
+        [
+            {"as_of_date": pd.Timestamp("2024-01-01"), "version_id": 1},
+            {"as_of_date": pd.Timestamp("2025-01-01"), "version_id": 2},
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["version_id"] == 2
+
+
+def test_select_pit_fundamentals_by_period_returns_empty_when_all_future() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2027-01-01"),
+                "version_id": 1,
+            }
+        ]
+    )
+
+    assert _select_pit_fundamentals_by_period(frame, RUN_DATE).empty
+
+
+def test_load_pit_fundamentals_history_raises_when_no_partitions(pit_lake: Path) -> None:
+    shutil.rmtree(pit_lake / "curated" / "fundamentals")
+
+    with pytest.raises(MetricsInputError, match="No curated fundamentals for ticker"):
+        load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+
+def test_load_pit_fundamentals_history_raises_when_partitions_empty(pit_lake: Path) -> None:
+    shutil.rmtree(pit_lake / "curated" / "fundamentals" / f"cik={CIK}" / "period=2024Q4")
+    empty_path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q3"
+        / "fundamentals.parquet"
+    )
+    empty_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(columns=["as_of_date", "version_id"]).to_parquet(empty_path, index=False)
+
+    with pytest.raises(MetricsInputError, match="No curated fundamentals for ticker"):
+        load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+
+def test_read_fundamentals_partition_uses_last_row_when_no_ttm(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q4"
+        / "fundamentals.parquet"
+    )
+    pd.DataFrame(
+        [
+            _base_fundamentals_row(statement_variant="quarterly", ebit=50.0),
+            _base_fundamentals_row(statement_variant="annual", ebit=60.0),
+        ]
+    ).to_parquet(path, index=False)
+
+    frame = _read_fundamentals_partition(path)
+
+    assert frame is not None
+    assert frame.iloc[0]["statement_variant"] == "annual"
+    assert frame.iloc[0]["ebit"] == 60.0
+
+
+def test_read_fundamentals_partition_without_statement_variant_column(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q3"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    row = _base_fundamentals_row(ebit=77.0)
+    row.pop("statement_variant")
+    pd.DataFrame([row]).to_parquet(path, index=False)
+
+    frame = _read_fundamentals_partition(path)
+
+    assert frame is not None
+    assert frame.iloc[0]["ebit"] == 77.0
+
+
+def test_read_fundamentals_partition_all_returns_none_for_empty_file(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q2"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(columns=["as_of_date"]).to_parquet(path, index=False)
+
+    assert _read_fundamentals_partition_all(path) is None
+
+
+def test_read_fundamentals_partition_all_injects_cik_from_path(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q1"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    row = _base_fundamentals_row()
+    row.pop("cik", None)
+    pd.DataFrame([row]).to_parquet(path, index=False)
+
+    frame = _read_fundamentals_partition_all(path)
+
+    assert frame is not None
+    assert frame.iloc[0]["cik"] == CIK
+
+
+def test_read_fundamentals_partition_all_keeps_existing_cik_column(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2023Q4"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([{**_base_fundamentals_row(), "cik": CIK}]).to_parquet(path, index=False)
+
+    frame = _read_fundamentals_partition_all(path)
+
+    assert frame is not None
+    assert frame.iloc[0]["cik"] == CIK
+
+
+def test_load_pit_fundamentals_history_without_statement_variant_column(pit_lake: Path) -> None:
+    shutil.rmtree(pit_lake / "curated" / "fundamentals" / f"cik={CIK}")
+    for period, as_of, fiscal_end in (
+        ("2023Q4", "2023-11-03", "2023-09-30"),
+        ("2024Q4", "2026-06-01", "2024-09-28"),
+    ):
+        row = _base_fundamentals_row(
+            as_of_date=pd.Timestamp(as_of),
+            fiscal_period_end=pd.Timestamp(fiscal_end),
+        )
+        row.pop("statement_variant")
+        _write_fundamentals(pit_lake, period=period, row=row)
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 2

@@ -27,6 +27,7 @@ from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
     _index_balance_by_ticker,
     _latest_balance_row,
+    _matching_statement_row,
     _raw_paths,
     _read_simfin_csv,
     _resolve_show_progress,
@@ -632,6 +633,86 @@ def test_normalize_simfin_uses_calendar_period_when_fiscal_labels_missing(
     assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q3").exists()
 
 
+def test_load_simfin_mapping_parses_qv_required_fields() -> None:
+    mapping = load_simfin_mapping(DEFAULT_MAPPING_PATH)
+
+    assert "accounts_receivable" in mapping["qv_required_fields"]
+    assert mapping["fields"]["operating_cash_flow"] == "Net Cash from Operating Activities"
+
+
+def test_matching_statement_row_exact_match_returns_none_when_dates_differ(
+    lake_with_simfin: Path,
+) -> None:
+    paths = _raw_paths(lake_with_simfin, SIMFIN_FIXTURE_DATE)
+    balance = _read_simfin_csv(paths["balance"])
+    balance_by_ticker = _index_balance_by_ticker(
+        balance,
+        ticker_col="Ticker",
+        report_col="Report Date",
+    )
+
+    result = _matching_statement_row(
+        balance_by_ticker,
+        ticker="AAPL",
+        report_date=pd.Timestamp("1999-01-01"),
+        report_col="Report Date",
+        exact_match=True,
+    )
+
+    assert result is None
+
+
+def test_normalize_simfin_processes_all_income_tickers_when_unscoped(
+    lake_with_simfin: Path,
+) -> None:
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows >= 1
+
+
+def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows >= 2
+    output = curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    quarterly = (
+        pd.read_parquet(output).loc[lambda frame: frame["statement_variant"] == "quarterly"].iloc[0]
+    )
+    assert quarterly["accounts_receivable"] == 33_410_000_000
+    assert quarterly["operating_cash_flow"] == 118_254_000_000
+
+
+def test_normalize_simfin_routes_missing_qv_inputs_to_issues(tmp_path: Path) -> None:
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+    cashflow_path = simfin_bulk_path(
+        tmp_path,
+        dataset="cashflow",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    cashflow_path.unlink()
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.issue_rows >= 1
+    issues = pd.read_parquet(curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE))
+    assert "missing_qv_inputs" in set(issues["reason"])
+
+
 def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
     mapping_path = tmp_path / "mapping.yaml"
     mapping_path.write_text(
@@ -640,7 +721,12 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
         "  ebit: EBIT\n"
         "meta:\n"
         "  ticker: Ticker\n"
+        "qv_required_fields:\n"
+        "  - accounts_receivable\n"
+        "  note without colon\n"
+        "  orphan: value\n"
         "unknown_section:\n"
+        "  ignored line without colon\n"
         "missing_publish_lag_days: 45\n"
         "note without colon\n"
     )
@@ -649,6 +735,7 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
 
     assert mapping["version"] == "test_v1"
     assert mapping["fields"]["ebit"] == "EBIT"
+    assert mapping["qv_required_fields"] == ["accounts_receivable"]
     assert mapping["missing_publish_lag_days"] == 45
 
 
@@ -656,12 +743,26 @@ def _append_csv_line(path: Path, line: str) -> None:
     path.write_text(path.read_text().rstrip("\n") + "\n" + line + "\n")
 
 
-def _copy_simfin_fixtures(data_dir: Path) -> None:
+_SKIP_UNLESS_MULTIPERIOD = (
+    "dataset=income/variant=quarterly/",
+    "dataset=income/variant=annual/",
+    "dataset=balance/variant=annual/",
+    "dataset=cashflow/variant=annual/",
+    "dataset=cashflow/variant=quarterly/",
+)
+
+
+def _copy_simfin_fixtures(data_dir: Path, *, include_multiperiod: bool = False) -> None:
     src = FIXTURES_DIR / "raw" / "simfin"
     dst = data_dir / "raw" / "simfin"
     for path in src.rglob("*"):
         if path.is_file():
             rel = path.relative_to(src)
+            rel_str = f"{rel.parent}/"
+            if not include_multiperiod and any(
+                marker in rel_str for marker in _SKIP_UNLESS_MULTIPERIOD
+            ):
+                continue
             target = dst / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(path.read_bytes())

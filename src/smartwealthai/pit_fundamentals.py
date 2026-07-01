@@ -60,6 +60,28 @@ def _select_pit_fundamentals(frame: pd.DataFrame, as_of_date: date) -> pd.DataFr
     return eligible.sort_values(["cik", "_as_of", "version_id"]).groupby("cik", sort=False).tail(1)
 
 
+def _select_pit_fundamentals_by_period(frame: pd.DataFrame, as_of_date: date) -> pd.DataFrame:
+    """Return the latest PIT row per (CIK, fiscal period) on or before ``as_of_date``."""
+    if frame.empty:
+        return frame
+
+    work = frame.copy()
+    work["_as_of"] = pd.to_datetime(work["as_of_date"])
+    decision = pd.Timestamp(as_of_date)
+    eligible = work.loc[work["_as_of"] <= decision]
+    if eligible.empty:
+        return eligible.iloc[0:0]
+
+    group_cols = (
+        ["cik", "fiscal_period_end"] if "fiscal_period_end" in eligible.columns else ["cik"]
+    )
+    return (
+        eligible.sort_values([*group_cols, "_as_of", "version_id"])
+        .groupby(group_cols, sort=False)
+        .tail(1)
+    )
+
+
 def load_pit_fundamentals_row(
     data_dir: Path,
     *,
@@ -75,8 +97,8 @@ def load_pit_fundamentals_row(
 
     rows: list[pd.Series] = []
     for path in cik_dir.glob("period=*/fundamentals.parquet"):
-        frame = pd.read_parquet(path)
-        if frame.empty:
+        frame = _read_fundamentals_partition(path)
+        if frame is None:
             continue
         rows.append(frame.iloc[0])
 
@@ -90,6 +112,41 @@ def load_pit_fundamentals_row(
         raise MetricsInputError(msg)
 
     return selected.iloc[0]
+
+
+def load_pit_fundamentals_history(
+    data_dir: Path,
+    *,
+    ticker: str,
+    as_of_date: date,
+) -> pd.DataFrame:
+    """Return PIT fundamentals history for ``ticker`` (one row per fiscal period)."""
+    cik = resolve_ticker_cik(data_dir, ticker=ticker, run_date=as_of_date)
+    paths = _fundamentals_paths_for_ciks(data_dir, {cik})
+    if not paths:
+        msg = f"No curated fundamentals for ticker {ticker!r} (cik={cik})"
+        raise MetricsInputError(msg)
+
+    frames: list[pd.DataFrame] = []
+    for path in paths:
+        frame = _read_fundamentals_partition_all(path)
+        if frame is not None:
+            frames.append(frame)
+
+    if not frames:
+        msg = f"No curated fundamentals for ticker {ticker!r}"
+        raise MetricsInputError(msg)
+
+    history = pd.concat(frames, ignore_index=True)
+    if "statement_variant" in history.columns:
+        history = history.loc[history["statement_variant"].isin(("annual", "quarterly"))]
+
+    selected = _select_pit_fundamentals_by_period(history, as_of_date)
+    if selected.empty:
+        msg = f"No PIT fundamentals history for {ticker!r} on or before {as_of_date}"
+        raise MetricsInputError(msg)
+
+    return selected.sort_values("fiscal_period_end").reset_index(drop=True)
 
 
 def load_prices_by_ticker(data_dir: Path, *, run_date: date) -> dict[str, pd.Series]:
@@ -140,10 +197,28 @@ def _read_fundamentals_partition(path: Path) -> pd.DataFrame | None:
     frame = pd.read_parquet(path)
     if frame.empty:
         return None
-    row = frame.iloc[[0]].copy()
-    if "cik" not in row.columns:
-        row["cik"] = _cik_from_partition_path(path)
-    return row
+    if "cik" not in frame.columns:
+        frame = frame.copy()
+        frame["cik"] = _cik_from_partition_path(path)
+    if "statement_variant" in frame.columns:
+        ttm = frame.loc[frame["statement_variant"] == "ttm"]
+        if not ttm.empty:
+            frame = ttm
+        else:
+            frame = frame.iloc[[-1]]
+    else:
+        frame = frame.iloc[[0]]
+    return frame
+
+
+def _read_fundamentals_partition_all(path: Path) -> pd.DataFrame | None:
+    frame = pd.read_parquet(path)
+    if frame.empty:
+        return None
+    if "cik" not in frame.columns:
+        frame = frame.copy()
+        frame["cik"] = _cik_from_partition_path(path)
+    return frame
 
 
 def load_pit_fundamentals_bulk(

@@ -3,7 +3,7 @@
 Orchestrates the demo SimFin connector documented in
 ``spec/features/006-etl-data-lake/spec.md``. Downloads ``companies``, ``industries``,
 ``income`` (TTM), ``balance`` (quarterly), ``cashflow`` (TTM), and ``shareprices``
-(latest) for ``market=us``.
+(latest) for ``market=us``. Phase 2 also downloads annual/quarterly statement variants.
 
 Usage::
 
@@ -81,6 +81,23 @@ DEMO_DATASETS: tuple[SimFinDatasetSpec, ...] = (
     SimFinDatasetSpec("shareprices", variant="latest", market="us"),
 )
 
+# Phase 2 multi-period fundamentals (issue #87); non-critical like demo cashflow.
+PHASE2_STATEMENT_DATASETS: tuple[SimFinDatasetSpec, ...] = (
+    SimFinDatasetSpec("income", variant="annual", market="us", critical=False),
+    SimFinDatasetSpec("income", variant="quarterly", market="us", critical=False),
+    SimFinDatasetSpec("balance", variant="annual", market="us", critical=False),
+    SimFinDatasetSpec("cashflow", variant="annual", market="us", critical=False),
+    SimFinDatasetSpec("cashflow", variant="quarterly", market="us", critical=False),
+)
+
+SIMFIN_DATASETS: tuple[SimFinDatasetSpec, ...] = DEMO_DATASETS + PHASE2_STATEMENT_DATASETS
+
+
+def dataset_spec_key(spec: SimFinDatasetSpec) -> str:
+    """Stable label for logs and run summaries (dataset + variant)."""
+    variant = spec.variant or "default"
+    return f"{spec.name}/{variant}"
+
 
 def download_dataset(
     spec: SimFinDatasetSpec,
@@ -100,8 +117,9 @@ def download_dataset(
         market=spec.market,
         as_of_date=as_of_date,
     )
+    label = dataset_spec_key(spec)
     if should_skip_dataset(lake_path, refresh_days=refresh_days, force=force, now=now):
-        return DatasetResult(name=spec.name, skipped=True)
+        return DatasetResult(name=label, skipped=True)
 
     try:
         source = fetch_csv(
@@ -113,8 +131,8 @@ def download_dataset(
         lake_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, lake_path)
     except OSError as exc:
-        return DatasetResult(name=spec.name, failed=True, error=str(exc))
-    return DatasetResult(name=spec.name, downloaded=True)
+        return DatasetResult(name=label, failed=True, error=str(exc))
+    return DatasetResult(name=label, downloaded=True)
 
 
 def run_download(
@@ -140,8 +158,8 @@ def run_download(
         fetch_csv = fetch_dataset_csv
 
     results: list[DatasetResult] = []
-    for spec in DEMO_DATASETS:
-        logger.info("Processing SimFin dataset %s", spec.name)
+    for spec in SIMFIN_DATASETS:
+        logger.info("Processing SimFin dataset %s", dataset_spec_key(spec))
         result = download_dataset(
             spec,
             data_dir=data_dir,
@@ -161,8 +179,8 @@ def run_download(
     downloaded_total = sum(result.downloaded for result in results)
     skipped_total = sum(result.skipped for result in results)
     failures = [result for result in results if result.failed]
-    critical_specs = {spec.name: spec for spec in DEMO_DATASETS}
-    critical_failures = [result for result in failures if critical_specs[result.name].critical]
+    critical_by_key = {dataset_spec_key(spec): spec for spec in SIMFIN_DATASETS}
+    critical_failures = [result for result in failures if critical_by_key[result.name].critical]
 
     click.echo(f"Downloaded datasets: {downloaded_total}")
     click.echo(f"Skipped datasets: {skipped_total}")
@@ -175,7 +193,7 @@ def run_download(
         error_file.write_text(json.dumps(payload, indent=2))
         click.echo(f"Wrote error summary: {error_file}")
 
-    if len(critical_failures) == len([spec for spec in DEMO_DATASETS if spec.critical]):
+    if len(critical_failures) == len([spec for spec in SIMFIN_DATASETS if spec.critical]):
         return 1
     return 0
 

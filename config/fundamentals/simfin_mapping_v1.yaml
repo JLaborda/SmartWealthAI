@@ -16,6 +16,12 @@ fields:
   total_assets: "Total Assets"
   total_liabilities: "Total Liabilities"
   shares_outstanding: "Shares (Basic)"
+  # QV forensic / FS-Score inputs (Beneish YoY deltas, Gray/Carlisle components)
+  accounts_receivable: "Accounts Receivable"
+  cost_of_revenue: "Cost of Revenue"
+  depreciation_amortization: "Depreciation & Amortization"
+  sga_expense: "Selling, General & Administrative"
+  operating_cash_flow: "Net Cash from Operating Activities"
 
 meta:
   ticker: Ticker
@@ -27,6 +33,13 @@ meta:
   restated_date: "Restated Date"
   fiscal_year: "Fiscal Year"
   fiscal_period: "Fiscal Period"
+
+qv_required_fields:
+  - accounts_receivable
+  - cost_of_revenue
+  - depreciation_amortization
+  - sga_expense
+  - operating_cash_flow
 
 # ponytail: single lag when Publish Date is missing (quarterly default from architecture).
 missing_publish_lag_days: 45

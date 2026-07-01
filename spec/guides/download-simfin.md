@@ -1,6 +1,6 @@
 # Download SimFin bulk fundamentals and prices (demo)
 
-Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`etl-data-lake.md`](../../006-etl-data-lake/spec.md).
+Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`spec/features/006-etl-data-lake/spec.md`](../../features/006-etl-data-lake/spec.md).
 
 ## Prerequisites
 
@@ -13,16 +13,21 @@ export SIMFIN_API_KEY="<from user secrets>"
 
 ## Download US bulk datasets
 
-Downloads six demo datasets into the raw lake under `data/raw/simfin/`:
+Downloads demo datasets plus phase 2 multi-period statement variants into the raw lake under `data/raw/simfin/`:
 
-| Dataset | Variant | Lake partition |
-| --- | --- | --- |
-| `companies` | `default` | `dataset=companies/variant=default/market=us/` |
-| `industries` | `default` | `dataset=industries/variant=default/market=us/` |
-| `income` | `ttm` | `dataset=income/variant=ttm/market=us/` |
-| `balance` | `quarterly` | `dataset=balance/variant=quarterly/market=us/` |
-| `cashflow` | `ttm` | `dataset=cashflow/variant=ttm/market=us/` |
-| `shareprices` | `latest` | `dataset=shareprices/variant=latest/market=us/` |
+| Dataset | Variant | Lake partition | Critical |
+| --- | --- | --- | --- |
+| `companies` | `default` | `dataset=companies/variant=default/market=us/` | yes |
+| `industries` | `default` | `dataset=industries/variant=default/market=us/` | yes |
+| `income` | `ttm` | `dataset=income/variant=ttm/market=us/` | yes |
+| `balance` | `quarterly` | `dataset=balance/variant=quarterly/market=us/` | yes |
+| `cashflow` | `ttm` | `dataset=cashflow/variant=ttm/market=us/` | no |
+| `shareprices` | `latest` | `dataset=shareprices/variant=latest/market=us/` | yes |
+| `income` | `annual` | `dataset=income/variant=annual/market=us/` | no |
+| `income` | `quarterly` | `dataset=income/variant=quarterly/market=us/` | no |
+| `balance` | `annual` | `dataset=balance/variant=annual/market=us/` | no |
+| `cashflow` | `annual` | `dataset=cashflow/variant=annual/market=us/` | no |
+| `cashflow` | `quarterly` | `dataset=cashflow/variant=quarterly/market=us/` | no |
 
 Each partition also includes `as_of_date=<YYYY-MM-DD>/` and the verbatim SimFin CSV filename (e.g. `us-income-ttm.csv`).
 
@@ -54,6 +59,8 @@ Pass `--ticker` to limit the normalize step to specific names (intersect univers
 
 `normalize-simfin` requires `--universe-run-date` (after `build-universe`) or `--ticker` for smoke tests. It does not process the full SimFin US table by default.
 
+Phase 2 annual/quarterly rows require the matching cashflow variant on disk; missing QV inputs route to `curated/issues/` with reason `missing_qv_inputs`.
+
 ## Refresh and cache behaviour
 
 - **Skip:** Re-run without `--force` when the on-disk lake copy is younger than `--refresh-days` (default `7`).
@@ -63,8 +70,8 @@ Pass `--ticker` to limit the normalize step to specific names (intersect univers
 ## Failures
 
 - A failure for one dataset does not stop the rest.
-- Non-critical dataset (`cashflow`) failure still exits `0` when critical datasets succeed.
-- Exit code `1` when all critical datasets (`companies`, `industries`, `income`, `balance`, `shareprices`) fail, or when `SIMFIN_API_KEY` is missing.
+- Non-critical datasets (`cashflow`, phase 2 statement variants) failure still exits `0` when critical datasets succeed.
+- Exit code `1` when all critical datasets (`companies`, `industries`, `income/ttm`, `balance/quarterly`, `shareprices`) fail, or when `SIMFIN_API_KEY` is missing.
 - Per-run errors are written to `raw/simfin/download_runs/as_of_date=<date>/errors.json` when any dataset fails.
 
 ## Module map
