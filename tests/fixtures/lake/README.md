@@ -7,7 +7,7 @@ SimFin, and yfinance), then reduced and committed for hermetic tests.
 ## Directory layout
 
 - `raw/sec_edgar/...`: reduced real SEC companyfacts snapshots
-- `raw/simfin/...`: reduced SimFin bulk CSV snapshots (income TTM, balance quarterly, companies, industries, shareprices/latest)
+- `raw/simfin/...`: reduced SimFin bulk CSV snapshots (income TTM, balance quarterly, companies, industries, shareprices/latest, shareprices/daily)
 - `raw/yfinance/...`: reduced real yfinance history snapshots
 - `curated/fundamentals.csv`: stable derived dataset for PIT tests
 - `MANIFEST.json`: provenance and SHA-256 checksums
@@ -50,6 +50,7 @@ against yfinance history snapshots:
 - `raw/sec_edgar/cik=0000320193/endpoint=companyfacts/as_of_date=2026-05-21/response.json`
 - `raw/sec_edgar/cik=0000789019/endpoint=companyfacts/as_of_date=2026-05-21/response.json`
 - `raw/simfin/dataset=shareprices/variant=latest/market=us/as_of_date=2026-06-18/us-shareprices-latest.csv`
+- `raw/simfin/dataset=shareprices/variant=daily/market=us/as_of_date=2026-06-18/us-shareprices-daily.csv`
 - `raw/yfinance/ticker=AAPL/endpoint=history/as_of_date=2026-05-21/history.json`
 - `raw/yfinance/ticker=MSFT/endpoint=history/as_of_date=2026-05-21/history.json`
 
