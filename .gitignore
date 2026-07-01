@@ -13,6 +13,8 @@ data/*
 !data/reference/**
 *hacienda*
 *portfolio*
+!spec/features/*portfolio*/
+!spec/features/*portfolio*/**
 .DS_Store
 backup*
 notebooks/*

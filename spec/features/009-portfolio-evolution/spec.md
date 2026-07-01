@@ -12,7 +12,7 @@ The user must be able to answer the questions "have my own decisions been worth 
 ## MVP scope
 
 - Consume the consolidated personal-operations CSV (already in EUR) as the single source of truth for the personal portfolio.
-- Use the closed schema documented in `docs/mvp/architecture/architecture.md` (Date, Symbol, Type, Volume, Price, Value, Commission, Currency).
+- Use the closed schema documented in `spec/constitution/mission.md` (Date, Symbol, Type, Volume, Price, Value, Commission, Currency).
 - Reconstruct daily NAV in EUR using adjusted prices from the curated price store.
 - Apply the broker-to-yfinance ticker mapping (`data/reference/ticker_mapping.csv`).
 - Treat bankrupt or delisted holdings systematically: write a closing price of zero on the delisting date instead of dropping the position.
@@ -113,5 +113,5 @@ flowchart TD
 - The CSV schema is the contract; any silent change in the cleaning pipeline (`src/preprocessing/cleaning_operations.py`) can break the portfolio evolution module. The CI should include a schema test.
 - Ticker remapping in code paths can drift from the CSV file in `data/reference/`. The mapping must be loaded from the file only.
 - Bankrupt-ticker handling can mask data errors as real losses. The pipeline must log a clear warning when a ticker disappears, and require an explicit "delisted_on" entry in `data/reference/delistings.csv` before zeroing the price.
-- Free yfinance prices can be wrong or missing for older tickers (especially European listings). The fallback chain in `etl-data-lake` must cover this.
+- Free yfinance prices can be wrong or missing for older tickers (especially European listings). The fallback chain in [`../006-etl-data-lake/spec.md`](../006-etl-data-lake/spec.md) must cover this.
 - Paper-trading the model assumes execution at the close of the rebalance date. This is optimistic; future iterations should model open-next-day execution and a basic spread cost.
