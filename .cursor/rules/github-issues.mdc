@@ -1,0 +1,24 @@
+---
+description: GitHub Issues vs Git specs
+alwaysApply: true
+---
+
+# GitHub Issues workflow
+
+**Git specs in `spec/` are canonical.** GitHub Issues track execution.
+
+## Issue fields
+
+Each implementation issue should include:
+
+- **Title:** e.g. `Feature: Cheap Stocks — implement EY rank`
+- **Spec path:** `spec/features/00N-slug/spec.md`
+- **Body:** link to `plan.md` and `tasks.md` when they exist; copy acceptance criteria from the spec
+
+## Sync discipline
+
+1. Change MVP decisions in the Git spec first.
+2. Create or update the GitHub issue (label `ready-for-agent` when ready).
+3. On completion: update `spec.md` (implementation status, acceptance criteria), check off `tasks.md`, close the issue.
+
+See [`spec/meta/github-issues.md`](../../spec/meta/github-issues.md).

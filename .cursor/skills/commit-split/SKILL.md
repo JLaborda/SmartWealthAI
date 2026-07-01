@@ -54,7 +54,7 @@ Rules: imperative present tense; **lowercase** description; **no** trailing peri
 | --- | --- |
 | `docs` | `docs/`, `CONTEXT.md`, `AGENTS.md` |
 | `agents` | `.cursor/rules/` |
-| `mvp` | `docs/mvp/**` specs |
+| `mvp` | `spec/**` specs |
 | `skills` | `.cursor/skills/` |
 | `chore` | `.gitignore`, repo hygiene with no domain doc change |
 

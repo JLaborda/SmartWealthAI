@@ -9,17 +9,17 @@ SmartWealthAI is a modular **quantitative value investing** system (MVP): US equ
 
 ## Current phase
 
-**MVP planning and spec refinement** in `docs/mvp/`. **June 30, 2026 demo slice** ([`demo-slice.md`](../../docs/mvp/demo-slice.md)) is the active delivery target. Prefer updating specs over writing code unless the user explicitly moves to implementation.
+**MVP planning and spec refinement** in `spec/`. **June 30, 2026 demo slice** ([`roadmap.md`](../../spec/constitution/roadmap.md)) is the active delivery target. Prefer updating specs over writing code unless the user explicitly moves to implementation.
 
 ## Canonical documentation
 
-- Demo slice: `docs/mvp/demo-slice.md`
-- ADRs: `docs/adr/`
-- Architecture: `docs/mvp/architecture/architecture.md`
-- Features: `docs/mvp/features/*.md`
+- Constitution: `spec/constitution/` (`mission.md`, `tech-stack.md`, `roadmap.md`)
+- ADRs: `spec/adr/`
+- Features: `spec/features/00N-slug/spec.md` (optional `plan.md`, `tasks.md`)
 - Ubiquitous language: `CONTEXT.md`
-- Requirements (historical): `docs/mvp/requirements/requirements.md`
-- Backlog: `docs/mvp/backlog/backlog.md`
+- Archive (historical): `spec/archive/requirements.md`
+- Backlog: `spec/backlog/backlog.md`
+- GitHub Issues workflow: `spec/meta/github-issues.md`
 
 ## Not canonical
 
@@ -27,4 +27,4 @@ Do not use `src/` or `notebooks/` as reference architecture. Legacy exploration 
 
 ## Code changes
 
-Every implementation change must trace to a feature spec under `docs/mvp/features/` or the demo slice (`docs/mvp/demo-slice.md`). Read the architecture doc for cross-cutting rules before proposing design or code.
+Every implementation change must trace to a feature spec under `spec/features/` or the roadmap (`spec/constitution/roadmap.md`). Read `spec/constitution/mission.md` for cross-cutting rules before proposing design or code.
