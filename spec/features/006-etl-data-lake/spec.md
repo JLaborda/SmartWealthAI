@@ -4,6 +4,8 @@
 
 **done** (demo slice) — SimFin connector + normalizer + shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
 
+**done** (phase 2 multi-period fundamentals) — annual/quarterly SimFin ingest, QV field mapping, PIT history interface ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)).
+
 ## Objective
 
 Build the module that downloads, validates, normalizes, and stores financial data so that every downstream module (universe construction, scoring, backtesting, sell-watch, portfolio evolution) can rely on a single trustworthy source. The data lake lives on AWS S3 and is queried with DuckDB. Point-in-time correctness and incremental refresh are mandatory.
@@ -24,6 +26,7 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 
 ### Full MVP (phase 2 additions)
 
+- **Multi-period fundamentals** (annual/quarterly income, balance, cash flow) with PIT history for QV ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)).
 - SEC EDGAR ETL (frozen spike: `sec_client`, `download-fundamentals`).
 - Incremental per-CIK filing ingest when SEC normalizer ships.
 - S&P 500–scoped backfill policies.
@@ -40,9 +43,12 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 
 | Input | Source | Notes |
 | --- | --- | --- |
-| Income statement (TTM) | SimFin bulk `income` variant `ttm` | EBIT, interest, revenue, net income. |
+| Income statement (TTM) | SimFin bulk `income` variant `ttm` | EBIT, interest, revenue, net income (Magic Formula demo). |
+| Income statement (annual/quarterly) | SimFin bulk `income` variants `annual`, `quarterly` | Phase 2 QV YoY deltas. |
 | Balance sheet (quarterly) | SimFin bulk `balance` variant `quarterly` | NWC, PP&E, debt, cash, shares. |
-| Cash flow (TTM) | SimFin bulk `cashflow` variant `ttm` | Phase 2 permanent-loss filter; ingest in demo for raw archive. |
+| Balance sheet (annual) | SimFin bulk `balance` variant `annual` | Phase 2 annual statement joins. |
+| Cash flow (TTM) | SimFin bulk `cashflow` variant `ttm` | Demo raw archive. |
+| Cash flow (annual/quarterly) | SimFin bulk `cashflow` variants `annual`, `quarterly` | CFO and D&A for Beneish / FS-Score. |
 | Publish / report / restated dates | SimFin statement rows | `Publish Date` → `as_of_date`. |
 | Company metadata | SimFin `companies` | `Ticker`, `CIK`, `IndustryId`, `SimFinId`. |
 | Industry labels | SimFin `industries` | Sector/industry names for exclusions CSV. |
@@ -184,6 +190,11 @@ Phase 2 yfinance cache semantics:
   (`poetry run download-prices`). Requires `shareprices/latest` from `download-simfin`.
   Writes `curated/prices/run_date=<date>/prices.parquet`. Hermetic tests in
   `tests/test_download_prices.py`.
+- Phase 2 multi-period fundamentals ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)):
+  `download-simfin` ingests annual/quarterly statement variants; `simfin_normalizer`
+  writes `statement_variant` rows and QV columns; `load_pit_fundamentals_history` in
+  `pit_fundamentals.py` returns one PIT row per fiscal period for annual/quarterly history.
+  Hermetic tests in `tests/test_simfin_normalizer.py` and `tests/test_pit_fundamentals.py`.
 
 **Operator sequence (demo pipeline):**
 
@@ -210,7 +221,8 @@ poetry run score-universe --run-date 2026-06-19
 | **`as_of_date` (demo)** | SimFin `Publish Date`; `Restated Date` → new `version_id`. |
 | **SEC normalizer (phase 2)** | `companyfacts` JSON from `raw/sec_edgar/...`; EDGAR acceptance as `as_of_date`. |
 | **Mapping** | `config/fundamentals/simfin_mapping_v1.yaml` (demo); `mapping_v1.yaml` (SEC phase 2). |
-| Canonical fields | Same ~12 curated columns for ROC, EY, and QC regardless of provider. |
+| Canonical fields | Core ~14 columns for ROC/EY/QC plus QV columns (`accounts_receivable`, `cost_of_revenue`, `depreciation_amortization`, `sga_expense`, `operating_cash_flow`) in `simfin_mapping_v1.yaml`. |
+| QV review queue | Annual/quarterly rows missing `qv_required_fields` → `curated/issues/` with `missing_qv_inputs`. |
 | Provenance | Per-field source column + `mapping_version`. |
 | Downstream contract | Scoring reads `curated/fundamentals` only — provider-agnostic schema. |
 | SEC spike | Frozen in repo; not deleted. |
@@ -219,6 +231,9 @@ poetry run score-universe --run-date 2026-06-19
 
 Downloads US fundamentals via the `simfin` Python package into `raw/simfin/`.
 Operator guide: [`spec/guides/download-simfin.md`](../../guides/download-simfin.md).
+
+Phase 2 adds five non-critical statement datasets (`income/annual`, `income/quarterly`,
+`balance/annual`, `cashflow/annual`, `cashflow/quarterly`) to the same CLI run.
 
 ### CLI
 
@@ -240,6 +255,7 @@ poetry run download-simfin --refresh-days 7 --force
 
 - [x] `simfin` dependency in `pyproject.toml`; API key from `SIMFIN_API_KEY`.
 - [x] CLI downloads all six demo datasets into stable `raw/simfin/` partitions.
+- [x] Phase 2: CLI also downloads annual/quarterly income, balance, and cashflow variants (non-critical).
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
@@ -287,6 +303,49 @@ poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-
 poetry run normalize-simfin --snapshot-date 2026-06-18 --ticker AAPL --ticker MSFT
 poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18 --quiet
 ```
+
+## Phase 2: Multi-period fundamentals and PIT history
+
+**Delivery:** phase 2 ([`roadmap.md`](../../constitution/roadmap.md) — issue [#87](https://github.com/JLaborda/SmartWealthAI/issues/87))
+
+### Objective
+
+Extend SimFin ingest and normalization so Quantitative Value downstream modules (Beneish, FS-Score) can load multi-period, point-in-time-correct fundamentals at any `decision_date`.
+
+### In scope
+
+- Download annual/quarterly income, balance, and cash-flow SimFin bulk variants into `raw/simfin/`.
+- Normalize to the same provider-agnostic `curated/fundamentals` schema with `statement_variant` metadata.
+- Map QV forensic / FS-Score input columns via `qv_required_fields` in `simfin_mapping_v1.yaml`.
+- `load_pit_fundamentals_history()` — one PIT row per fiscal period (annual/quarterly only).
+- Hermetic fixture tests proving no look-ahead (`as_of_date > decision_date` excluded).
+
+### Out of scope
+
+- Beneish M-Score or FS-Score calculators ([#89](https://github.com/JLaborda/SmartWealthAI/issues/89), [#91](https://github.com/JLaborda/SmartWealthAI/issues/91)).
+- Daily share prices or backtest engine ([#88](https://github.com/JLaborda/SmartWealthAI/issues/88)).
+- Changing Magic Formula demo scoring to use annual/quarterly rows.
+
+### Expected flow
+
+1. `download-simfin` fetches demo datasets plus phase 2 annual/quarterly statement variants.
+2. `normalize-simfin` processes three statement bundles: TTM (demo), annual, quarterly.
+3. Annual/quarterly rows join income + balance + cashflow on exact `Report Date`; missing QV inputs → review queue.
+4. Curated partitions store multiple `statement_variant` rows per `period=<YYYYQn>` parquet.
+5. `load_pit_fundamentals_history(ticker, decision_date)` returns annual/quarterly history with PIT selection per fiscal period.
+
+### Acceptance criteria (phase 2 multi-period)
+
+- [x] SimFin annual/quarterly variants downloaded to raw and normalized to provider-agnostic curated schema.
+- [x] PIT query returns multi-period history per ticker at a pinned decision date.
+- [x] Fixture test: row with `as_of_date > decision_date` never returned.
+- [x] Review queue rows written for missing Beneish/FS-Score inputs (`missing_qv_inputs`).
+- [x] `spec/features/006-etl-data-lake/spec.md` implementation status updated.
+
+### Risks
+
+- SimFin free-tier bulk size grows with extra variants; monitor download time on weekly refresh.
+- Same fiscal `period` partition holds multiple `statement_variant` rows; MF loaders filter to `ttm`.
 
 ## SEC fundamentals normalizer (phase 2)
 
