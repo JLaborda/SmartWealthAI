@@ -632,6 +632,53 @@ def test_normalize_simfin_uses_calendar_period_when_fiscal_labels_missing(
     assert curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q3").exists()
 
 
+def test_load_simfin_mapping_parses_qv_required_fields() -> None:
+    mapping = load_simfin_mapping(DEFAULT_MAPPING_PATH)
+
+    assert "accounts_receivable" in mapping["qv_required_fields"]
+    assert mapping["fields"]["operating_cash_flow"] == "Net Cash from Operating Activities"
+
+
+def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows >= 2
+    output = curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    quarterly = (
+        pd.read_parquet(output).loc[lambda frame: frame["statement_variant"] == "quarterly"].iloc[0]
+    )
+    assert quarterly["accounts_receivable"] == 33_410_000_000
+    assert quarterly["operating_cash_flow"] == 118_254_000_000
+
+
+def test_normalize_simfin_routes_missing_qv_inputs_to_issues(tmp_path: Path) -> None:
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+    cashflow_path = simfin_bulk_path(
+        tmp_path,
+        dataset="cashflow",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    cashflow_path.unlink()
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.issue_rows >= 1
+    issues = pd.read_parquet(curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE))
+    assert "missing_qv_inputs" in set(issues["reason"])
+
+
 def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
     mapping_path = tmp_path / "mapping.yaml"
     mapping_path.write_text(
@@ -656,12 +703,26 @@ def _append_csv_line(path: Path, line: str) -> None:
     path.write_text(path.read_text().rstrip("\n") + "\n" + line + "\n")
 
 
-def _copy_simfin_fixtures(data_dir: Path) -> None:
+_SKIP_UNLESS_MULTIPERIOD = (
+    "dataset=income/variant=quarterly/",
+    "dataset=income/variant=annual/",
+    "dataset=balance/variant=annual/",
+    "dataset=cashflow/variant=annual/",
+    "dataset=cashflow/variant=quarterly/",
+)
+
+
+def _copy_simfin_fixtures(data_dir: Path, *, include_multiperiod: bool = False) -> None:
     src = FIXTURES_DIR / "raw" / "simfin"
     dst = data_dir / "raw" / "simfin"
     for path in src.rglob("*"):
         if path.is_file():
             rel = path.relative_to(src)
+            rel_str = f"{rel.parent}/"
+            if not include_multiperiod and any(
+                marker in rel_str for marker in _SKIP_UNLESS_MULTIPERIOD
+            ):
+                continue
             target = dst / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(path.read_bytes())

@@ -17,8 +17,11 @@ import pytest
 
 from smartwealthai.download_simfin import (
     DEMO_DATASETS,
+    PHASE2_STATEMENT_DATASETS,
+    SIMFIN_DATASETS,
     DatasetResult,
     cli_run,
+    dataset_spec_key,
     download_dataset,
     run_download,
     should_skip_dataset,
@@ -94,6 +97,21 @@ def test_should_not_skip_when_lake_file_missing(tmp_path: Path) -> None:
     assert should_skip_dataset(target, refresh_days=7, force=False, now=1_700_000_000.0) is False
 
 
+def test_phase2_statement_datasets_cover_annual_and_quarterly_variants() -> None:
+    keys = {dataset_spec_key(spec) for spec in PHASE2_STATEMENT_DATASETS}
+    assert keys == {
+        "income/annual",
+        "income/quarterly",
+        "balance/annual",
+        "cashflow/annual",
+        "cashflow/quarterly",
+    }
+
+
+def test_simfin_datasets_include_demo_and_phase2() -> None:
+    assert len(SIMFIN_DATASETS) == len(DEMO_DATASETS) + len(PHASE2_STATEMENT_DATASETS)
+
+
 def test_download_dataset_copies_csv_into_lake_layout(tmp_path: Path) -> None:
     spec = DEMO_DATASETS[2]  # income ttm
     cache_csv = tmp_path / "cache" / "us-income-ttm.csv"
@@ -119,7 +137,7 @@ def test_download_dataset_copies_csv_into_lake_layout(tmp_path: Path) -> None:
         market="us",
         as_of_date=date(2026, 6, 18),
     )
-    assert result == DatasetResult(name="income", downloaded=True)
+    assert result == DatasetResult(name="income/ttm", downloaded=True)
     assert lake_path.read_text() == cache_csv.read_text()
 
 
@@ -150,7 +168,7 @@ def test_download_dataset_skips_fresh_lake_copy(tmp_path: Path) -> None:
         fetch_csv=fail_fetch,
         now=now,
     )
-    assert result == DatasetResult(name="income", skipped=True)
+    assert result == DatasetResult(name="income/ttm", skipped=True)
 
 
 def test_run_download_continues_after_noncritical_failure(tmp_path: Path) -> None:
@@ -438,7 +456,7 @@ def test_run_download_success_does_not_write_errors_file(tmp_path: Path) -> None
 def test_run_download_skips_all_fresh_datasets(tmp_path: Path) -> None:
     data_dir = tmp_path / "lake"
     now = time.time()
-    for spec in DEMO_DATASETS:
+    for spec in SIMFIN_DATASETS:
         lake_path = simfin_bulk_path(
             data_dir,
             dataset=spec.name,

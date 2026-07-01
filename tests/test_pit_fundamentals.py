@@ -18,10 +18,12 @@ from smartwealthai.pit_fundamentals import (
     _read_fundamentals_partition,
     _resolve_show_progress,
     _select_pit_fundamentals,
+    _select_pit_fundamentals_by_period,
     _ticker_progress_iter,
     compute_metrics_for_ticker,
     compute_metrics_for_tickers,
     load_pit_fundamentals_bulk,
+    load_pit_fundamentals_history,
     load_pit_fundamentals_row,
     load_ticker_price_row,
     resolve_ticker_cik,
@@ -59,7 +61,9 @@ def _write_prices(lake: Path, *, rows: list[dict[str, object]]) -> None:
 def _base_fundamentals_row(**overrides: object) -> dict[str, object]:
     row = {
         "as_of_date": pd.Timestamp("2026-06-01"),
+        "fiscal_period_end": pd.Timestamp("2024-09-28"),
         "version_id": 1,
+        "statement_variant": "ttm",
         "ebit": 100.0,
         "current_assets": 200.0,
         "current_liabilities": 80.0,
@@ -309,6 +313,70 @@ def test_compute_metrics_for_tickers_skips_missing_inputs(pit_lake: Path) -> Non
     )
 
     assert [result.ticker for result in results] == ["AAPL"]
+
+
+def test_select_pit_fundamentals_by_period_excludes_lookahead_rows() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2024-11-01"),
+                "version_id": 1,
+                "statement_variant": "quarterly",
+            },
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2027-01-01"),
+                "version_id": 2,
+                "statement_variant": "quarterly",
+            },
+        ]
+    )
+
+    selected = _select_pit_fundamentals_by_period(frame, date(2026, 6, 18))
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["version_id"] == 1
+
+
+def test_load_pit_fundamentals_history_returns_multi_period_rows(pit_lake: Path) -> None:
+    _write_fundamentals(
+        pit_lake,
+        period="2023Q4",
+        row=_base_fundamentals_row(
+            as_of_date=pd.Timestamp("2023-11-03"),
+            fiscal_period_end=pd.Timestamp("2023-09-30"),
+            statement_variant="quarterly",
+            accounts_receivable=29_508_000_000,
+        ),
+    )
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q4",
+        row=_base_fundamentals_row(
+            statement_variant="quarterly",
+            accounts_receivable=33_410_000_000,
+        ),
+    )
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 2
+    assert history.iloc[0]["fiscal_period_end"] == pd.Timestamp("2023-09-30")
+    assert history.iloc[1]["accounts_receivable"] == 33_410_000_000
+
+
+def test_load_pit_fundamentals_history_ignores_ttm_rows(pit_lake: Path) -> None:
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q4",
+        row=_base_fundamentals_row(statement_variant="ttm"),
+    )
+
+    with pytest.raises(MetricsInputError, match="No PIT fundamentals history"):
+        load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
 
 
 def test_compute_metrics_for_tickers_loads_universe_when_cik_map_omitted(pit_lake: Path) -> None:
