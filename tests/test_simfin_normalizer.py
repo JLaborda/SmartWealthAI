@@ -27,6 +27,7 @@ from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
     _index_balance_by_ticker,
     _latest_balance_row,
+    _matching_statement_row,
     _raw_paths,
     _read_simfin_csv,
     _resolve_show_progress,
@@ -639,6 +640,39 @@ def test_load_simfin_mapping_parses_qv_required_fields() -> None:
     assert mapping["fields"]["operating_cash_flow"] == "Net Cash from Operating Activities"
 
 
+def test_matching_statement_row_exact_match_returns_none_when_dates_differ(
+    lake_with_simfin: Path,
+) -> None:
+    paths = _raw_paths(lake_with_simfin, SIMFIN_FIXTURE_DATE)
+    balance = _read_simfin_csv(paths["balance"])
+    balance_by_ticker = _index_balance_by_ticker(
+        balance,
+        ticker_col="Ticker",
+        report_col="Report Date",
+    )
+
+    result = _matching_statement_row(
+        balance_by_ticker,
+        ticker="AAPL",
+        report_date=pd.Timestamp("1999-01-01"),
+        report_col="Report Date",
+        exact_match=True,
+    )
+
+    assert result is None
+
+
+def test_normalize_simfin_processes_all_income_tickers_when_unscoped(
+    lake_with_simfin: Path,
+) -> None:
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows >= 1
+
+
 def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
     _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
 
@@ -687,7 +721,12 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
         "  ebit: EBIT\n"
         "meta:\n"
         "  ticker: Ticker\n"
+        "qv_required_fields:\n"
+        "  - accounts_receivable\n"
+        "  note without colon\n"
+        "  orphan: value\n"
         "unknown_section:\n"
+        "  ignored line without colon\n"
         "missing_publish_lag_days: 45\n"
         "note without colon\n"
     )
@@ -696,6 +735,7 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
 
     assert mapping["version"] == "test_v1"
     assert mapping["fields"]["ebit"] == "EBIT"
+    assert mapping["qv_required_fields"] == ["accounts_receivable"]
     assert mapping["missing_publish_lag_days"] == 45
 
 
