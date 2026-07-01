@@ -61,28 +61,48 @@ Income and cash-flow statements use SimFin **TTM**; balance sheet uses the lates
 _Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for ranking between rebalance dates
 
 **Return on capital (ROC)**:
-`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `spec/features/007-high-quality-stocks/spec.md`.
-_Avoid_: ROE, ROIC (unless explicitly that metric)
+`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor for the **Magic Formula benchmark**; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `spec/features/007-high-quality-stocks/spec.md`.
+_Avoid_: using ROC rank alone as production quality in Phase 2 — see **FS-Score**
 
 **Net working capital (NWC)**:
 `max(Current Assets − Excess Cash − Current Liabilities + Short-Term Debt, 0)` per versioned Greenblatt-style config. **v1:** excess cash uses curated `cash` (SimFin cash + cash equivalents + short-term investments — same field as EV).
 _Avoid_: total working capital without the excess-cash adjustment
 
 **Earnings yield (EY)**:
-`EBIT / Enterprise Value`. Cheapness factor; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `spec/features/003-cheap-stocks/spec.md`.
-_Avoid_: dividend yield, earnings/price without EV
+`EBIT / Enterprise Value`. Cheapness factor for the **Magic Formula benchmark**; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `spec/features/003-cheap-stocks/spec.md`.
+_Avoid_: using EY rank alone as production cheapness in Phase 2 — see **value pool**
 
 **Enterprise value (EV)**:
 `Market Cap + Total Debt + Preferred Equity + Minority Interest − Cash`. **v1:** cash is SimFin cash + cash equivalents + short-term investments (curated `cash`).
 _Avoid_: market cap alone as “value”
 
 **Combined rank**:
-Sum of ROC rank and EY rank; lower is better. Used for portfolio selection and sell-watch opportunity cost.
+Sum of ROC rank and EY rank; lower is better. Used for **Magic Formula replica** benchmark portfolio selection and sell-watch opportunity cost in the demo path. **Not** production ranking after Phase 2 — see **QV funnel rank**.
 _Avoid_: average of ranks, z-score blend (not MVP)
 
+**Quantitative Value (QV)**:
+Production scoring methodology (Gray/Carlisle): forensic hard exclusion → EBIT/TEV value pool → FS-Score quality screen → concentrated model portfolio. Spec: `spec/features/013-quantitative-value/spec.md`.
+_Avoid_: conflating QV with the June 30 demo Magic Formula path
+
+**FS-Score**:
+10-point Financial Strength Score (Gray/Carlisle variant): sum of binary profitability, stability, and operational-improvement signals (0–10). **Production quality** factor applied within the **value pool**. Spec: `spec/features/013-quantitative-value/spec.md`.
+_Avoid_: Piotroski F-Score (different components), subjective ESG quality
+
+**EBIT/TEV (production value metric)**:
+`EBIT / Enterprise Value` using the same EV definition as **Earnings yield**. Cross-sectional rank among forensic survivors selects the **value pool** (top decile ~10%). Distinct from MF **EY rank** used in the benchmark path.
+_Avoid_: treating EY rank and value-pool membership as interchangeable
+
+**Value pool**:
+Names surviving forensic screening that rank in the top decile (~10%) by **EBIT/TEV** on a run date. **Production cheapness** is membership in this pool, not MF **EY rank** alone.
+_Avoid_: full universe, watchlist, final model portfolio
+
+**QV funnel rank**:
+Order within the **value pool** after the FS-Score quality screen; lower rank number = higher FS-Score (with market-cap tie-break). Drives production **model portfolio** selection (~50 names). Supersedes **combined rank** for production.
+_Avoid_: combined rank, ROC rank, EY rank in Phase 2 production scoring
+
 **Magic Formula replica**:
-Canonical benchmark portfolio using the same ROC, EY, combined rank, universe, and annual rebalance as production. Used to gate backtest pass vs strategy Sharpe.
-_Avoid_: live Greenblatt fund, generic “value factor”
+Benchmark portfolio using ROC, EY, combined rank, universe, and annual rebalance — same formulas as the June 30 demo slice. Used to gate backtest pass vs strategy Sharpe. **Not** production scoring after Phase 2.
+_Avoid_: live Greenblatt fund, generic “value factor”, production scoring path
 
 **Cross-sectional rank**:
 Rank across all passing companies on one run date. Not comparable across dates without re-running the pipeline.
@@ -93,7 +113,7 @@ Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
-Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper-traded in full MVP (phase 2).
+Target long-only holdings from the pipeline. **June 30 demo:** top 30 names by combined rank, equal-weight, market-cap tie-break. **Phase 2 production:** top ~50 names by **QV funnel rank**, equal-weight (configurable cap). Paper-traded in full MVP (phase 2).
 _Avoid_: personal portfolio, watchlist (demo slice)
 
 **Watchlist**:
@@ -130,10 +150,11 @@ _Avoid_: ad-hoc snapshot without run id
 
 ## Relationships
 
-- A **run date** drives **universe** → **permanent loss filter** → **ROC** and **EY** ranks → **combined rank** → **model portfolio**
+- **June 30 demo:** A **run date** drives **universe** → **ROC** and **EY** ranks → **combined rank** → **model portfolio** (30 names)
+- **Phase 2 production:** A **run date** drives **universe** → **permanent loss filter** / forensic screen → **value pool** (EBIT/TEV decile) → **FS-Score** → **QV funnel rank** → **model portfolio** (~50 names)
 - **As-of date** tags each fundamental row; PIT queries filter `as_of_date <= run_date`
-- **Watchlist** superset of names that may enter the **model portfolio** on rebalance
-- **Magic Formula replica** is the strategy’s primary benchmark comparator for Sharpe pass/fail
+- **Magic Formula replica** is the strategy’s primary benchmark comparator for Sharpe pass/fail; uses **combined rank**, not **QV funnel rank**
+- **Watchlist** superset of names that may enter the **model portfolio** on rebalance (phase 2)
 - **Sell-watch** evaluates only the **model portfolio**, not the user’s personal portfolio
 
 ## Flagged ambiguities
@@ -142,11 +163,11 @@ Resolved scope cuts (see ADRs and [`spec/constitution/roadmap.md`](spec/constitu
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
 - SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
-- **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
+- **Phase 2 (Quantitative Value):** production scoring follows the QV funnel (`spec/features/013-quantitative-value/spec.md`); MF ROC/EY/combined rank remain benchmark-only. Multi-period fundamentals required for FS-Score and Beneish ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)).
 
 Terminology reminders:
 
-- “Cheap” means high **EY**, not low P/E—use **EY rank** in issues and code names.
-- “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
+- **June 30 demo:** “Cheap” means high **EY rank**; “quality” means high **ROC rank**; portfolio uses **combined rank**.
+- **Phase 2 production:** “Cheap” means **value pool** membership (top EBIT/TEV decile); “quality” means high **FS-Score**; portfolio uses **QV funnel rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
 - MVP specs in `spec/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
