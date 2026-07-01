@@ -42,6 +42,16 @@ spec/
 | --- | --- |
 | [0001](adr/0001-simfin-fundamentals-mvp.md) | SimFin fundamentals for MVP; SEC ETL phase 2 |
 | [0002](adr/0002-june-demo-scope-cut.md) | June 30 demo slice scope cut |
+| [0003](adr/0003-terraform-for-aws-iac.md) | Terraform for AWS infrastructure (M2) |
+
+## PRDs
+
+| PRD | Scope |
+| --- | --- |
+| [devcontainer/prd.md](prds/devcontainer/prd.md) | Reproducible dev environment (Cursor / EC2) |
+| [ci-cd/ci-cd-prd.md](prds/ci-cd/ci-cd-prd.md) | Phase 0 CI/CD, AWS integration, ECS deploy path |
+| [terraform/terraform-prd.md](prds/terraform/terraform-prd.md) | M2 Terraform: S3, OIDC, Secrets Manager |
+| [phase2/prd.md](prds/phase2/prd.md) | Phase 2: Quantitative Value, cloud, backtest, sell-watch |
 
 ## Operator guides
 
@@ -66,6 +76,8 @@ spec/
 | 010 | Sell-watch | [spec.md](features/010-sell-watch/spec.md) |
 | 011 | Universe construction | [spec.md](features/011-universe-construction/spec.md) |
 | 012 | Unstructured financial data | [spec.md](features/012-unstructured-financial-data/spec.md) |
+| 013 | Quantitative Value | [spec.md](features/013-quantitative-value/spec.md) |
+| 014 | CI/CD infrastructure | [spec.md](features/014-cicd-infrastructure/spec.md) |
 
 Start with [`constitution/mission.md`](constitution/mission.md) for global constraints, then open the feature spec for the area you are changing.
 
