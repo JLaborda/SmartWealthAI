@@ -92,12 +92,16 @@ flowchart LR
 
 ## After the demo (phase 2 order)
 
-1. Historical S&P 500 universe + permanent loss filter  
-2. Minimal backtest (annual rebalance, 20 years) — custom pandas/DuckDB loop, not Zipline  
-3. Walk-forward, Monte Carlo, benchmark gate  
-4. Sell-watch + paper trading  
-5. SEC EDGAR normalizer (optional PIT upgrade)  
-6. Quantitative Value metrics (multi-period fundamentals from raw SimFin archives)
+1. Quantitative Value feature spec + glossary ([#86](https://github.com/JLaborda/SmartWealthAI/issues/86))  
+2. Multi-period fundamentals ETL + PIT history ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87))  
+3. Forensic evaluator + permanent loss filter ([#89](https://github.com/JLaborda/SmartWealthAI/issues/89))  
+4. QV funnel orchestrator (production scoring) ([#91](https://github.com/JLaborda/SmartWealthAI/issues/91))  
+5. Light backtest (5–10y QV) ([#96](https://github.com/JLaborda/SmartWealthAI/issues/96))  
+6. CI/CD M2 Terraform + S3 lake ([#105](https://github.com/JLaborda/SmartWealthAI/issues/105)–[#112](https://github.com/JLaborda/SmartWealthAI/issues/112))  
+7. Sell-watch + dashboard QV views ([#97](https://github.com/JLaborda/SmartWealthAI/issues/97), [#93](https://github.com/JLaborda/SmartWealthAI/issues/93))  
+8. Historical S&P 500 universe + full backtest (2b) ([#99](https://github.com/JLaborda/SmartWealthAI/issues/99), [#100](https://github.com/JLaborda/SmartWealthAI/issues/100))  
+9. SEC EDGAR normalizer (optional PIT upgrade)  
+10. Paper trading (deferred)
 
 ## Feature registry (stable IDs)
 
@@ -117,6 +121,8 @@ Chronological spec IDs (creation order). **Priority** is defined by this roadmap
 | 010 | Sell Watch | [`spec/features/010-sell-watch/spec.md`](../features/010-sell-watch/spec.md) |
 | 011 | Universe Construction | [`spec/features/011-universe-construction/spec.md`](../features/011-universe-construction/spec.md) |
 | 012 | Unstructured Financial Data | [`spec/features/012-unstructured-financial-data/spec.md`](../features/012-unstructured-financial-data/spec.md) |
+| 013 | Quantitative Value | [`spec/features/013-quantitative-value/spec.md`](../features/013-quantitative-value/spec.md) |
+| 014 | CI/CD Infrastructure | [`spec/features/014-cicd-infrastructure/spec.md`](../features/014-cicd-infrastructure/spec.md) |
 
 ## Informal backlog
 
