@@ -33,6 +33,7 @@ download-price-history = "smartwealthai.download_price_history:main"
 compute-metrics = "smartwealthai.compute_metrics:main"
 run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
 score-universe = "smartwealthai.score_universe:main"
+run-forensic-evaluator = "smartwealthai.run_forensic_evaluator:main"
 run-dashboard = "smartwealthai.run_dashboard:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 
