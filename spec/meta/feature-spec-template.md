@@ -35,17 +35,24 @@ spec/features/00N-slug/
 <!-- Delete this section until coding starts, then set one of: -->
 <!-- **planned** | **in_progress** | **done** -->
 
+## Delivery
+
+<!-- Which roadmap phase this feature targets. Link to spec/constitution/roadmap.md — e.g. "June 30 demo slice" or "Phase 2". -->
+<!-- Scope bullets below describe *this delivery*; later phases can extend the same spec or add a new one. -->
+
+**Phase:** <!-- demo | phase 2 | future -->
+
 ## Objective
 
 <!-- One paragraph: what this module does and why it exists in the pipeline. -->
 
-## MVP scope
+## In scope
 
-<!-- Bullet list of what ships in the current phase. -->
+<!-- Bullet list of what ships for the phase above. -->
 
-## Out of MVP scope
+## Out of scope
 
-<!-- Explicit exclusions to prevent scope creep. -->
+<!-- Explicit exclusions for this phase (and deferred work called out clearly). -->
 
 ## Inputs
 

@@ -13,7 +13,8 @@ When creating or editing specs under `spec/`:
 Follow the structure in [`spec/meta/feature-spec-template.md`](../../spec/meta/feature-spec-template.md) and existing features (e.g. `spec/features/003-cheap-stocks/spec.md`):
 
 - Objective
-- MVP scope / Out of MVP scope
+- Delivery (phase / roadmap link)
+- In scope / Out of scope
 - Inputs (tables where helpful)
 - Flow or logic (include at least one **Mermaid** diagram when the flow changes)
 - Acceptance criteria
