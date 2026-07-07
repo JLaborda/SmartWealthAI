@@ -58,8 +58,9 @@ Examples: `feat/add-google-auth`, `fix/PROJ-456-handle-null-responses`.
 
 1. **Protected branches:** `main` (or `master`) — no direct commits; merge via PR.
 2. **Feature work:** branch from `main`, commit with conventional messages, rebase on `origin/main` before push.
-3. **Pull requests:** target `main`; clear title/body; tests green; resolve conflicts; prefer squash merge when appropriate.
-4. **Releases:** `release/vX.Y.Z` from `main`, merge via PR, then tag on `main` (e.g. `v1.0.0`).
+3. **Before every commit:** run `make format` (ruff format) and include any formatting changes in the same commit or an immediate `style:` commit — never commit unformatted Python.
+4. **Pull requests:** target `main`; clear title/body; tests green; resolve conflicts; prefer squash merge when appropriate.
+5. **Releases:** `release/vX.Y.Z` from `main`, merge via PR, then tag on `main` (e.g. `v1.0.0`).
 
 ## Examples
 

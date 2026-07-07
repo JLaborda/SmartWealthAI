@@ -46,6 +46,7 @@ def apply_bottom_percentile_gate(
     cfg = config or load_forensic_gate_config()
     percentile = float(cfg["bottom_percentile"])
     rule_id = str(cfg["rule_id"])
+    score_label = str(cfg.get("score_label", "score"))
     exclude_count = max(1, math.ceil(len(scores) * percentile))
 
     ordered = sorted(scores, key=lambda row: (-row.score, row.market_cap))
@@ -59,7 +60,7 @@ def apply_bottom_percentile_gate(
             rule_id=rule_id,
             rule_version=row.rule_version,
             threshold_percentile=percentile,
-            explanation=f"beneish_m_score={row.score:.4f} in bottom {percentile:.0%}",
+            explanation=f"{score_label}={row.score:.4f} in bottom {percentile:.0%}",
         )
         for row in excluded
     ]
