@@ -48,6 +48,8 @@ poetry install
 poetry run pytest
 ```
 
+**Before every commit:** run `make format` (see `.cursor/rules/git-conventions.mdc`).
+
 ### MLflow (demo pipeline runs)
 
 `mlflow-skinny` is a Poetry dependency (`poetry install` is enough for logging). No local MLflow UI server is required for #61.
