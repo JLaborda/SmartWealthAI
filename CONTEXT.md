@@ -65,19 +65,19 @@ Classic 8-variable forensic accounting model that estimates **manipulation risk*
 _Avoid_: treating PROBM as a separate production model from Beneish, calling it confirmed fraud
 
 **Forensic bottom-percentile gate**:
-Cross-sectional hard exclusion of the worst manipulation-risk tail among forensic survivors on a run date. Phase 2a: bottom 5% by **Beneish M-Score** (`FRD_BENEISH_BOTTOM_PCT`, `forensic_gate_v1`). No absolute Beneish threshold in the QV production path.
+Cross-sectional hard exclusion of the worst manipulation-risk tail among forensic survivors on a run date. Phase 2a: bottom 5% by **Beneish M-Score** (`FRD_BENEISH_BOTTOM_PCT`) and bottom 5% by **COMBOACCRUAL** (`FRD_COMBOACCRUAL_BOTTOM_PCT`). No absolute academic cutoffs in the QV production path.
 _Avoid_: M-Score > −1.78 as the production cutoff, time-series percentile across history
 
 **Scaled total accruals (STA)**:
-Accrual-flow manipulation signal from *Quantitative Value* Ch. 3: earnings accruals scaled by total assets (Sloan-style). Higher STA → higher manipulation risk. **Backlog (phase 2b)**; pairs with **SNOA** in **COMBOACCRUAL**.
+Accrual-flow manipulation signal from *Quantitative Value* Ch. 3: `(net income - operating cash flow) / total assets`. Higher STA → higher manipulation risk. Implemented in `accrual_scores.py`; pairs with **SNOA** in **COMBOACCRUAL**.
 _Avoid_: conflating STA with Beneish M-Score
 
 **Scaled net operating assets (SNOA)**:
-Accrual-stock manipulation signal from *Quantitative Value* Ch. 3: bloated operating net assets scaled by total assets (Hirshleifer et al.). Higher SNOA → higher manipulation risk. **Backlog (phase 2b)**.
+Accrual-stock manipulation signal from *Quantitative Value* Ch. 3: `(operating assets - operating liabilities) / lagged total assets` (falls back to current total assets when prior period missing). Higher SNOA → higher manipulation risk. Implemented in `accrual_scores.py`.
 _Avoid_: treating SNOA as a distress/bankruptcy model
 
 **COMBOACCRUAL**:
-Average cross-sectional percentile of **STA** and **SNOA** on a run date. In the book, the worst 5% by COMBOACCRUAL are excluded alongside PMAN (Beneish) and PFD (distress). **Backlog (phase 2b)** for SmartWealthAI.
+Average cross-sectional percentile of **STA** and **SNOA** on a run date. Bottom 5% hard-excluded via `FRD_COMBOACCRUAL_BOTTOM_PCT` (`comboaccrual_gate_v1.yaml`).
 _Avoid_: averaging raw STA/SNOA values without cross-sectional percentiles
 
 **Forensic model fusion (phase 2b)**:

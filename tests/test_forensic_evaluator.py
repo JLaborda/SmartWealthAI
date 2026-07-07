@@ -401,6 +401,47 @@ def test_run_forensic_evaluator_routes_missing_beneish_inputs_to_review_queue(la
     assert any("missing beneish inputs" in str(reason) for reason in issues["reason"])
 
 
+def test_run_forensic_evaluator_writes_comboaccrual_percentile_exclusion(lake: Path) -> None:
+    tickers = (
+        ("LOW", CIK, 80.0, 120.0),
+        ("MID", CIK_B, 120.0, 110.0),
+        ("HIGH", CIK_C, 500.0, 100.0),
+    )
+    _write_universe(
+        lake,
+        rows=[
+            {
+                "run_date": RUN_DATE.isoformat(),
+                "ticker": ticker,
+                "cik": cik,
+                "industry_id": 1,
+                "sector": "Technology",
+            }
+            for ticker, cik, _, _ in tickers
+        ],
+    )
+    for ticker, cik, net_income, operating_cash_flow in tickers:
+        for period, fiscal_end in (("2023Q4", "2023-12-31"), ("2024Q4", "2024-12-31")):
+            _write_fundamentals(
+                lake,
+                cik=cik,
+                period=period,
+                row=_healthy_fundamentals_row(
+                    cik=cik,
+                    ticker=ticker,
+                    fiscal_period_end=fiscal_end,
+                    net_income=net_income,
+                    operating_cash_flow=operating_cash_flow,
+                ),
+            )
+
+    result = run_forensic_evaluator(lake, run_date=RUN_DATE)
+    exclusions = pd.read_parquet(result.exclusions_path)
+    combo_rows = exclusions.loc[exclusions["rule_id"] == "FRD_COMBOACCRUAL_BOTTOM_PCT"]
+    assert len(combo_rows) == 1
+    assert combo_rows.iloc[0]["subfilter"] == "forensic_percentile"
+
+
 def test_run_forensic_evaluator_cli_echoes_review_queue_path(lake: Path) -> None:
     _write_universe(
         lake,

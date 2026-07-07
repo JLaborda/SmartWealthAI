@@ -40,3 +40,21 @@ def load_forensic_gate_config(
 ) -> dict:
     """Return cross-sectional forensic percentile gate settings."""
     return load_yaml_config(config_dir / filename)
+
+
+def load_accrual_config(
+    config_dir: Path = DEFAULT_CONFIG_DIR,
+    *,
+    filename: str = "accrual_v1.yaml",
+) -> dict:
+    """Return STA / SNOA accrual metric version metadata."""
+    return load_yaml_config(config_dir / filename)
+
+
+def load_comboaccrual_gate_config(
+    config_dir: Path = DEFAULT_CONFIG_DIR,
+    *,
+    filename: str = "comboaccrual_gate_v1.yaml",
+) -> dict:
+    """Return COMBOACCRUAL bottom-percentile gate settings."""
+    return load_yaml_config(config_dir / filename)

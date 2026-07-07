@@ -8,6 +8,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from smartwealthai.accrual_scores import (
+    AccrualMetrics,
+    build_comboaccrual_forensic_scores,
+    compute_accrual_metrics,
+)
 from smartwealthai.beneish_score import compute_beneish_m_score
 from smartwealthai.distress_rules import (
     EXCLUSION_COLUMNS,
@@ -25,7 +30,9 @@ from smartwealthai.lake_paths import (
     pad_cik,
 )
 from smartwealthai.permanent_loss_config import (
+    load_accrual_config,
     load_beneish_config,
+    load_comboaccrual_gate_config,
     load_distress_rules_config,
     load_forensic_gate_config,
 )
@@ -110,6 +117,12 @@ def _load_fundamentals_history(
     return selected.sort_values("fiscal_period_end").reset_index(drop=True)
 
 
+def _prior_fundamentals_row(history: pd.DataFrame) -> pd.Series | None:
+    if len(history) < 2:
+        return None
+    return history.sort_values("fiscal_period_end").iloc[-2]
+
+
 def _evaluation_to_exclusion_row(
     *,
     cik: str,
@@ -154,12 +167,16 @@ def run_forensic_evaluator(
     run_date: date,
     distress_config: dict | None = None,
     beneish_config: dict | None = None,
+    accrual_config: dict | None = None,
     gate_config: dict | None = None,
+    comboaccrual_gate_config: dict | None = None,
 ) -> ForensicEvaluatorResult:
     """Evaluate forensic rules for the universe on ``run_date`` and write exclusions."""
     distress_cfg = distress_config or load_distress_rules_config()
     beneish_cfg = beneish_config or load_beneish_config()
+    accrual_cfg = accrual_config or load_accrual_config()
     gate_cfg = gate_config or load_forensic_gate_config()
+    combo_cfg = comboaccrual_gate_config or load_comboaccrual_gate_config()
 
     universe_path = curated_universe_path(data_dir, run_date=run_date)
     if not universe_path.exists():
@@ -174,6 +191,7 @@ def run_forensic_evaluator(
     exclusion_rows: list[dict[str, object]] = []
     review_rows: list[dict[str, object]] = []
     beneish_candidates: list[ForensicScore] = []
+    accrual_candidates: list[tuple[str, str, AccrualMetrics, float]] = []
     hard_excluded: set[str] = set()
 
     for _, row in universe.iterrows():
@@ -248,6 +266,28 @@ def run_forensic_evaluator(
             continue
 
         history = _load_fundamentals_history(data_dir, cik=cik, as_of_date=run_date)
+        prior_row = _prior_fundamentals_row(history)
+        market_cap = _market_cap(fundamentals, price_row) or 0.0
+
+        accrual = compute_accrual_metrics(
+            fundamentals,
+            prior_row=prior_row,
+            config=accrual_cfg,
+        )
+        if accrual.sta is None or accrual.snoa is None:
+            if accrual.missing_fields:
+                review_rows.append(
+                    {
+                        "run_date": run_date.isoformat(),
+                        "ticker": ticker,
+                        "cik": cik,
+                        "reason": f"missing accrual inputs: {','.join(accrual.missing_fields)}",
+                        "rule_id": "FRD_COMBOACCRUAL",
+                    }
+                )
+        else:
+            accrual_candidates.append((ticker, cik, accrual, market_cap))
+
         beneish = compute_beneish_m_score(history, config=beneish_cfg)
         if beneish.m_score is None:
             if beneish.missing_fields:
@@ -269,11 +309,19 @@ def run_forensic_evaluator(
                 model="beneish",
                 score=beneish.m_score,
                 rule_version=beneish.rule_version,
-                market_cap=_market_cap(fundamentals, price_row) or 0.0,
+                market_cap=market_cap,
             )
         )
 
     for percentile_exclusion in apply_bottom_percentile_gate(beneish_candidates, config=gate_cfg):
+        if percentile_exclusion.ticker in hard_excluded:
+            continue
+        exclusion_rows.append(
+            _percentile_to_exclusion_row(exclusion=percentile_exclusion, as_of_date=run_date)
+        )
+
+    combo_scores = build_comboaccrual_forensic_scores(accrual_candidates)
+    for percentile_exclusion in apply_bottom_percentile_gate(combo_scores, config=combo_cfg):
         if percentile_exclusion.ticker in hard_excluded:
             continue
         exclusion_rows.append(

@@ -10,6 +10,7 @@
 | --- | --- |
 | `src/smartwealthai/distress_rules.py` | Bankruptcy / distress hard rules (`BK_*`) |
 | `src/smartwealthai/beneish_score.py` | Beneish M-Score from multi-period PIT history |
+| `src/smartwealthai/accrual_scores.py` | STA, SNOA, and COMBOACCRUAL cross-sectional scores |
 | `src/smartwealthai/forensic_percentile_gate.py` | QVAL-style bottom-5% cross-sectional gate |
 | `src/smartwealthai/forensic_evaluator.py` | Orchestrator → exclusions + review queue |
 | `src/smartwealthai/run_forensic_evaluator.py` | CLI: `run-forensic-evaluator` |
@@ -18,12 +19,15 @@
 | --- | --- |
 | `config/permanent_loss/distress_rules_v1.yaml` | Distress thresholds |
 | `config/permanent_loss/beneish_v1.yaml` | Beneish coefficients (swap for book variants) |
-| `config/permanent_loss/forensic_gate_v1.yaml` | Bottom-percentile gate |
+| `config/permanent_loss/accrual_v1.yaml` | STA / SNOA metric version |
+| `config/permanent_loss/forensic_gate_v1.yaml` | Beneish bottom-percentile gate |
+| `config/permanent_loss/comboaccrual_gate_v1.yaml` | COMBOACCRUAL bottom-percentile gate |
 
 | Tests | Role |
 | --- | --- |
 | `tests/test_distress_rules.py` | Distress rule unit tests |
 | `tests/test_beneish_score.py` | Beneish M-Score unit tests |
+| `tests/test_accrual_scores.py` | STA / SNOA / COMBOACCRUAL unit tests |
 | `tests/test_forensic_percentile_gate.py` | Bottom-5% gate |
 | `tests/test_forensic_evaluator.py` | Orchestrator + CLI |
 | `tests/test_permanent_loss_regression.py` | Enron / Lehman / WorldCom CI regression |
@@ -44,12 +48,14 @@ Identify companies in the investable universe with elevated risk of permanent ca
 ## Phase 2a extensions (implemented)
 
 - **Beneish M-Score** (`beneish_v1`): computed from multi-period PIT fundamentals; coefficients versioned under `config/permanent_loss/beneish_v1.yaml` so Gray/Carlisle book variants can swap config without code changes.
-- **QVAL-style bottom-5% gate** (`FRD_BENEISH_BOTTOM_PCT`): cross-sectional hard exclusion on forensic survivors after distress rules.
+- **STA** and **SNOA** (`accrual_v1`): scaled total accruals and scaled net operating assets from latest PIT fundamentals (SNOA uses prior-period total assets when available).
+- **COMBOACCRUAL** (`FRD_COMBOACCRUAL_BOTTOM_PCT`): average cross-sectional percentile of STA and SNOA; bottom-5% hard exclusion among distress survivors.
+- **QVAL-style bottom-5% gate** (`FRD_BENEISH_BOTTOM_PCT`): cross-sectional hard exclusion on Beneish survivors after distress rules.
 
 ## Out of MVP scope
 
 - Machine learning fraud detection.
-- **Phase 2b forensic extensions (backlog):** STA, SNOA, COMBOACCRUAL (Gray/Carlisle Ch. 3 accrual screens); additional manipulation models (e.g. Dechow); embedding/ML fusion of forensic scores; EDGAR **confirmed fraud signals** when SEC ETL is wired. Phase 2a ships **Beneish M-Score + bottom-5% gate only**.
+- **Phase 2b forensic extensions (backlog):** PFD (Campbell distress logit); additional manipulation models (e.g. Dechow); embedding/ML fusion of forensic scores; EDGAR **confirmed fraud signals** when SEC ETL is wired.
 - LLM-driven qualitative analysis of filings (handled later by `unstructured-financial-data`).
 - Sector-specific distress models (banks, insurers, REITs and utilities are already excluded upstream by `universe-construction`).
 - `Penalize` and `unknown` states. Only `pass` and `exclude` for the MVP.
@@ -101,6 +107,7 @@ The MVP fraud signals are intentionally narrow. They detect structural / account
 | `FRD_REGULATORY_ACTION` | Open SEC enforcement action against the issuer | `True` |
 | `FRD_LATE_FILER` | Filed `NT 10-K` or `NT 10-Q` (late filing notification) in last 12 months | `>= 1` filing |
 | `FRD_BENEISH_BOTTOM_PCT` | Beneish M-Score in bottom 5% cross-sectionally among distress survivors | bottom 5% |
+| `FRD_COMBOACCRUAL_BOTTOM_PCT` | COMBOACCRUAL (avg STA/SNOA percentiles) in bottom 5% cross-sectionally | bottom 5% |
 
 A company is excluded if **any** rule fires. Rules that depend on data not yet available in the MVP (`FRD_*` EDGAR rules) are coded but tolerated as `unavailable` until the data is wired. Their absence is logged.
 
@@ -116,8 +123,8 @@ flowchart TD
     Fraud --> Decision
 
     Decision -->|Yes| Exclude["Exclude (hard)"]
-    Decision -->|No| Beneish["Beneish M-Score cross-section"]
-    Beneish --> Gate["Bottom 5% hard exclude"]
+    Decision -->|No| Manipulation["Beneish + COMBOACCRUAL cross-section"]
+    Manipulation --> Gate["Bottom 5% hard exclude per model"]
     Gate --> Pass["Pass to scoring modules"]
 
     Exclude --> Output["curated/permanent_loss exclusions.parquet"]
@@ -136,7 +143,7 @@ flowchart TD
 2. Join with the latest PIT fundamentals (using `as_of_date <= run_date`).
 3. Compute each bankruptcy and fraud rule. Rules with missing required inputs are recorded as `unavailable` and the row is sent to the review queue (not auto-excluded).
 4. If any rule fires, mark the company as `exclude` with the rule id, threshold, and the values that triggered it.
-5. On survivors, compute Beneish M-Score and apply the bottom-5% cross-sectional gate.
+5. On survivors, compute Beneish M-Score and STA/SNOA; build COMBOACCRUAL cross-sectional scores; apply bottom-5% gates for Beneish and COMBOACCRUAL.
 6. Write the exclusion parquet and log MLflow metrics (MLflow deferred).
 7. Hand the passing set of `(cik, ticker)` to the scoring modules.
 
@@ -147,7 +154,9 @@ flowchart TD
 - [x] Every excluded row carries the `rule_id`, `rule_version`, `triggered_value`, and `threshold`.
 - [x] Rule definitions live in code, but thresholds live in a YAML config under `config/permanent_loss/` so they can be tuned by backtests without code changes.
 - [x] Beneish M-Score computed from multi-period PIT inputs with versioned config (`beneish_v1`).
-- [x] Bottom-5% forensic percentile gate excludes names per QVAL process.
+- [x] STA and SNOA computed from PIT fundamentals with versioned config (`accrual_v1`).
+- [x] COMBOACCRUAL bottom-5% gate excludes names per QVAL process (`FRD_COMBOACCRUAL_BOTTOM_PCT`).
+- [x] Bottom-5% forensic percentile gate excludes names per QVAL process (Beneish).
 - [x] The filter never queries network resources.
 - [x] Companies with `unavailable` rule outputs do not pass silently: they enter the review queue.
 - [ ] Each MLflow run for the permanent loss filter logs the count of exclusions per rule (deferred).
@@ -155,10 +164,10 @@ flowchart TD
 ## Open questions
 
 - **Closed:** When Beneish M-Score is unavailable, **fail-open** (review queue + pass) until multi-period ETL ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)) reaches **≥95%** universe scorable coverage on a run date; then switch to **fail-closed** (hard exclude). Threshold configurable in `config/permanent_loss/`.
-- **Closed:** Phase 2a forensic manipulation screen = **Beneish M-Score + bottom-5% gate only** (`spec/backlog/backlog.md` for 2b items).
-- **Closed:** Phase 2b forensic extensions follow a **hybrid path**: separate bottom-5% gates first (COMBOACCRUAL, PMAN/Beneish, PFD); embedding/ML fusion only after backtest proves incremental value.
+- **Closed:** Phase 2a forensic manipulation screen = **Beneish M-Score + STA/SNOA/COMBOACCRUAL bottom-5% gates** (`spec/backlog/backlog.md` for 2b items).
+- **Closed:** Phase 2b forensic extensions follow a **hybrid path**: separate bottom-5% gates first (PFD next); embedding/ML fusion only after backtest proves incremental value.
 - **Closed:** Phase 2b distress = add **PFD** bottom-5% gate **and keep** existing **`BK_*` hard rules**; measure overlap in backtest before trimming either layer.
-- **Closed:** Phase 2b implementation order: **(1) STA/SNOA/COMBOACCRUAL → (2) PFD → (3) EDGAR confirmed fraud → (4) embedding/ML fusion** (`spec/backlog/backlog.md`).
+- **Closed:** Phase 2b implementation order: **(1) PFD → (2) EDGAR confirmed fraud → (3) embedding/ML fusion** (`spec/backlog/backlog.md`).
 - Should `BK_NETDEBT_EBITDA` be sector-relative even though banks / insurers / utilities are excluded? Recommendation: keep it absolute for the MVP; revisit when those sectors are reintroduced.
 - Threshold for `BK_NETDEBT_EBITDA` should probably be revisited per backtest; the initial 7.0 is a placeholder.
 - Where does the auditor-change history come from? Recommendation: parse `acceptedAccountingFirm` from EDGAR if available; otherwise wait for `unstructured-financial-data` to provide it.
