@@ -49,6 +49,7 @@ Identify companies in the investable universe with elevated risk of permanent ca
 ## Out of MVP scope
 
 - Machine learning fraud detection.
+- **Phase 2b forensic extensions (backlog):** STA, SNOA, COMBOACCRUAL (Gray/Carlisle Ch. 3 accrual screens); additional manipulation models (e.g. Dechow); embedding/ML fusion of forensic scores; EDGAR **confirmed fraud signals** when SEC ETL is wired. Phase 2a ships **Beneish M-Score + bottom-5% gate only**.
 - LLM-driven qualitative analysis of filings (handled later by `unstructured-financial-data`).
 - Sector-specific distress models (banks, insurers, REITs and utilities are already excluded upstream by `universe-construction`).
 - `Penalize` and `unknown` states. Only `pass` and `exclude` for the MVP.
@@ -153,6 +154,11 @@ flowchart TD
 
 ## Open questions
 
+- **Closed:** When Beneish M-Score is unavailable, **fail-open** (review queue + pass) until multi-period ETL ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)) reaches **≥95%** universe scorable coverage on a run date; then switch to **fail-closed** (hard exclude). Threshold configurable in `config/permanent_loss/`.
+- **Closed:** Phase 2a forensic manipulation screen = **Beneish M-Score + bottom-5% gate only** (`spec/backlog/backlog.md` for 2b items).
+- **Closed:** Phase 2b forensic extensions follow a **hybrid path**: separate bottom-5% gates first (COMBOACCRUAL, PMAN/Beneish, PFD); embedding/ML fusion only after backtest proves incremental value.
+- **Closed:** Phase 2b distress = add **PFD** bottom-5% gate **and keep** existing **`BK_*` hard rules**; measure overlap in backtest before trimming either layer.
+- **Closed:** Phase 2b implementation order: **(1) STA/SNOA/COMBOACCRUAL → (2) PFD → (3) EDGAR confirmed fraud → (4) embedding/ML fusion** (`spec/backlog/backlog.md`).
 - Should `BK_NETDEBT_EBITDA` be sector-relative even though banks / insurers / utilities are excluded? Recommendation: keep it absolute for the MVP; revisit when those sectors are reintroduced.
 - Threshold for `BK_NETDEBT_EBITDA` should probably be revisited per backtest; the initial 7.0 is a placeholder.
 - Where does the auditor-change history come from? Recommendation: parse `acceptedAccountingFirm` from EDGAR if available; otherwise wait for `unstructured-financial-data` to provide it.
