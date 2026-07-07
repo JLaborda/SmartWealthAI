@@ -1,0 +1,28 @@
+# Codecov policy for SmartWealthAI PRs.
+# Complements local coverage settings in pyproject.toml [tool.coverage.*].
+# CI uploads coverage.xml from .github/workflows/pr-ci.yml.
+
+coverage:
+  status:
+    project:
+      default:
+        # Do not let total repo coverage regress vs the base branch.
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        # New/changed lines in each PR must be adequately tested.
+        target: 85%
+        threshold: 2%
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "tests/**"
+  # Frozen SEC ETL spike (phase 2) — same omit list as pyproject.toml.
+  - "src/smartwealthai/sec_client.py"
+  - "src/smartwealthai/edgartools_client.py"
+  - "src/smartwealthai/download_fundamentals.py"
