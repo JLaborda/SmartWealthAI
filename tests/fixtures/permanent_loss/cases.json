@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Enron Q3 2001",
+    "ticker": "ENRN",
+    "cik": "0001024401",
+    "decision_date": "2001-11-15"
+  },
+  {
+    "name": "Lehman Q2 2008",
+    "ticker": "LEH",
+    "cik": "0000806085",
+    "decision_date": "2008-09-15"
+  },
+  {
+    "name": "WorldCom Q1 2002",
+    "ticker": "MCWE",
+    "cik": "0000723527",
+    "decision_date": "2002-05-15"
+  }
+]

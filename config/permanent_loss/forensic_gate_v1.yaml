@@ -1,0 +1,4 @@
+version: forensic_gate_v1
+
+bottom_percentile: 0.05
+rule_id: FRD_BENEISH_BOTTOM_PCT

@@ -2,7 +2,32 @@
 
 ## Implementation status
 
-**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+**done** — phase 2a forensic evaluator ([#89](https://github.com/JLaborda/SmartWealthAI/issues/89)). June 30 demo slice remains without this stage ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)).
+
+### Code paths
+
+| Module | Role |
+| --- | --- |
+| `src/smartwealthai/distress_rules.py` | Bankruptcy / distress hard rules (`BK_*`) |
+| `src/smartwealthai/beneish_score.py` | Beneish M-Score from multi-period PIT history |
+| `src/smartwealthai/forensic_percentile_gate.py` | QVAL-style bottom-5% cross-sectional gate |
+| `src/smartwealthai/forensic_evaluator.py` | Orchestrator → exclusions + review queue |
+| `src/smartwealthai/run_forensic_evaluator.py` | CLI: `run-forensic-evaluator` |
+
+| Config | Role |
+| --- | --- |
+| `config/permanent_loss/distress_rules_v1.yaml` | Distress thresholds |
+| `config/permanent_loss/beneish_v1.yaml` | Beneish coefficients (swap for book variants) |
+| `config/permanent_loss/forensic_gate_v1.yaml` | Bottom-percentile gate |
+
+| Tests | Role |
+| --- | --- |
+| `tests/test_distress_rules.py` | Distress rule unit tests |
+| `tests/test_beneish_score.py` | Beneish M-Score unit tests |
+| `tests/test_forensic_percentile_gate.py` | Bottom-5% gate |
+| `tests/test_forensic_evaluator.py` | Orchestrator + CLI |
+| `tests/test_permanent_loss_regression.py` | Enron / Lehman / WorldCom CI regression |
+| `tests/fixtures/permanent_loss/cases.json` | Regression fixture manifest |
 
 ## Objective
 
@@ -16,13 +41,19 @@ Identify companies in the investable universe with elevated risk of permanent ca
 - Every exclusion records the triggered rule, the inputs that fired it, and the `as_of_date`.
 - Regression test in CI: the bankruptcy subfilter must flag Enron, Lehman, and WorldCom on the dates each company was already in clear distress (e.g., Enron Q3 2001 10-Q, Lehman Q2 2008 10-Q, WorldCom Q1 2002 10-Q). If any of these stops being flagged, the CI build fails.
 
+## Phase 2a extensions (implemented)
+
+- **Beneish M-Score** (`beneish_v1`): computed from multi-period PIT fundamentals; coefficients versioned under `config/permanent_loss/beneish_v1.yaml` so Gray/Carlisle book variants can swap config without code changes.
+- **QVAL-style bottom-5% gate** (`FRD_BENEISH_BOTTOM_PCT`): cross-sectional hard exclusion on forensic survivors after distress rules.
+
 ## Out of MVP scope
 
-- Manipulation / accruals models (Beneish M-score, accruals-based scores). Deferred.
 - Machine learning fraud detection.
+- **Phase 2b forensic extensions (backlog):** STA, SNOA, COMBOACCRUAL (Gray/Carlisle Ch. 3 accrual screens); additional manipulation models (e.g. Dechow); embedding/ML fusion of forensic scores; EDGAR **confirmed fraud signals** when SEC ETL is wired. Phase 2a ships **Beneish M-Score + bottom-5% gate only**.
 - LLM-driven qualitative analysis of filings (handled later by `unstructured-financial-data`).
 - Sector-specific distress models (banks, insurers, REITs and utilities are already excluded upstream by `universe-construction`).
 - `Penalize` and `unknown` states. Only `pass` and `exclude` for the MVP.
+- MLflow metrics for permanent-loss runs (deferred; QV funnel [#91](https://github.com/JLaborda/SmartWealthAI/issues/91) may add stage logging).
 
 ## Inputs
 
@@ -40,8 +71,9 @@ Identify companies in the investable universe with elevated risk of permanent ca
 | Output | Path / target |
 | --- | --- |
 | Exclusion table | `curated/permanent_loss/run_date=<YYYY-MM-DD>/exclusions.parquet` with columns `cik, ticker, subfilter, rule_id, rule_version, triggered_value, threshold, as_of_date, explanation` |
+| Review queue | `curated/issues/run_date=<YYYY-MM-DD>/permanent_loss.parquet` for missing inputs / unavailable rules |
 | Filter status | `pass` or `exclude` per `(cik, as_of_date)` |
-| Logged metrics (MLflow) | Number of evaluations, number of exclusions per subfilter, list of newly excluded companies |
+| Logged metrics (MLflow) | Number of evaluations, number of exclusions per subfilter, list of newly excluded companies (deferred) |
 
 ## Bankruptcy / distress subfilter (MVP rules)
 
@@ -68,8 +100,9 @@ The MVP fraud signals are intentionally narrow. They detect structural / account
 | `FRD_AUDITOR_CHANGE_REPEATED` | Auditor change in 2 of the last 3 fiscal years | `>= 2` changes |
 | `FRD_REGULATORY_ACTION` | Open SEC enforcement action against the issuer | `True` |
 | `FRD_LATE_FILER` | Filed `NT 10-K` or `NT 10-Q` (late filing notification) in last 12 months | `>= 1` filing |
+| `FRD_BENEISH_BOTTOM_PCT` | Beneish M-Score in bottom 5% cross-sectionally among distress survivors | bottom 5% |
 
-A company is excluded if **any** rule fires. Rules that depend on data not yet available in the MVP (`FRD_REGULATORY_ACTION`, derived from EDGAR enforcement feeds) are coded but tolerated as `unavailable` until the data is wired. Their absence is logged.
+A company is excluded if **any** rule fires. Rules that depend on data not yet available in the MVP (`FRD_*` EDGAR rules) are coded but tolerated as `unavailable` until the data is wired. Their absence is logged.
 
 ## Mermaid diagram
 
@@ -83,7 +116,9 @@ flowchart TD
     Fraud --> Decision
 
     Decision -->|Yes| Exclude["Exclude (hard)"]
-    Decision -->|No| Pass["Pass to scoring modules"]
+    Decision -->|No| Beneish["Beneish M-Score cross-section"]
+    Beneish --> Gate["Bottom 5% hard exclude"]
+    Gate --> Pass["Pass to scoring modules"]
 
     Exclude --> Output["curated/permanent_loss exclusions.parquet"]
     Output --> MLflow["MLflow metrics + artifact"]
@@ -101,21 +136,29 @@ flowchart TD
 2. Join with the latest PIT fundamentals (using `as_of_date <= run_date`).
 3. Compute each bankruptcy and fraud rule. Rules with missing required inputs are recorded as `unavailable` and the row is sent to the review queue (not auto-excluded).
 4. If any rule fires, mark the company as `exclude` with the rule id, threshold, and the values that triggered it.
-5. Write the exclusion parquet and log MLflow metrics.
-6. Hand the passing set of `(cik, ticker)` to the scoring modules.
+5. On survivors, compute Beneish M-Score and apply the bottom-5% cross-sectional gate.
+6. Write the exclusion parquet and log MLflow metrics (MLflow deferred).
+7. Hand the passing set of `(cik, ticker)` to the scoring modules.
 
 ## Acceptance criteria
 
-- The module is a pure function of curated parquet + reference rules: same inputs produce byte-identical output (verifiable by hash).
-- The regression CI test for Enron, Lehman, and WorldCom blocks the build if any of the three stops being flagged.
-- Every excluded row carries the `rule_id`, `rule_version`, `triggered_value`, and `threshold`.
-- Rule definitions live in code, but thresholds live in a YAML config under `config/permanent_loss/` so they can be tuned by backtests without code changes.
-- The filter never queries network resources.
-- Companies with `unavailable` rule outputs do not pass silently: they enter the review queue.
-- Each MLflow run for the permanent loss filter logs the count of exclusions per rule.
+- [x] The module is a pure function of curated parquet + reference rules: same inputs produce byte-identical output (verifiable by hash).
+- [x] The regression CI test for Enron, Lehman, and WorldCom blocks the build if any of the three stops being flagged.
+- [x] Every excluded row carries the `rule_id`, `rule_version`, `triggered_value`, and `threshold`.
+- [x] Rule definitions live in code, but thresholds live in a YAML config under `config/permanent_loss/` so they can be tuned by backtests without code changes.
+- [x] Beneish M-Score computed from multi-period PIT inputs with versioned config (`beneish_v1`).
+- [x] Bottom-5% forensic percentile gate excludes names per QVAL process.
+- [x] The filter never queries network resources.
+- [x] Companies with `unavailable` rule outputs do not pass silently: they enter the review queue.
+- [ ] Each MLflow run for the permanent loss filter logs the count of exclusions per rule (deferred).
 
 ## Open questions
 
+- **Closed:** When Beneish M-Score is unavailable, **fail-open** (review queue + pass) until multi-period ETL ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)) reaches **≥95%** universe scorable coverage on a run date; then switch to **fail-closed** (hard exclude). Threshold configurable in `config/permanent_loss/`.
+- **Closed:** Phase 2a forensic manipulation screen = **Beneish M-Score + bottom-5% gate only** (`spec/backlog/backlog.md` for 2b items).
+- **Closed:** Phase 2b forensic extensions follow a **hybrid path**: separate bottom-5% gates first (COMBOACCRUAL, PMAN/Beneish, PFD); embedding/ML fusion only after backtest proves incremental value.
+- **Closed:** Phase 2b distress = add **PFD** bottom-5% gate **and keep** existing **`BK_*` hard rules**; measure overlap in backtest before trimming either layer.
+- **Closed:** Phase 2b implementation order: **(1) STA/SNOA/COMBOACCRUAL → (2) PFD → (3) EDGAR confirmed fraud → (4) embedding/ML fusion** (`spec/backlog/backlog.md`).
 - Should `BK_NETDEBT_EBITDA` be sector-relative even though banks / insurers / utilities are excluded? Recommendation: keep it absolute for the MVP; revisit when those sectors are reintroduced.
 - Threshold for `BK_NETDEBT_EBITDA` should probably be revisited per backtest; the initial 7.0 is a placeholder.
 - Where does the auditor-change history come from? Recommendation: parse `acceptedAccountingFirm` from EDGAR if available; otherwise wait for `unstructured-financial-data` to provide it.
