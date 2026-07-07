@@ -62,3 +62,73 @@ def test_missing_beneish_fields_detects_absent_columns() -> None:
     row = row.drop("sga_expense")
     missing = missing_beneish_fields(row)
     assert "sga_expense" in missing
+
+
+def test_missing_beneish_fields_detects_nan_values() -> None:
+    row = pd.Series(_period_row(sga_expense=float("nan")))
+    missing = missing_beneish_fields(row)
+    assert "sga_expense" in missing
+
+
+def test_beneish_returns_missing_fields_when_prior_period_incomplete() -> None:
+    prior = _period_row(fiscal_period_end=pd.Timestamp("2022-12-31"), revenue=float("nan"))
+    current = _period_row(fiscal_period_end=pd.Timestamp("2023-12-31"))
+    result = compute_beneish_m_score(pd.DataFrame([prior, current]))
+    assert result.m_score is None
+    assert "revenue" in result.missing_fields
+
+
+def test_beneish_returns_derived_ratio_when_growth_inputs_invalid() -> None:
+    prior = _period_row(
+        fiscal_period_end=pd.Timestamp("2022-12-31"),
+        revenue=0.0,
+        cost_of_revenue=0.0,
+    )
+    current = _period_row(fiscal_period_end=pd.Timestamp("2023-12-31"), revenue=1000.0)
+    result = compute_beneish_m_score(pd.DataFrame([prior, current]))
+    assert result.m_score is None
+    assert result.missing_fields == ("derived_ratio",)
+
+
+def test_beneish_returns_derived_ratio_when_depreciation_denominator_zero() -> None:
+    prior = _period_row(
+        fiscal_period_end=pd.Timestamp("2022-12-31"),
+        depreciation_amortization=0.0,
+        ppe_net=0.0,
+    )
+    current = _period_row(
+        fiscal_period_end=pd.Timestamp("2023-12-31"),
+        depreciation_amortization=0.0,
+        ppe_net=0.0,
+    )
+    result = compute_beneish_m_score(pd.DataFrame([prior, current]))
+    assert result.m_score is None
+    assert result.missing_fields == ("derived_ratio",)
+
+
+def test_beneish_returns_derived_ratio_when_total_assets_zero() -> None:
+    prior = _period_row(
+        fiscal_period_end=pd.Timestamp("2022-12-31"),
+        total_assets=0.0,
+        current_assets=0.0,
+        ppe_net=0.0,
+    )
+    current = _period_row(
+        fiscal_period_end=pd.Timestamp("2023-12-31"),
+        total_assets=0.0,
+        current_assets=0.0,
+        ppe_net=0.0,
+    )
+    result = compute_beneish_m_score(pd.DataFrame([prior, current]))
+    assert result.m_score is None
+    assert result.missing_fields == ("derived_ratio",)
+
+
+def test_missing_beneish_fields_treats_non_comparable_values_as_missing() -> None:
+    class NonComparable:
+        def __eq__(self, _other: object) -> bool:
+            raise TypeError("no compare")
+
+    row = pd.Series(_period_row(sga_expense=NonComparable()))
+    missing = missing_beneish_fields(row)
+    assert "sga_expense" in missing
