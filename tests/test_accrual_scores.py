@@ -43,9 +43,10 @@ def test_compute_snoa_uses_lagged_total_assets_when_provided() -> None:
     row = _fundamentals_row()
     operating_assets = 2000.0 - 100.0
     operating_liabilities = 800.0 - 50.0 - 300.0
-    assert compute_snoa(row, lagged_total_assets=1600.0) == (
-        operating_assets - operating_liabilities
-    ) / 1600.0
+    assert (
+        compute_snoa(row, lagged_total_assets=1600.0)
+        == (operating_assets - operating_liabilities) / 1600.0
+    )
 
 
 def test_missing_accrual_fields_detects_required_columns() -> None:
