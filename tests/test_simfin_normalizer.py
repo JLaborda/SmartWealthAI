@@ -81,6 +81,86 @@ def test_normalize_simfin_maps_one_ticker_to_curated_pit_row(tmp_path: Path) -> 
     assert row["mapping_version"] == "simfin_mapping_v1"
 
 
+def test_normalize_simfin_preserves_original_when_restatement_arrives(
+    lake_with_simfin: Path,
+) -> None:
+    first = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+    assert first.written_rows == 1
+
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    income_path.write_text(
+        income_path.read_text().replace(
+            "2024-11-01;;USD;2024;Q4;391035000000;123216000000;93736000000",
+            "2024-11-01;2025-10-31;USD;2024;Q4;391035000000;111000000000;93736000000",
+        )
+    )
+
+    second = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+    assert second.written_rows == 1
+
+    frame = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    )
+    versions = {int(value) for value in frame["version_id"]}
+    assert versions == {1, 2}
+    restated = frame.loc[frame["version_id"] == 2].iloc[0]
+    original = frame.loc[frame["version_id"] == 1].iloc[0]
+    assert original["ebit"] == 123_216_000_000
+    assert restated["ebit"] == 111_000_000_000
+    restated_as_of = restated["as_of_date"]
+    restated_as_of = restated_as_of.date() if hasattr(restated_as_of, "date") else restated_as_of
+    assert restated_as_of == date(2025, 10, 31)
+
+
+def test_normalize_simfin_keeps_same_period_original_and_restated_ttm(
+    lake_with_simfin: Path,
+) -> None:
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _append_csv_line(
+        income_path,
+        "AAPL;111052;2024-09-28;2024-11-01;2025-10-31;USD;2024;Q4;"
+        "391035000000;111000000000;93736000000",
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 2
+    frame = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    )
+    ttm = (
+        frame.loc[frame["statement_variant"] == "ttm"]
+        if "statement_variant" in frame.columns
+        else frame
+    )
+    assert len(ttm) == 2
+    assert {int(value) for value in ttm["version_id"]} == {1, 2}
+
+
 def test_normalize_simfin_uses_restated_date_for_new_version(lake_with_simfin: Path) -> None:
     income_path = simfin_bulk_path(
         lake_with_simfin,

@@ -271,15 +271,10 @@ def _write_curated_fundamentals(
             cik=str(cik),
             period=str(period),
         )
-        deduped = (
-            group.drop_duplicates(subset=["statement_variant"], keep="last")
-            if "statement_variant" in group.columns
-            else group.iloc[[-1]]
-        )
-        partitions.append((out_path, deduped))
+        partitions.append((out_path, group))
 
     if len(partitions) == 1:
-        partitions[0][1].to_parquet(partitions[0][0], index=False)
+        _write_partition(partitions[0])
     elif show_progress:
         with (
             click.progressbar(
@@ -337,9 +332,45 @@ def _ticker_progress_iter(work_tickers: list[str], *, enabled: bool):
             bar.update(1)
 
 
+_PIT_KEY_COLS = (
+    "cik",
+    "fiscal_period_end",
+    "as_of_date",
+    "version_id",
+    "statement_variant",
+)
+
+
+def _coerce_pit_keys(frame: pd.DataFrame) -> pd.DataFrame:
+    work = frame.copy()
+    for col in ("fiscal_period_end", "as_of_date"):
+        if col in work.columns:
+            work[col] = pd.to_datetime(work[col]).dt.normalize()
+    if "version_id" in work.columns:
+        work["version_id"] = pd.to_numeric(work["version_id"], errors="coerce")
+    if "statement_variant" in work.columns:
+        work["statement_variant"] = work["statement_variant"].astype("string")
+    if "cik" in work.columns:
+        work["cik"] = work["cik"].map(lambda value: pad_cik(str(value)))
+    return work
+
+
+def _dedupe_pit_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    """Keep one row per PIT natural key; last write wins on exact duplicates."""
+    work = _coerce_pit_keys(frame)
+    subset = [col for col in _PIT_KEY_COLS if col in work.columns]
+    if not subset:
+        return work
+    return work.drop_duplicates(subset=subset, keep="last")
+
+
 def _write_partition(item: tuple[Path, pd.DataFrame]) -> None:
     path, frame = item
-    frame.to_parquet(path, index=False)
+    if path.exists():
+        # ponytail: merge is O(rows in one cik/period); upgrade is append-only deltas
+        existing = pd.read_parquet(path)
+        frame = pd.concat([existing, frame], ignore_index=True)
+    _dedupe_pit_rows(frame).to_parquet(path, index=False)
 
 
 def _raw_paths_for_bundle(
