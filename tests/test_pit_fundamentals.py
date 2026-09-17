@@ -34,8 +34,13 @@ RUN_DATE = date(2026, 6, 18)
 CIK = pad_cik("320193")
 
 
-def _write_universe(lake: Path, *, rows: list[dict[str, object]]) -> None:
-    path = curated_universe_path(lake, run_date=RUN_DATE)
+def _write_universe(
+    lake: Path,
+    *,
+    rows: list[dict[str, object]],
+    run_date: date = RUN_DATE,
+) -> None:
+    path = curated_universe_path(lake, run_date=run_date)
     path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_parquet(path, index=False)
 
@@ -390,6 +395,73 @@ def test_compute_metrics_for_tickers_loads_universe_when_cik_map_omitted(pit_lak
 
     assert len(results) == 1
     assert results[0].ticker == "AAPL"
+
+
+def test_select_pit_fundamentals_prefers_latest_period_over_later_restatement() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-06-29"),
+                "as_of_date": pd.Timestamp("2025-10-31"),
+                "version_id": 2,
+                "ebit": 90.0,
+            },
+            {
+                "cik": CIK,
+                "fiscal_period_end": pd.Timestamp("2024-09-28"),
+                "as_of_date": pd.Timestamp("2024-11-01"),
+                "version_id": 1,
+                "ebit": 123.0,
+            },
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["ebit"] == 123.0
+    assert selected.iloc[0]["version_id"] == 1
+
+
+def test_load_pit_fundamentals_row_uses_original_before_restatement_as_of(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q4"
+        / "fundamentals.parquet"
+    )
+    pd.DataFrame(
+        [
+            _base_fundamentals_row(
+                cik=CIK,
+                as_of_date=pd.Timestamp("2024-11-01"),
+                version_id=1,
+                ebit=123.0,
+            ),
+            _base_fundamentals_row(
+                cik=CIK,
+                as_of_date=pd.Timestamp("2025-10-31"),
+                version_id=2,
+                ebit=111.0,
+            ),
+        ]
+    ).to_parquet(path, index=False)
+    _write_universe(
+        pit_lake,
+        rows=[{"ticker": "AAPL", "cik": CIK}],
+        run_date=date(2025, 1, 1),
+    )
+
+    before = load_pit_fundamentals_row(pit_lake, ticker="AAPL", as_of_date=date(2025, 1, 1))
+    after = load_pit_fundamentals_row(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert before["ebit"] == 123.0
+    assert int(before["version_id"]) == 1
+    assert after["ebit"] == 111.0
+    assert int(after["version_id"]) == 2
 
 
 def test_select_pit_fundamentals_without_cik_column() -> None:

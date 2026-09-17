@@ -43,7 +43,11 @@ def resolve_ticker_cik(data_dir: Path, *, ticker: str, run_date: date) -> str:
 
 
 def _select_pit_fundamentals(frame: pd.DataFrame, as_of_date: date) -> pd.DataFrame:
-    """Return the latest PIT row per CIK on or before ``as_of_date``."""
+    """Return the latest fiscal period per CIK known on or before ``as_of_date``.
+
+    Restatements of an older period must not displace a newer period that was
+    already knowable at the decision date.
+    """
     if frame.empty:
         return frame
 
@@ -52,12 +56,31 @@ def _select_pit_fundamentals(frame: pd.DataFrame, as_of_date: date) -> pd.DataFr
     decision = pd.Timestamp(as_of_date)
     eligible = work.loc[work["_as_of"] <= decision]
     if eligible.empty:
-        return eligible.iloc[0:0]
+        return eligible.iloc[0:0].drop(columns=["_as_of"], errors="ignore")
 
     if "cik" not in eligible.columns:
-        return eligible.sort_values(["_as_of", "version_id"]).iloc[[-1]]
+        selected = eligible.sort_values(["_as_of", "version_id"]).iloc[[-1]]
+        return selected.drop(columns=["_as_of"], errors="ignore")
 
-    return eligible.sort_values(["cik", "_as_of", "version_id"]).groupby("cik", sort=False).tail(1)
+    if "fiscal_period_end" in eligible.columns:
+        eligible = eligible.copy()
+        eligible["_period_end"] = pd.to_datetime(eligible["fiscal_period_end"])
+        per_period = (
+            eligible.sort_values(["cik", "_period_end", "_as_of", "version_id"])
+            .groupby(["cik", "_period_end"], sort=False)
+            .tail(1)
+        )
+        selected = (
+            per_period.sort_values(["cik", "_period_end", "_as_of", "version_id"])
+            .groupby("cik", sort=False)
+            .tail(1)
+        )
+        return selected.drop(columns=["_as_of", "_period_end"], errors="ignore")
+
+    selected = (
+        eligible.sort_values(["cik", "_as_of", "version_id"]).groupby("cik", sort=False).tail(1)
+    )
+    return selected.drop(columns=["_as_of"], errors="ignore")
 
 
 def _select_pit_fundamentals_by_period(frame: pd.DataFrame, as_of_date: date) -> pd.DataFrame:
@@ -95,18 +118,18 @@ def load_pit_fundamentals_row(
         msg = f"No curated fundamentals for ticker {ticker!r} (cik={cik})"
         raise MetricsInputError(msg)
 
-    rows: list[pd.Series] = []
+    frames: list[pd.DataFrame] = []
     for path in cik_dir.glob("period=*/fundamentals.parquet"):
         frame = _read_fundamentals_partition(path)
         if frame is None:
             continue
-        rows.append(frame.iloc[0])
+        frames.append(frame)
 
-    if not rows:
+    if not frames:
         msg = f"No curated fundamentals for ticker {ticker!r}"
         raise MetricsInputError(msg)
 
-    selected = _select_pit_fundamentals(pd.DataFrame(rows), as_of_date)
+    selected = _select_pit_fundamentals(pd.concat(frames, ignore_index=True), as_of_date)
     if selected.empty:
         msg = f"No PIT fundamentals for {ticker!r} on or before {as_of_date}"
         raise MetricsInputError(msg)
