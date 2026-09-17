@@ -193,7 +193,7 @@ def run_download(
         error_file.write_text(json.dumps(payload, indent=2))
         click.echo(f"Wrote error summary: {error_file}")
 
-    if len(critical_failures) == len([spec for spec in SIMFIN_DATASETS if spec.critical]):
+    if critical_failures:
         return 1
     return 0
 

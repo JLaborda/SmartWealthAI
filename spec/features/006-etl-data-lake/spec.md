@@ -132,8 +132,10 @@ Existing `download-fundamentals` CLI and `sec_client` remain in repo for referen
 
 - Every curated fundamentals row has `(cik, fiscal_period_end, as_of_date, version_id)` as the natural key.
 - A query "fundamentals as of decision date D" returns, per `(cik, fiscal_period_end)`, the row with the highest `as_of_date <= D` and, on tie, the highest `version_id`.
+- Magic Formula TTM scoring then takes the latest `fiscal_period_end` among those PIT rows. A later restatement of an older period must not displace a newer period already knowable at D.
 - The same logic applies when re-running historical backtests: the backtest engine pins `D = decision_date` for each rebalance and never sees a row with `as_of_date > D`.
 - Restated financials are kept as new versions; the prior version is preserved for replay of past decisions.
+- Curated `(cik, period)` parquet writes merge existing rows and de-duplicate on the PIT natural key plus `statement_variant`. Re-running after a restatement must not overwrite the original version.
 - **Demo share prices:** curated `price_date` comes from SimFin `shareprices/latest` (free tier refreshes ~weekly). **`price_date` may trail `run_date` by up to ~30 days**; no block or review queue for staleness in the demo slice. Phase 2 uses `shareprices/daily` or vendor fallback when same-day accuracy matters.
 
 Phase 2 yfinance cache semantics:
@@ -264,6 +266,7 @@ poetry run download-simfin --refresh-days 7 --force
 - [x] Phase 2: CLI also downloads annual/quarterly income, balance, and cashflow variants (non-critical).
 - [x] Re-run without `--force` skips datasets fresher than `refresh_days`; `--force` overwrites.
 - [x] Per-dataset failures recorded in run summary; batch continues when possible.
+- [x] CLI exits non-zero when any **critical** dataset fails (`companies`, `industries`, `income/ttm`, `balance/quarterly`, `shareprices/latest`). Non-critical cashflow and phase 2 annual/quarterly variants may fail without failing the run.
 - [x] Hermetic tests cover path building, skip/force logic, and mocked download.
 - [x] Bulk ZIP extraction validates member paths (zip-slip guard); does not use simfin `load_*` extractall path.
 - [x] Operator steps in [`download-simfin.md`](../../guides/download-simfin.md).
