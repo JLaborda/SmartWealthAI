@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import time
 import zipfile
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -31,6 +32,7 @@ from smartwealthai.lake_paths import (
 from smartwealthai.simfin_client import (
     configure_simfin,
     dataset_cache_path,
+    download_dataset_csv,
     fetch_dataset_csv,
     safe_extract_zip,
 )
@@ -330,6 +332,97 @@ def test_safe_extract_zip_allows_members_under_dest(tmp_path: Path) -> None:
     safe_extract_zip(zip_path, dest_dir)
 
     assert (dest_dir / "us-income-ttm.csv").read_text() == "Ticker;Revenue\nAAPL;1\n"
+
+
+def _stub_simfin_bulk_download(
+    monkeypatch: pytest.MonkeyPatch,
+    download_path: Path,
+    write_payload: Callable[[Path], None] | None = None,
+) -> None:
+    """Point simfin download internals at a local payload writer (no network)."""
+
+    def fake_download(*, url: str, headers: dict[str, str], download_path: str) -> None:
+        del url, headers
+        if write_payload is None:
+            raise AssertionError("download should not run")
+        write_payload(Path(download_path))
+
+    monkeypatch.setattr(
+        "smartwealthai.simfin_client._url_dataset",
+        lambda **_: "http://example.test",
+    )
+    monkeypatch.setattr("smartwealthai.simfin_client._headers_dataset", lambda: {})
+    monkeypatch.setattr(
+        "smartwealthai.simfin_client._path_download_dataset",
+        lambda **_: str(download_path),
+    )
+    monkeypatch.setattr("smartwealthai.simfin_client._download", fake_download)
+
+
+def test_download_dataset_csv_skips_fresh_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
+    csv_path = dataset_cache_path(dataset="income", variant="ttm", market="us")
+    csv_path.write_text("existing\n")
+    now = time.time()
+    os.utime(csv_path, (now, now))
+
+    _stub_simfin_bulk_download(monkeypatch, tmp_path / "payload.zip")
+    download_dataset_csv(dataset="income", variant="ttm", market="us", refresh_days=7)
+
+    assert csv_path.read_text() == "existing\n"
+
+
+def test_download_dataset_csv_extracts_zip_into_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
+
+    def write_zip(path: Path) -> None:
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("us-income-ttm.csv", "Ticker;Revenue\nAAPL;1\n")
+
+    _stub_simfin_bulk_download(monkeypatch, tmp_path / "payload.zip", write_zip)
+    download_dataset_csv(dataset="income", variant="TTM", market="US", refresh_days=0)
+
+    csv_path = dataset_cache_path(dataset="income", variant="ttm", market="us")
+    assert csv_path.read_text() == "Ticker;Revenue\nAAPL;1\n"
+
+
+def test_download_dataset_csv_moves_plain_csv_into_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
+
+    def write_csv(path: Path) -> None:
+        path.write_text("IndustryId;Industry\n105001;Utilities\n")
+
+    _stub_simfin_bulk_download(monkeypatch, tmp_path / "industries.csv", write_csv)
+    download_dataset_csv(dataset="industries", variant=None, market=None, refresh_days=0)
+
+    csv_path = dataset_cache_path(dataset="industries", variant=None, market=None)
+    assert csv_path.read_text() == "IndustryId;Industry\n105001;Utilities\n"
+
+
+def test_download_dataset_csv_rejects_zip_slip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_simfin(api_key="test-key", cache_dir=tmp_path / "cache")
+
+    def write_evil_zip(path: Path) -> None:
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("../outside.csv", "pwned")
+
+    _stub_simfin_bulk_download(monkeypatch, tmp_path / "payload.zip", write_evil_zip)
+    with pytest.raises(ValueError, match="Unsafe zip entry path"):
+        download_dataset_csv(dataset="income", variant="ttm", market="us", refresh_days=0)
+
+    assert not (tmp_path / "outside.csv").exists()
 
 
 def test_download_dataset_force_requests_immediate_simfin_refresh(tmp_path: Path) -> None:

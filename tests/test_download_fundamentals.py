@@ -131,3 +131,16 @@ def test_resolve_universe_file_requires_preset_or_path() -> None:
 def test_resolve_universe_file_rejects_unknown_preset() -> None:
     with pytest.raises(ValueError, match="Unknown universe preset"):
         resolve_universe_file("nasdaq100", None)
+
+
+def test_load_universe_raises_when_csv_missing(tmp_path: Path) -> None:
+    missing = tmp_path / "does-not-exist.csv"
+    with pytest.raises(FileNotFoundError, match="Universe file not found"):
+        load_universe(universe_file=missing)
+
+
+def test_load_universe_raises_when_required_columns_missing(tmp_path: Path) -> None:
+    csv_path = tmp_path / "bad.csv"
+    csv_path.write_text("symbol,issuer\nAAPL,Apple\n")
+    with pytest.raises(ValueError, match="missing columns"):
+        load_universe(universe_file=csv_path)
