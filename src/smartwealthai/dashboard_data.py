@@ -41,6 +41,21 @@ def resolve_data_dir() -> Path:
     return Path(os.environ.get("SMARTWEALTHAI_DATA_DIR", "data"))
 
 
+def resolve_run_date(
+    *,
+    query_run_date: str | None = None,
+    env_run_date: str | None = None,
+    data_dir: Path | None = None,
+) -> date:
+    """Resolve dashboard run date: query param, env, latest partition, then today."""
+    if query_run_date:
+        return date.fromisoformat(str(query_run_date))
+    if env_run_date:
+        return date.fromisoformat(env_run_date)
+    latest = discover_latest_run_date(data_dir or resolve_data_dir())
+    return latest if latest is not None else date.today()
+
+
 def discover_latest_run_date(data_dir: Path) -> date | None:
     """Return the newest ``run_date`` partition under curated portfolio."""
     portfolio_root = data_dir / "curated" / "portfolio"

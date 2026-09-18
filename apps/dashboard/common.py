@@ -10,9 +10,9 @@ import streamlit as st
 
 from smartwealthai.dashboard_data import (
     DashboardSnapshot,
-    discover_latest_run_date,
     load_dashboard_snapshot,
     resolve_data_dir,
+    resolve_run_date,
 )
 
 
@@ -23,17 +23,12 @@ def data_dir() -> Path:
 def selected_run_date() -> date:
     """Resolve run date from query params, env, or latest scored partition."""
     params = st.query_params
-    if "run_date" in params:
-        return date.fromisoformat(str(params["run_date"]))
-
-    env_run_date = os.environ.get("SMARTWEALTHAI_RUN_DATE")
-    if env_run_date:
-        return date.fromisoformat(env_run_date)
-
-    latest = discover_latest_run_date(data_dir())
-    if latest is None:
-        return date.today()
-    return latest
+    query_run_date = str(params["run_date"]) if "run_date" in params else None
+    return resolve_run_date(
+        query_run_date=query_run_date,
+        env_run_date=os.environ.get("SMARTWEALTHAI_RUN_DATE"),
+        data_dir=data_dir(),
+    )
 
 
 @st.cache_data(show_spinner=False)

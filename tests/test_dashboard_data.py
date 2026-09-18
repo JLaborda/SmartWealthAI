@@ -19,6 +19,7 @@ from smartwealthai.dashboard_data import (
     load_dashboard_snapshot,
     overview_headline,
     resolve_data_dir,
+    resolve_run_date,
 )
 from smartwealthai.magic_formula_ranking import score_universe
 from smartwealthai.normalize_simfin import cli_run as normalize_cli_run
@@ -161,7 +162,12 @@ def test_run_dashboard_sets_env_and_launches_streamlit() -> None:
     assert result.exit_code == 0
     mock_run.assert_called_once()
     command, kwargs = mock_run.call_args
-    assert command[0][1:4] == ["-m", "streamlit", "run"]
+    argv = command[0]
+    assert argv[1:4] == ["-m", "streamlit", "run"]
+    assert argv[4].endswith("apps/dashboard/Home.py")
+    assert "--server.headless=true" in argv
+    assert "--server.address=0.0.0.0" in argv
+    assert "--server.port=8501" in argv
     assert kwargs["check"] is True
     env = kwargs["env"]
     assert env["SMARTWEALTHAI_DATA_DIR"] == "/tmp/lake"
@@ -190,3 +196,32 @@ def test_run_dashboard_main_module_entrypoint(monkeypatch: pytest.MonkeyPatch) -
         with pytest.raises(SystemExit) as exc_info:
             runpy.run_module("smartwealthai.run_dashboard", run_name="__main__")
     assert exc_info.value.code == 0
+
+
+def test_resolve_run_date_prefers_query_param_over_env() -> None:
+    assert resolve_run_date(
+        query_run_date="2026-06-18",
+        env_run_date="2026-01-01",
+    ) == date(2026, 6, 18)
+
+
+def test_resolve_run_date_uses_env_when_query_param_missing() -> None:
+    assert resolve_run_date(env_run_date="2026-01-02") == date(2026, 1, 2)
+
+
+def test_resolve_run_date_uses_latest_scored_partition(scored_lake: Path) -> None:
+    assert resolve_run_date(data_dir=scored_lake) == RUN_DATE
+
+
+def test_resolve_run_date_falls_back_to_today_when_no_partition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FrozenDate(date):
+        @classmethod
+        def today(cls) -> date:
+            return date(2026, 9, 18)
+
+    monkeypatch.setattr("smartwealthai.dashboard_data.date", FrozenDate)
+
+    assert resolve_run_date(data_dir=tmp_path) == date(2026, 9, 18)
