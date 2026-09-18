@@ -338,6 +338,8 @@ Extend SimFin ingest and normalization so Quantitative Value downstream modules 
 2. `normalize-simfin` processes three statement bundles: TTM (demo), annual, quarterly.
 3. Annual/quarterly rows join income + balance + cashflow on exact `Report Date`; missing QV inputs → review queue.
 4. Curated partitions store multiple `statement_variant` rows per `period=<YYYYQn>` parquet.
+   SimFin annual files use `Fiscal Period=FY`; the normalizer maps that to the fiscal year-end
+   quarter (`YYYYQ4`) so annual rows share the same partition as TTM/quarterly.
 5. `load_pit_fundamentals_history(ticker, decision_date)` returns annual/quarterly history with PIT selection per fiscal period.
 
 ### Acceptance criteria (phase 2 multi-period)

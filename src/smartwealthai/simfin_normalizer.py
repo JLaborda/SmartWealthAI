@@ -568,7 +568,12 @@ def _period_label(income_row: pd.Series, meta: dict, report_date: date) -> str:
     fiscal_year = income_row.get(meta["fiscal_year"])
     fiscal_period = income_row.get(meta["fiscal_period"])
     if pd.notna(fiscal_year) and pd.notna(fiscal_period):
-        return f"{int(fiscal_year)}{fiscal_period}"
+        period = str(fiscal_period).strip().upper()
+        # SimFin annual bulk files label the year-end quarter as FY, not Qn.
+        # Lake partitions are period=<YYYYQn>; FY is that fiscal year's Q4.
+        if period == "FY":
+            period = "Q4"
+        return f"{int(fiscal_year)}{period}"
     return fiscal_period_label(report_date)
 
 

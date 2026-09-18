@@ -28,6 +28,7 @@ from smartwealthai.simfin_normalizer import (
     _index_balance_by_ticker,
     _latest_balance_row,
     _matching_statement_row,
+    _period_label,
     _raw_paths,
     _read_simfin_csv,
     _resolve_show_progress,
@@ -671,6 +672,78 @@ def test_normalize_simfin_processes_all_income_tickers_when_unscoped(
     )
 
     assert result.written_rows >= 1
+
+
+def test_period_label_maps_simfin_annual_fy_to_year_end_quarter() -> None:
+    mapping = load_simfin_mapping(DEFAULT_MAPPING_PATH)
+    row = pd.Series({"Fiscal Year": 2024, "Fiscal Period": "FY"})
+
+    assert _period_label(row, mapping["meta"], date(2024, 9, 28)) == "2024Q4"
+
+
+def _write_aapl_annual_fy_statements(data_dir: Path) -> None:
+    """Write SimFin annual bulk CSVs using Fiscal Period=FY (year-end quarter)."""
+
+    def write(dataset: str, header: str, row: str) -> None:
+        path = simfin_bulk_path(
+            data_dir,
+            dataset=dataset,
+            variant="annual",
+            market="us",
+            as_of_date=SIMFIN_FIXTURE_DATE,
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(header + "\n" + row + "\n")
+
+    write(
+        "income",
+        "Ticker;SimFinId;Report Date;Publish Date;Restated Date;Currency;"
+        "Fiscal Year;Fiscal Period;Revenue;Operating Income (Loss);Net Income;"
+        "Cost of Revenue;Selling, General & Administrative",
+        "AAPL;111052;2024-09-28;2024-11-01;;USD;2024;FY;"
+        "391035000000;123216000000;93736000000;210352000000;26097000000",
+    )
+    write(
+        "balance",
+        "Ticker;SimFinId;Report Date;Publish Date;Restated Date;Currency;"
+        "Fiscal Year;Fiscal Period;Total Current Assets;Total Current Liabilities;"
+        "Cash, Cash Equivalents & Short Term Investments;Short Term Debt;"
+        "Property, Plant & Equipment, Net;Long Term Debt;Preferred Equity;"
+        "Minority Interest;Total Assets;Total Liabilities;Shares (Basic);"
+        "Accounts Receivable",
+        "AAPL;111052;2024-09-28;2024-11-01;;USD;2024;FY;"
+        "152987000000;176000000000;29943000000;0;45680000000;95281000000;0;0;"
+        "364980000000;308030000000;15115800000;33410000000",
+    )
+    write(
+        "cashflow",
+        "Ticker;SimFinId;Report Date;Publish Date;Restated Date;Currency;"
+        "Fiscal Year;Fiscal Period;Depreciation & Amortization;"
+        "Net Cash from Operating Activities",
+        "AAPL;111052;2024-09-28;2024-11-01;;USD;2024;FY;11445000000;118254000000",
+    )
+
+
+def test_normalize_simfin_keeps_annual_fy_in_year_end_quarter_partition(tmp_path: Path) -> None:
+    _copy_simfin_fixtures(tmp_path)
+    _write_aapl_annual_fy_statements(tmp_path)
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    issues_path = curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE)
+    reasons = set(pd.read_parquet(issues_path)["reason"]) if issues_path.exists() else set()
+    assert "invalid_period" not in reasons
+    assert result.written_rows >= 2
+
+    output = curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    variants = set(pd.read_parquet(output)["statement_variant"])
+    assert "annual" in variants
+    assert "ttm" in variants
 
 
 def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
