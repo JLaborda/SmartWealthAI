@@ -186,6 +186,49 @@ def test_select_pit_fundamentals_returns_empty_frame_unchanged() -> None:
     assert _select_pit_fundamentals(pd.DataFrame(), RUN_DATE).empty
 
 
+def test_select_pit_fundamentals_prefers_later_version_id_at_same_as_of() -> None:
+    frame = pd.DataFrame(
+        [
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-06-01"), "version_id": 1, "ebit": 10.0},
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-06-01"), "version_id": 2, "ebit": 20.0},
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["ebit"] == 20.0
+    assert selected.iloc[0]["version_id"] == 2
+
+
+def test_select_pit_fundamentals_without_cik_column_uses_latest_row() -> None:
+    frame = pd.DataFrame(
+        [
+            {"as_of_date": pd.Timestamp("2026-05-01"), "version_id": 2, "ebit": 10.0},
+            {"as_of_date": pd.Timestamp("2026-06-01"), "version_id": 1, "ebit": 30.0},
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["ebit"] == 30.0
+
+
+def test_select_pit_fundamentals_drops_rows_after_decision_date() -> None:
+    frame = pd.DataFrame(
+        [
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-06-01"), "version_id": 1, "ebit": 10.0},
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-07-01"), "version_id": 2, "ebit": 99.0},
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["ebit"] == 10.0
+
+
 def test_fundamentals_paths_skips_missing_cik_directories(pit_lake: Path) -> None:
     paths = _fundamentals_paths_for_ciks(
         pit_lake,
@@ -193,6 +236,42 @@ def test_fundamentals_paths_skips_missing_cik_directories(pit_lake: Path) -> Non
     )
 
     assert len(paths) == 1
+
+
+def test_read_fundamentals_partition_injects_cik_from_path(pit_lake: Path) -> None:
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q3"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([_base_fundamentals_row(ebit=55.0)]).to_parquet(path, index=False)
+
+    row = _read_fundamentals_partition(path)
+
+    assert row is not None
+    assert row.iloc[0]["cik"] == CIK
+    assert row.iloc[0]["ebit"] == 55.0
+
+
+def test_load_pit_fundamentals_row_selects_later_as_of_across_periods(pit_lake: Path) -> None:
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q3",
+        row=_base_fundamentals_row(as_of_date=pd.Timestamp("2024-08-01"), ebit=50.0),
+    )
+    _write_fundamentals(
+        pit_lake,
+        period="2024Q4",
+        row=_base_fundamentals_row(as_of_date=pd.Timestamp("2024-11-01"), ebit=100.0),
+    )
+
+    row = load_pit_fundamentals_row(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert row["ebit"] == 100.0
 
 
 def test_read_fundamentals_partition_returns_none_for_empty_file(pit_lake: Path) -> None:

@@ -29,6 +29,8 @@ from smartwealthai.magic_formula_ranking import (
     assign_metric_ranks,
     build_combined_ranking,
     build_equal_weight_portfolio,
+    is_cheap_rankable,
+    is_quality_rankable,
     partition_metrics,
     score_universe,
 )
@@ -271,6 +273,52 @@ def test_build_equal_weight_portfolio_selects_top_n_with_equal_weights() -> None
 
 def test_build_equal_weight_portfolio_returns_empty_for_empty_ranking() -> None:
     assert build_equal_weight_portfolio([]) == []
+
+
+def test_build_equal_weight_portfolio_uses_available_names_when_shorter_than_top_n() -> None:
+    ranking = [
+        CombinedRankingRow(
+            ticker="ONLY",
+            cik="0000000001",
+            ebit=10.0,
+            roc=0.2,
+            ey=0.1,
+            market_cap=100.0,
+            roc_rank=1,
+            ey_rank=1,
+            combined_rank=2,
+            formula_version="v1",
+            as_of_date=RUN_DATE,
+        )
+    ]
+
+    portfolio = build_equal_weight_portfolio(ranking, top_n=30)
+
+    assert len(portfolio) == 1
+    assert portfolio[0].ticker == "ONLY"
+    assert portfolio[0].weight == pytest.approx(1.0)
+
+
+def test_zero_ebit_is_quality_rankable_but_not_cheap_rankable() -> None:
+    result = build_metrics(
+        ticker="ZERO",
+        ebit=0.0,
+        current_assets=200.0,
+        current_liabilities=80.0,
+        cash=20.0,
+        short_term_debt=0.0,
+        net_fixed_assets=100.0,
+        shares_outstanding=10.0,
+        adj_close=25.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+
+    assert result.roc == pytest.approx(0.0)
+    assert result.ey is None
+    assert is_quality_rankable(result) is True
+    assert is_cheap_rankable(result) is False
 
 
 def test_metrics_to_quality_frame_skips_non_rankable_rows() -> None:
