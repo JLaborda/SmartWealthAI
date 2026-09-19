@@ -123,6 +123,16 @@ def test_load_universe_from_explicit_csv(tmp_path: Path) -> None:
     ]
 
 
+def test_load_universe_normalizes_ticker_case_and_pads_cik(tmp_path: Path) -> None:
+    csv_path = tmp_path / "messy.csv"
+    csv_path.write_text("ticker,cik\n aapl ,320193\nmsft,789019\n")
+    entries = load_universe(universe_file=csv_path)
+    assert [(entry.ticker, entry.cik) for entry in entries] == [
+        ("AAPL", "0000320193"),
+        ("MSFT", "0000789019"),
+    ]
+
+
 def test_resolve_universe_file_requires_preset_or_path() -> None:
     with pytest.raises(ValueError, match="Provide --universe or --universe-file"):
         resolve_universe_file(None, None)

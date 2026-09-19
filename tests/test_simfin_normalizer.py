@@ -21,12 +21,14 @@ from smartwealthai.lake_paths import (
 from smartwealthai.normalize_simfin import (
     cli_run,
     load_universe_tickers,
+    resolve_normalize_tickers,
     resolve_show_progress,
 )
 from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
     _index_balance_by_ticker,
     _latest_balance_row,
+    _period_label,
     _raw_paths,
     _read_simfin_csv,
     _resolve_show_progress,
@@ -138,6 +140,13 @@ def test_fiscal_period_label_uses_calendar_quarter() -> None:
     assert fiscal_period_label(date(2024, 9, 28)) == "2024Q3"
 
 
+def test_period_label_concatenates_fiscal_year_and_quarter() -> None:
+    mapping = load_simfin_mapping(DEFAULT_MAPPING_PATH)
+    income_row = pd.Series({"Fiscal Year": 2024, "Fiscal Period": "Q4"})
+
+    assert _period_label(income_row, mapping["meta"], date(2024, 9, 28)) == "2024Q4"
+
+
 def test_cli_normalize_simfin_requires_scope(lake_with_simfin: Path) -> None:
     exit_code = cli_run(
         [
@@ -190,6 +199,36 @@ def test_normalize_show_progress_flags_map_to_cli_helpers() -> None:
 def test_load_universe_tickers_raises_click_exception_when_missing(tmp_path: Path) -> None:
     with pytest.raises(click.ClickException, match="Universe not found"):
         load_universe_tickers(tmp_path, SIMFIN_FIXTURE_DATE)
+
+
+def test_resolve_normalize_tickers_intersects_universe_and_explicit(tmp_path: Path) -> None:
+    universe_path = (
+        tmp_path
+        / "curated"
+        / "universe"
+        / f"run_date={SIMFIN_FIXTURE_DATE.isoformat()}"
+        / "universe.parquet"
+    )
+    universe_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"ticker": ["AAPL", "MSFT"]}).to_parquet(universe_path, index=False)
+
+    tickers = resolve_normalize_tickers(
+        tmp_path,
+        universe_run_date=SIMFIN_FIXTURE_DATE,
+        explicit_tickers=("aapl", "GHOST"),
+    )
+
+    assert tickers == {"AAPL"}
+
+
+def test_resolve_normalize_tickers_uses_explicit_set_when_universe_omitted() -> None:
+    tickers = resolve_normalize_tickers(
+        Path("unused"),
+        universe_run_date=None,
+        explicit_tickers=("aapl", "msft"),
+    )
+
+    assert tickers == {"AAPL", "MSFT"}
 
 
 def test_latest_balance_row_returns_none_when_report_date_before_all(
