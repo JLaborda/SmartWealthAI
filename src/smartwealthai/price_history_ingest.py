@@ -12,7 +12,7 @@ import pandas as pd
 
 from smartwealthai.download_simfin import should_skip_dataset
 from smartwealthai.lake_paths import curated_prices_path, simfin_bulk_path
-from smartwealthai.price_ingest import load_universe_tickers, should_skip_artifact
+from smartwealthai.price_ingest import load_universe_tickers
 from smartwealthai.simfin_client import fetch_dataset_csv
 
 CURATED_DAILY_PRICE_COLUMNS: tuple[str, ...] = (
@@ -116,13 +116,31 @@ def build_daily_price_rows(
     return rows
 
 
+def _price_date_set(frame: pd.DataFrame) -> set[str]:
+    return set(pd.to_datetime(frame["price_date"]).dt.strftime("%Y-%m-%d"))
+
+
+def _merge_daily_price_frames(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
+    combined = pd.concat([existing, incoming], ignore_index=True)
+    combined["price_date"] = pd.to_datetime(combined["price_date"]).dt.strftime("%Y-%m-%d")
+    return (
+        combined.drop_duplicates(subset=["price_date"], keep="last")
+        .sort_values("price_date")
+        .reset_index(drop=True)
+    )
+
+
 def write_curated_daily_prices(
     data_dir: Path,
     rows: list[dict[str, object]],
     *,
     force: bool,
 ) -> tuple[list[Path], int]:
-    """Write daily price rows partitioned by ticker and calendar year."""
+    """Write daily price rows partitioned by ticker and calendar year.
+
+    Without ``force``, existing year files are merged so a later wider window
+    can add dates. Skip only when every incoming date is already stored.
+    """
     if not rows:
         return [], 0
 
@@ -134,12 +152,16 @@ def write_curated_daily_prices(
     skipped = 0
     for (ticker, year), group in frame.groupby(["ticker", "year"], sort=True):
         path = curated_prices_path(data_dir, ticker=str(ticker), year=int(year))
-        if should_skip_artifact(path, force=force):
-            skipped += 1
-            continue
-        partition = group.drop(columns=["price_day", "year"]).reset_index(drop=True)
+        incoming = group.drop(columns=["price_day", "year"]).reset_index(drop=True)
+        # ponytail: full-year rewrite on merge; DuckDB MERGE if partitions get large
+        if path.exists() and not force:
+            existing = pd.read_parquet(path)
+            if _price_date_set(incoming) <= _price_date_set(existing):
+                skipped += 1
+                continue
+            incoming = _merge_daily_price_frames(existing, incoming)
         path.parent.mkdir(parents=True, exist_ok=True)
-        partition.to_parquet(path, index=False)
+        incoming.to_parquet(path, index=False)
         written.append(path)
 
     return written, skipped

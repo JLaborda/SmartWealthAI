@@ -84,6 +84,8 @@ Curated columns: `ticker`, `price_date`, `close`, `adj_close`, `volume`. Use `lo
 
 Flags: `--skip-download` (offline/tests), `--force` (overwrite raw + curated partitions), `--ticker` (repeatable).
 
+Without `--force`, a later run with a **wider** date window merges new days into existing ticker/year parquets. Identical or narrower windows skip those year files so previously stored dates are kept. `--force` replaces each touched year file with only the current window.
+
 ## Refresh and cache behaviour
 
 - **Skip:** Re-run without `--force` when the on-disk lake copy is younger than `--refresh-days` (default `7`).

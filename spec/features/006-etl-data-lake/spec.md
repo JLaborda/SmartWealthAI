@@ -366,6 +366,8 @@ Ingest SimFin bulk `shareprices/daily` for a configurable date window; write cur
 3. Write `curated/prices/ticker=<ticker>/year=<YYYY>/prices.parquet`.
 4. Downstream backtests call `lookup_daily_adj_close()` for rebalance-date joins.
 
+Re-running a **wider** date window without `--force` merges new `price_date` rows into an existing ticker/year parquet. Skip only when every incoming date is already stored. `--force` still overwrites the year file with the current window only. `lookup_daily_adj_close()` returns the latest stored session on or before the decision date, so a skipped incomplete year would silently reuse a stale last close.
+
 ### Acceptance criteria (phase 2 daily prices)
 
 - [x] Curated daily price parquet by ticker/year (`curated/prices/ticker=*/year=*/prices.parquet`).
@@ -373,6 +375,7 @@ Ingest SimFin bulk `shareprices/daily` for a configurable date window; write cur
 - [x] `adj_close` usable for historical market cap and backtest NAV (`lookup_daily_adj_close`).
 - [x] Fixture tests for price ingest and run-date join (`tests/test_price_history_ingest.py`).
 - [x] Operator note in [`spec/guides/download-simfin.md`](../../guides/download-simfin.md) for SimFin free-tier limits.
+- [x] Widening `[start_date, end_date]` without `--force` merges new dates into existing year partitions (does not skip the whole file).
 
 ## SEC fundamentals normalizer (phase 2)
 

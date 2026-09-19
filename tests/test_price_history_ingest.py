@@ -106,6 +106,61 @@ def test_write_curated_daily_prices_skips_existing_partitions(lake: Path) -> Non
     assert skipped == 1
 
 
+def test_write_curated_daily_prices_merges_when_window_widens(lake: Path) -> None:
+    shareprices = load_raw_shareprices_daily(lake, snapshot_date=SNAPSHOT_DATE)
+    early = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+    )
+    later = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2026, 1, 1),
+        end_date=END_DATE,
+    )
+    write_curated_daily_prices(lake, early, force=False)
+    assert lookup_daily_adj_close(
+        lake, ticker="AAPL", as_of_date=date(2026, 6, 17)
+    ) == pytest.approx(274.0)
+
+    written, skipped = write_curated_daily_prices(lake, later, force=False)
+
+    assert skipped == 0
+    assert written
+    prices = pd.read_parquet(curated_prices_path(lake, ticker="AAPL", year=2026))
+    assert "2026-01-02" in set(prices["price_date"].astype(str))
+    assert "2026-06-17" in set(prices["price_date"].astype(str))
+    assert lookup_daily_adj_close(
+        lake, ticker="AAPL", as_of_date=date(2026, 6, 17)
+    ) == pytest.approx(273.5)
+
+
+def test_write_curated_daily_prices_keeps_existing_dates_on_narrower_window(
+    lake: Path,
+) -> None:
+    shareprices = load_raw_shareprices_daily(lake, snapshot_date=SNAPSHOT_DATE)
+    wide = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=START_DATE,
+        end_date=END_DATE,
+    )
+    narrow = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+    )
+    write_curated_daily_prices(lake, wide, force=False)
+    _, skipped = write_curated_daily_prices(lake, narrow, force=False)
+
+    assert skipped == 1
+    prices = pd.read_parquet(curated_prices_path(lake, ticker="AAPL", year=2026))
+    assert "2026-06-17" in set(prices["price_date"].astype(str))
+
+
 def test_lookup_daily_adj_close_returns_latest_on_or_before_date(lake: Path) -> None:
     run_price_history_ingest(
         data_dir=lake,
