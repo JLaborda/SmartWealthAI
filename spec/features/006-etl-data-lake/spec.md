@@ -202,7 +202,12 @@ Phase 2 yfinance cache semantics:
   Hermetic tests in `tests/test_price_history_ingest.py`. Operator notes in
   [`spec/guides/download-simfin.md`](../../guides/download-simfin.md).
 
-**Operator sequence (demo pipeline):**
+**Operator sequence (demo pipeline):** see [`spec/guides/demo-pipeline.md`](../../guides/demo-pipeline.md).
+
+```bash
+poetry run run-demo-pipeline --run-date 2026-06-19
+poetry run run-dashboard --data-dir data --run-date 2026-06-19
+```
 
 ```bash
 poetry run run-demo-pipeline --run-date 2026-06-19

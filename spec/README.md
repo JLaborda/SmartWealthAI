@@ -57,7 +57,9 @@ spec/
 
 | Guide | When to use |
 | --- | --- |
-| [download-simfin.md](guides/download-simfin.md) | **Active demo path:** SimFin bulk fundamentals and prices |
+| [demo-pipeline.md](guides/demo-pipeline.md) | **Active demo path:** ingest → score → dashboard, CLIs, MLflow, pitfalls |
+| [download-simfin.md](guides/download-simfin.md) | SimFin bulk download, multi-period statements, daily price history |
+| [pr-ci.md](guides/pr-ci.md) | Hermetic PR CI, Ruff, pytest, Codecov patch/project gates |
 | [download-fundamentals.md](guides/download-fundamentals.md) | **Frozen SEC spike** (phase 2) |
 
 ## Feature specs

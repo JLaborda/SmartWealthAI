@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Post-demo work on `develop` (not yet versioned).
+
+### Added
+
+- **Multi-period SimFin fundamentals** — annual/quarterly ingest, QV field mapping, PIT history (`load_pit_fundamentals_history`) ([#87](https://github.com/JLaborda/SmartWealthAI/issues/87)).
+- **Daily price history** — `download-price-history` CLI, curated `ticker=/year=` partitions, `lookup_daily_adj_close` ([#88](https://github.com/JLaborda/SmartWealthAI/issues/88)).
+- **Quantitative Value glossary and feature spec** ([#86](https://github.com/JLaborda/SmartWealthAI/issues/86)).
+- **CI coverage gates** — Codecov project (no >1% drop vs base) and 85% patch coverage ([#119](https://github.com/JLaborda/SmartWealthAI/issues/119)).
+
+### Documentation
+
+- Specs live under `spec/` (constitution, features, ADRs, operator guides).
+- Operator runbooks: demo pipeline, SimFin download, PR CI / Codecov.
+
 ## [0.1.0] - 2026-06-30
 
 First public release: the **June 30 demo slice** — a runnable Greenblatt-style Magic Formula pipeline on SimFin US data.

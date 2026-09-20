@@ -1,8 +1,12 @@
 # PRD: CI/CD and MLOps Infrastructure (Phase 0)
 
-**Status:** Ready for implementation  
+**Status:** M0 implemented (Makefile + hermetic PR CI + Codecov). M2+ still planned.  
 **Canonical architecture:** `spec/constitution/mission.md`  
+**Feature spec:** [`spec/features/014-cicd-infrastructure/spec.md`](../../features/014-cicd-infrastructure/spec.md)  
+**Operator guide:** [`spec/guides/pr-ci.md`](../../guides/pr-ci.md)  
 **Related specs:** ETL + data lake, permanent loss filter, backtesting, sell-watch (pipeline vertical slice)
+
+The Problem Statement below is the original Phase 0 brief (it still describes the pre-M0 gap). Do not treat “no Makefile / no GitHub Actions” as current state.
 
 ---
 

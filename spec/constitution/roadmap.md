@@ -14,21 +14,21 @@ Deliver a working, explainable Greenblatt-style Magic Formula pipeline on real U
 
 | Step | Module / spec | Notes |
 | --- | --- | --- |
-| 1 | SimFin ETL | [`etl-data-lake.md`](features/006-etl-data-lake/spec.md) — bulk US download, raw zone, SimFin normalizer |
-| 2 | Universe | [`universe-construction.md`](features/011-universe-construction/spec.md) — demo mode: SimFin US minus sector exclusions |
-| 3 | Quality | [`high-quality-stocks.md`](features/007-high-quality-stocks/spec.md) — ROC |
-| 4 | Cheapness | [`cheap-stocks.md`](features/003-cheap-stocks/spec.md) — Earnings Yield |
+| 1 | SimFin ETL | [`006-etl-data-lake`](../features/006-etl-data-lake/spec.md) — bulk US download, raw zone, SimFin normalizer |
+| 2 | Universe | [`011-universe-construction`](../features/011-universe-construction/spec.md) — demo mode: SimFin US minus sector exclusions |
+| 3 | Quality | [`007-high-quality-stocks`](../features/007-high-quality-stocks/spec.md) — ROC |
+| 4 | Cheapness | [`003-cheap-stocks`](../features/003-cheap-stocks/spec.md) — Earnings Yield |
 | 5 | Ranking | Combined rank = ROC rank + EY rank (lower is better); tie-break ascending market cap |
 | 6 | Model portfolio | Top **30** names, **equal-weight** only |
-| 7 | Dashboard | [`dashboard-reporting.md`](features/005-dashboard-reporting/spec.md) — ranking table, portfolio, per-name explainability |
+| 7 | Dashboard | [`005-dashboard-reporting`](../features/005-dashboard-reporting/spec.md) — ranking table, portfolio, per-name explainability |
 | 8 | MLflow | Log each pipeline run (params, scoring metrics, portfolio artifact) — `src/smartwealthai/mlflow_run_logging.py`, wired in `score-universe` ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)) |
 
 ## Out of scope (phase 2)
 
-- Permanent loss filter ([`permanent-loss-filter.md`](features/008-permanent-loss-filter/spec.md))
-- Backtesting and crisis report ([`backtesting.md`](features/001-backtesting/spec.md))
-- Sell-watch ([`sell-watch.md`](features/010-sell-watch/spec.md))
-- Paper trading / broker ([`broker-execution.md`](features/002-broker-execution/spec.md))
+- Permanent loss filter ([`008-permanent-loss-filter`](../features/008-permanent-loss-filter/spec.md))
+- Backtesting and crisis report ([`001-backtesting`](../features/001-backtesting/spec.md))
+- Sell-watch ([`010-sell-watch`](../features/010-sell-watch/spec.md))
+- Paper trading / broker ([`002-broker-execution`](../features/002-broker-execution/spec.md))
 - Watchlist (ranking table in dashboard is enough)
 - Corroborative signals, unstructured data, portfolio evolution (personal CSV)
 - SEC EDGAR ETL (frozen spike remains in repo — [ADR-0001](../adr/0001-simfin-fundamentals-mvp.md))

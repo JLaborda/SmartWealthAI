@@ -74,7 +74,7 @@ export SIMFIN_API_KEY="<from user secrets>"
 poetry run download-simfin
 ```
 
-Spec: [`spec/features/006-etl-data-lake/spec.md`](spec/features/006-etl-data-lake/spec.md). Operator guide: [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md). Delivery target: [`spec/constitution/roadmap.md`](spec/constitution/roadmap.md).
+Spec: [`spec/features/006-etl-data-lake/spec.md`](spec/features/006-etl-data-lake/spec.md). Operator guides: [`spec/guides/demo-pipeline.md`](spec/guides/demo-pipeline.md), [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md). Delivery target: [`spec/constitution/roadmap.md`](spec/constitution/roadmap.md).
 
 ### Fundamentals — SEC spike (frozen, phase 2)
 
@@ -92,6 +92,8 @@ Guide: [`spec/guides/download-fundamentals.md`](spec/guides/download-fundamental
 - SEC EDGAR and `edgartools` require `SEC_IDENTITY` (real name + email) for the **frozen** SEC spike only.
 - `data/` is gitignored except `data/reference/**` (versioned universe and mapping CSVs).
   Never commit personal finance files or raw broker exports.
+- PR CI is hermetic: no live SimFin/yfinance. Codecov **patch** target is 85% (`codecov.yml`); see [`spec/guides/pr-ci.md`](spec/guides/pr-ci.md).
+- `run-demo-pipeline` does **not** run `download-price-history`. Dashboard is three pages (Overview, Ranking, Portfolio). Runbook: [`spec/guides/demo-pipeline.md`](spec/guides/demo-pipeline.md).
 
 ## GitHub Issues (task tracking)
 

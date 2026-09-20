@@ -1,11 +1,11 @@
 # Guide: Download fundamentals (local spike — frozen)
 
-> **Status:** This guide documents the **frozen SEC ETL spike** ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)). The June 30 demo pipeline uses **SimFin** instead — see [`roadmap.md`](../roadmap.md) and [`etl-data-lake.md`](../../006-etl-data-lake/spec.md). Do not delete this spike; it resumes in phase 2.
+> **Status:** This guide documents the **frozen SEC ETL spike** ([ADR-0001](../adr/0001-simfin-fundamentals-mvp.md)). The June 30 demo pipeline uses **SimFin** instead — see [`roadmap.md`](../constitution/roadmap.md) and [`006-etl-data-lake`](../features/006-etl-data-lake/spec.md). Do not delete this spike; it resumes in phase 2.
 
 Operator guide for the first ETL vertical slice: download raw SEC `companyfacts` and
 standardized annual statements from `edgartools` for a parameterized universe.
 
-**Canonical spec:** [`../../006-etl-data-lake/spec.md`](../../006-etl-data-lake/spec.md) (section
+**Canonical spec:** [`../features/006-etl-data-lake/spec.md`](../features/006-etl-data-lake/spec.md) (section
 *Fundamentals download spike*).
 
 ## Prerequisites
@@ -76,7 +76,7 @@ poetry run download-fundamentals --universe dow30 --data-dir /tmp/swai-lake
 ## Universe files
 
 Presets map to versioned CSV files under `data/reference/universes/`. See
-[`../../../data/reference/universes/README.md`](../../../data/reference/universes/README.md).
+[`../../data/reference/universes/README.md`](../../data/reference/universes/README.md).
 
 Format:
 

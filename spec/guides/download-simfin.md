@@ -1,6 +1,6 @@
 # Download SimFin bulk fundamentals and prices (demo)
 
-Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`spec/features/006-etl-data-lake/spec.md`](../../features/006-etl-data-lake/spec.md).
+Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`spec/features/006-etl-data-lake/spec.md`](../features/006-etl-data-lake/spec.md).
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
 poetry run compute-metrics --ticker AAPL --as-of-date 2026-06-18
 ```
 
-Or run ingest → score in one command (then launch the dashboard):
+Or run ingest → score in one command (then launch the dashboard). Full CLI flags, scoring artifacts, MLflow, and troubleshooting: [`demo-pipeline.md`](demo-pipeline.md).
 
 ```bash
 poetry run run-demo-pipeline --run-date 2026-06-18

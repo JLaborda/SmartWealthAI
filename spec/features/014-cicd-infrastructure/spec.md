@@ -2,7 +2,13 @@
 
 ## Implementation status
 
-**planned** (M2 Terraform v1)
+**in_progress** — M0 PR CI done; M2 Terraform planned.
+
+**done (M0):** Makefile, Poetry, hermetic pytest + Ruff on PRs to `develop`/`main` (`.github/workflows/pr-ci.yml`). Codecov project coverage (`target: auto`, 1% threshold) and **85% patch** coverage (`threshold: 2%`) via `codecov.yml` ([#119](https://github.com/JLaborda/SmartWealthAI/issues/119)). Frozen SEC spike omitted from coverage.
+
+**planned (M2):** Terraform v1 per [#105](https://github.com/JLaborda/SmartWealthAI/issues/105).
+
+Operator guide: [`spec/guides/pr-ci.md`](../../guides/pr-ci.md).
 
 ## Delivery
 

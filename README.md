@@ -44,7 +44,7 @@ Canonical specs: [`spec/`](spec/) · Ubiquitous language: [`CONTEXT.md`](CONTEXT
     poetry run run-demo-pipeline --run-date 2026-06-18
     ```
 
-    Individual stages (`download-simfin`, `normalize-simfin`, `build-universe`, `score-universe`, …) are also available. Guide: [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md).
+    Individual stages (`download-simfin`, `normalize-simfin`, `build-universe`, `score-universe`, …) are also available. Runbook: [`spec/guides/demo-pipeline.md`](spec/guides/demo-pipeline.md). SimFin download: [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md).
 
 5.  **Demo dashboard** (after the pipeline for the same `run_date`):
 
@@ -77,8 +77,11 @@ See [`spec/constitution/roadmap.md`](spec/constitution/roadmap.md) for the **Jun
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
+**PR CI:** `make lint` + hermetic `pytest` on every PR. Codecov blocks large coverage drops and requires **85% patch** coverage. Frozen SEC modules are omitted. Guide: [`spec/guides/pr-ci.md`](spec/guides/pr-ci.md).
+
 ### Phase 2 (after demo)
 
 - Historical S&P 500 universe, permanent loss filter, backtesting
 - Sell-watch, paper trading, SEC EDGAR normalizer (optional PIT upgrade)
 - Corroborative signals, unstructured data, portfolio evolution
+- Daily price history CLI (`download-price-history`) and multi-period fundamentals are already in tree — see [`spec/guides/download-simfin.md`](spec/guides/download-simfin.md)

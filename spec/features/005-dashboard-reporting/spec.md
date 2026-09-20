@@ -4,6 +4,18 @@
 
 **done** — demo slice three-page app ([#62](https://github.com/JLaborda/SmartWealthAI/issues/62)); full MVP pages in phase 2.
 
+### Shipped surface (v0.1.0)
+
+The demo app is **three pages**, not the six listed under *MVP scope* below:
+
+| Page | File | Data |
+| --- | --- | --- |
+| Overview | `apps/dashboard/Home.py` | Ranked ticker count, portfolio size, top holding |
+| Ranking | `apps/dashboard/pages/1_Ranking.py` | Combined rank + ROC/EY inputs from `curated/scores/combined/` |
+| Portfolio | `apps/dashboard/pages/2_Portfolio.py` | Equal-weight holdings from `curated/portfolio/` |
+
+ETL, Universe, Quality, and Cheapness pages remain in scope for later; they are **not** implemented. The UI reads parquet only (no live SimFin/yfinance). Missing partitions render an empty state. Operator runbook: [`spec/guides/demo-pipeline.md`](../../guides/demo-pipeline.md).
+
 ### Demo run
 
 ```bash
@@ -11,9 +23,9 @@
 poetry run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
-Environment variables: `SMARTWEALTHAI_DATA_DIR` (lake root, default `data`), `SMARTWEALTHAI_RUN_DATE` (optional override).
+`run-dashboard` sets `SMARTWEALTHAI_DATA_DIR` / `SMARTWEALTHAI_RUN_DATE` and launches Streamlit on `0.0.0.0:8501` (headless). If no run date is passed, the app uses `?run_date=`, then the env var, then the newest `curated/portfolio/run_date=*` partition.
 
-Code: `apps/dashboard/` (Streamlit UI), `src/smartwealthai/dashboard_data.py` (parquet readers), `tests/test_dashboard_data.py`.
+Code: `apps/dashboard/` (Streamlit UI), `src/smartwealthai/dashboard_data.py` (parquet readers), `src/smartwealthai/run_dashboard.py` (CLI), `tests/test_dashboard_data.py`.
 
 ## Objective
 

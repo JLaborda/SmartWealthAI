@@ -78,8 +78,12 @@ export MLFLOW_ALLOW_FILE_STORE=true
 ### Secrets
 
 - **Local dev:** `.env` (gitignored) for `SIMFIN_API_KEY`; devcontainer loads via `.devcontainer/install-env-hook.sh`
-- **CI:** GitHub Actions secrets
+- **CI:** GitHub Actions secrets (`CODECOV_TOKEN` for coverage upload). PR tests do not need `SIMFIN_API_KEY`.
 - **Cloud runtime:** AWS Secrets Manager
+
+### PR CI coverage
+
+Hermetic pytest + Ruff on every PR to `develop` / `main`. Codecov **project** coverage may not drop more than 1% vs the base branch; **patch** coverage target is 85% (`threshold: 2%`). Frozen SEC spike modules are omitted. Operator notes: [`spec/guides/pr-ci.md`](../guides/pr-ci.md).
 
 ### Data lake (technical)
 
@@ -99,5 +103,7 @@ export MLFLOW_ALLOW_FILE_STORE=true
 
 | Guide | Path |
 | --- | --- |
-| SimFin download (demo) | [`spec/guides/download-simfin.md`](../guides/download-simfin.md) |
+| Demo pipeline (ingest → score → dashboard) | [`spec/guides/demo-pipeline.md`](../guides/demo-pipeline.md) |
+| SimFin download (demo + phase 2 prices) | [`spec/guides/download-simfin.md`](../guides/download-simfin.md) |
+| PR CI and Codecov | [`spec/guides/pr-ci.md`](../guides/pr-ci.md) |
 | SEC fundamentals (frozen spike) | [`spec/guides/download-fundamentals.md`](../guides/download-fundamentals.md) |
