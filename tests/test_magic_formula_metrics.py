@@ -184,6 +184,29 @@ def test_build_metrics_flags_negative_ebit_and_skips_ey() -> None:
     assert result.flags == ["negative_ebit"]
 
 
+def test_build_metrics_flags_invalid_ev_when_cash_exceeds_enterprise() -> None:
+    result = build_metrics(
+        ticker="CASH",
+        ebit=50.0,
+        current_assets=200.0,
+        current_liabilities=50.0,
+        cash=200.0,
+        short_term_debt=0.0,
+        net_fixed_assets=100.0,
+        shares_outstanding=10.0,
+        adj_close=10.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+
+    assert result.market_cap == pytest.approx(100.0)
+    assert result.ev == pytest.approx(-100.0)
+    assert result.roc == pytest.approx(50.0 / 100.0)
+    assert result.ey is None
+    assert result.flags == ["invalid_ev"]
+
+
 def test_build_metrics_flags_missing_inputs() -> None:
     result = build_metrics(
         ticker="X",

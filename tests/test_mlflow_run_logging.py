@@ -171,6 +171,25 @@ def test_resolve_tracking_uri_prefers_argument(tmp_path: Path) -> None:
     assert resolve_tracking_uri(uri) == uri
 
 
+def test_resolve_tracking_uri_uses_env_when_argument_omitted(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    uri = tmp_path.joinpath("env-mlruns").as_uri()
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", uri)
+    assert resolve_tracking_uri() == uri
+
+
+def test_resolve_tracking_uri_argument_beats_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    env_uri = tmp_path.joinpath("env-mlruns").as_uri()
+    arg_uri = tmp_path.joinpath("arg-mlruns").as_uri()
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", env_uri)
+    assert resolve_tracking_uri(arg_uri) == arg_uri
+
+
 def test_resolve_tracking_uri_defaults_to_cwd_mlruns(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
     assert resolve_tracking_uri() == Path.cwd().joinpath("mlruns").as_uri()

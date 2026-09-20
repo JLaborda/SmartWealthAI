@@ -29,6 +29,8 @@ from smartwealthai.magic_formula_ranking import (
     assign_metric_ranks,
     build_combined_ranking,
     build_equal_weight_portfolio,
+    is_cheap_rankable,
+    is_quality_rankable,
     partition_metrics,
     score_universe,
 )
@@ -519,3 +521,29 @@ def test_cli_score_universe_fails_when_universe_missing(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert "No universe snapshot" in result.output
+
+
+def test_invalid_ev_is_quality_rankable_but_excluded_from_cheapness() -> None:
+    result = build_metrics(
+        ticker="CASH",
+        ebit=50.0,
+        current_assets=200.0,
+        current_liabilities=50.0,
+        cash=200.0,
+        short_term_debt=0.0,
+        net_fixed_assets=100.0,
+        shares_outstanding=10.0,
+        adj_close=10.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+
+    assert is_quality_rankable(result) is True
+    assert is_cheap_rankable(result) is False
+
+    partitioned = partition_metrics([result])
+    assert partitioned.rankable == []
+    assert [row.ticker for row in partitioned.quality_scorable] == ["CASH"]
+    assert [row.ticker for row in partitioned.cheap_review] == ["CASH"]
+    assert "invalid_ev" in partitioned.cheap_review[0].flags
