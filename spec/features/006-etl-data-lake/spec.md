@@ -337,6 +337,7 @@ Extend SimFin ingest and normalization so Quantitative Value downstream modules 
 1. `download-simfin` fetches demo datasets plus phase 2 annual/quarterly statement variants.
 2. `normalize-simfin` processes three statement bundles: TTM (demo), annual, quarterly.
 3. Annual/quarterly rows join income + balance + cashflow on exact `Report Date`; missing QV inputs → review queue.
+   Mapped fields take the first **non-null** value across income, then balance, then cashflow. An empty cell on an earlier statement must not block fallthrough (SimFin income often has blank `Depreciation & Amortization` while cashflow is populated; `Shares (Basic)` may be blank on TTM income while the balance sheet has shares).
 4. Curated partitions store multiple `statement_variant` rows per `period=<YYYYQn>` parquet.
 5. `load_pit_fundamentals_history(ticker, decision_date)` returns annual/quarterly history with PIT selection per fiscal period.
 

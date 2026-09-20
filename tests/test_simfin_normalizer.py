@@ -25,6 +25,7 @@ from smartwealthai.normalize_simfin import (
 )
 from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
+    _field_value,
     _index_balance_by_ticker,
     _latest_balance_row,
     _matching_statement_row,
@@ -713,6 +714,70 @@ def test_normalize_simfin_routes_missing_qv_inputs_to_issues(tmp_path: Path) -> 
     assert "missing_qv_inputs" in set(issues["reason"])
 
 
+def test_field_value_skips_nan_and_falls_through_to_later_statement() -> None:
+    income = pd.Series({"Depreciation & Amortization": float("nan"), "Revenue": 1.0})
+    cashflow = pd.Series({"Depreciation & Amortization": 11_445_000_000.0})
+
+    assert _field_value("Depreciation & Amortization", (income, None, cashflow)) == 11_445_000_000.0
+    assert _field_value("Revenue", (income, None, cashflow)) == 1.0
+    assert _field_value("Missing Column", (income, None, cashflow)) is None
+
+
+def test_normalize_simfin_uses_cashflow_da_when_income_column_is_empty(tmp_path: Path) -> None:
+    """Real SimFin income files include D&A as a blank column; cashflow holds the value."""
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+    income_path = simfin_bulk_path(
+        tmp_path,
+        dataset="income",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _add_empty_numeric_column(income_path, "Depreciation & Amortization")
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    output = curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    quarterly = (
+        pd.read_parquet(output).loc[lambda frame: frame["statement_variant"] == "quarterly"].iloc[0]
+    )
+    assert result.written_rows >= 2
+    assert quarterly["depreciation_amortization"] == 11_445_000_000
+    issues_path = curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE)
+    if issues_path.exists():
+        issues = pd.read_parquet(issues_path)
+        assert "missing_qv_inputs" not in set(issues["reason"])
+
+
+def test_normalize_simfin_uses_balance_shares_when_income_shares_are_empty(tmp_path: Path) -> None:
+    """TTM income bulk schema includes Shares (Basic); blank cells must not drop the ticker."""
+    _copy_simfin_fixtures(tmp_path)
+    income_path = simfin_bulk_path(
+        tmp_path,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    _add_empty_numeric_column(income_path, "Shares (Basic)")
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 1
+    row = pd.read_parquet(
+        curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    ).iloc[0]
+    assert row["shares_outstanding"] == 15_115_800_000
+
+
 def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
     mapping_path = tmp_path / "mapping.yaml"
     mapping_path.write_text(
@@ -741,6 +806,13 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
 
 def _append_csv_line(path: Path, line: str) -> None:
     path.write_text(path.read_text().rstrip("\n") + "\n" + line + "\n")
+
+
+def _add_empty_numeric_column(path: Path, column: str) -> None:
+    """Insert a SimFin-schema column filled with empty cells (production bulk shape)."""
+    frame = pd.read_csv(path, sep=";")
+    frame[column] = pd.NA
+    frame.to_csv(path, sep=";", index=False)
 
 
 _SKIP_UNLESS_MULTIPERIOD = (

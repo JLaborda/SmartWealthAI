@@ -543,9 +543,19 @@ def _build_curated_row(
 
 
 def _field_value(simfin_col: str, sources: tuple[pd.Series | None, ...]) -> float | None:
+    """Return the first non-null numeric value across income, balance, then cashflow.
+
+    SimFin bulk files use a fixed column schema per statement type. An income row
+    may include ``Depreciation & Amortization`` or ``Shares (Basic)`` as empty
+    cells while cashflow/balance hold the actual number. Presence of the column
+    must not block fallthrough.
+    """
     for source in sources:
-        if source is not None and simfin_col in source.index:
-            return _numeric(source.get(simfin_col))
+        if source is None or simfin_col not in source.index:
+            continue
+        value = _numeric(source.get(simfin_col))
+        if value is not None:
+            return value
     return None
 
 
