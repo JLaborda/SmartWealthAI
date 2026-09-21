@@ -445,7 +445,7 @@ def test_load_pit_fundamentals_history_raises_when_partitions_empty(pit_lake: Pa
         load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
 
 
-def test_read_fundamentals_partition_uses_last_row_when_no_ttm(pit_lake: Path) -> None:
+def test_read_fundamentals_partition_returns_none_when_no_ttm(pit_lake: Path) -> None:
     path = (
         pit_lake
         / "curated"
@@ -461,11 +461,49 @@ def test_read_fundamentals_partition_uses_last_row_when_no_ttm(pit_lake: Path) -
         ]
     ).to_parquet(path, index=False)
 
-    frame = _read_fundamentals_partition(path)
+    assert _read_fundamentals_partition(path) is None
 
-    assert frame is not None
-    assert frame.iloc[0]["statement_variant"] == "annual"
-    assert frame.iloc[0]["ebit"] == 60.0
+
+def test_load_pit_fundamentals_bulk_does_not_treat_later_quarterly_as_ttm(
+    pit_lake: Path,
+) -> None:
+    """A later quarterly-only period must not replace earlier TTM in MF scoring.
+
+    Trigger: income/ttm is missing for 2025Q1 (download failed or TTM row dropped)
+    while quarterly/annual phase-2 rows were written. The MF loader used to take
+    ``iloc[-1]`` (quarterly EBIT) because that partition's as_of is later.
+    """
+    q1_path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2025Q1"
+        / "fundamentals.parquet"
+    )
+    q1_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        [
+            _base_fundamentals_row(
+                statement_variant="quarterly",
+                ebit=25.0,
+                as_of_date=pd.Timestamp("2026-06-10"),
+                fiscal_period_end=pd.Timestamp("2026-03-28"),
+            ),
+            _base_fundamentals_row(
+                statement_variant="annual",
+                ebit=80.0,
+                as_of_date=pd.Timestamp("2026-06-10"),
+                fiscal_period_end=pd.Timestamp("2026-03-28"),
+            ),
+        ]
+    ).to_parquet(q1_path, index=False)
+
+    loaded = load_pit_fundamentals_bulk(pit_lake, ciks={CIK}, as_of_date=RUN_DATE)
+
+    assert CIK in loaded
+    assert loaded[CIK]["ebit"] == 100.0
+    assert loaded[CIK]["statement_variant"] == "ttm"
 
 
 def test_read_fundamentals_partition_without_statement_variant_column(pit_lake: Path) -> None:

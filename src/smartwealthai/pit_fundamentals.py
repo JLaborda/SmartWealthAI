@@ -202,10 +202,10 @@ def _read_fundamentals_partition(path: Path) -> pd.DataFrame | None:
         frame["cik"] = _cik_from_partition_path(path)
     if "statement_variant" in frame.columns:
         ttm = frame.loc[frame["statement_variant"] == "ttm"]
-        if not ttm.empty:
-            frame = ttm
-        else:
-            frame = frame.iloc[[-1]]
+        if ttm.empty:
+            # MF scoring is TTM-only; annual/quarterly EBIT is not a substitute.
+            return None
+        frame = ttm
     else:
         frame = frame.iloc[[0]]
     return frame

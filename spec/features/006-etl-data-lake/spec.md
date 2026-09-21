@@ -351,7 +351,7 @@ Extend SimFin ingest and normalization so Quantitative Value downstream modules 
 ### Risks
 
 - SimFin free-tier bulk size grows with extra variants; monitor download time on weekly refresh.
-- Same fiscal `period` partition holds multiple `statement_variant` rows; MF loaders filter to `ttm`.
+- Same fiscal `period` partition holds multiple `statement_variant` rows; MF loaders filter to `ttm`. A partition with no TTM row is skipped (do not fall back to annual/quarterly — that would treat single-quarter earnings as TTM).
 
 ## Daily price history (phase 2)
 
