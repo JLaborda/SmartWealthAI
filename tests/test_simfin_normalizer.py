@@ -351,6 +351,57 @@ def test_balance_index_returns_same_row_as_full_scan(lake_with_simfin: Path) -> 
     assert row["Total Assets"] == naive["Total Assets"]
 
 
+def test_latest_balance_row_ignores_statements_after_report_date() -> None:
+    """Point-in-time: a later balance sheet must not supply cash or other fields."""
+    balance = pd.DataFrame(
+        {
+            "Ticker": ["AAPL", "AAPL", "AAPL"],
+            "Report Date": pd.to_datetime(["2024-03-31", "2024-09-28", "2024-06-30"]),
+            "Cash, Cash Equivalents & Short Term Investments": [1.0, 9.0, 2.0],
+        }
+    )
+    indexed = _index_balance_by_ticker(
+        balance,
+        ticker_col="Ticker",
+        report_col="Report Date",
+    )
+
+    row = _latest_balance_row(
+        indexed,
+        ticker="AAPL",
+        report_date=pd.Timestamp("2024-07-01"),
+        report_col="Report Date",
+    )
+
+    assert row is not None
+    assert row["Cash, Cash Equivalents & Short Term Investments"] == 2.0
+
+
+def test_normalize_simfin_without_ticker_filter_writes_every_income_ticker(
+    lake_with_simfin: Path,
+) -> None:
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 5
+    assert result.issue_rows == 0
+
+    aapl = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    ).iloc[0]
+    # Combined SimFin cash column, not a missing or adjacent balance field.
+    assert aapl["cash"] == 29_943_000_000
+    assert aapl["ppe_net"] == 45_680_000_000
+
+    lost = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0001000003", period="2024Q4")
+    ).iloc[0]
+    assert lost["ticker"] == "LOST"
+    assert lost["ebit"] == -10_000_000
+
+
 def test_cli_normalize_simfin_writes_curated_output(lake_with_simfin: Path) -> None:
     exit_code = cli_run(
         [
@@ -650,6 +701,26 @@ def test_load_simfin_mapping_parses_minimal_yaml(tmp_path: Path) -> None:
     assert mapping["version"] == "test_v1"
     assert mapping["fields"]["ebit"] == "EBIT"
     assert mapping["missing_publish_lag_days"] == 45
+
+
+def test_load_simfin_mapping_ignores_keys_under_unknown_sections(tmp_path: Path) -> None:
+    mapping_path = tmp_path / "mapping.yaml"
+    mapping_path.write_text(
+        "version: test_v1\n"
+        "fields:\n"
+        '  ebit: "Operating Income (Loss)"\n'
+        "unknown_section:\n"
+        "  leaked: Should Not Land\n"
+        "meta:\n"
+        "  ticker: Ticker\n"
+    )
+
+    mapping = load_simfin_mapping(mapping_path)
+
+    assert mapping["fields"] == {"ebit": "Operating Income (Loss)"}
+    assert mapping["meta"] == {"ticker": "Ticker"}
+    assert "leaked" not in mapping
+    assert "unknown_section" not in mapping
 
 
 def _append_csv_line(path: Path, line: str) -> None:

@@ -99,6 +99,27 @@ def test_build_price_rows_uses_latest_on_or_before_run_date(lake: Path) -> None:
     assert rows[0]["adj_close"] == pytest.approx(273.5)
 
 
+def test_build_price_rows_prefers_newest_eligible_print_over_stale_and_future() -> None:
+    """Point-in-time: latest close on or before run_date, even if the file is unsorted."""
+    shareprices = pd.DataFrame(
+        {
+            "Ticker": ["AAPL", "AAPL", "AAPL"],
+            "Date": ["2026-06-20", "2026-06-01", "2026-06-17"],
+            "Close": [283.0, 100.0, 274.0],
+            "Adj. Close": [282.5, 99.0, 273.5],
+            "Volume": [3.0, 1.0, 2.0],
+        }
+    )
+
+    rows, missing = build_price_rows(shareprices, ["AAPL"], run_date=date(2026, 6, 18))
+
+    assert missing == []
+    assert len(rows) == 1
+    assert rows[0]["price_date"] == "2026-06-17"
+    assert rows[0]["close"] == pytest.approx(274.0)
+    assert rows[0]["adj_close"] == pytest.approx(273.5)
+
+
 def test_build_price_rows_reports_missing_tickers(lake: Path) -> None:
     shareprices = load_raw_shareprices(lake, snapshot_date=SNAPSHOT_DATE)
     rows, missing = build_price_rows(shareprices, ["AAPL", "MISSING"], run_date=RUN_DATE)
