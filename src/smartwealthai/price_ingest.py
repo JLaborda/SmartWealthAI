@@ -39,6 +39,17 @@ def should_skip_artifact(path: Path, *, force: bool) -> bool:
     return not force and path.exists()
 
 
+def price_snapshot_covers_tickers(path: Path, tickers: list[str]) -> bool:
+    """Return True when an existing price snapshot covers every universe ticker."""
+    prices = pd.read_parquet(path, columns=["ticker"])
+    return set(prices["ticker"].astype(str)) >= set(tickers)
+
+
+def should_skip_price_snapshot(path: Path, *, tickers: list[str], force: bool) -> bool:
+    """Return True when an existing price snapshot is complete enough to reuse."""
+    return should_skip_artifact(path, force=force) and price_snapshot_covers_tickers(path, tickers)
+
+
 def load_universe_tickers(data_dir: Path, *, run_date: date) -> list[str]:
     """Read ticker symbols from the curated universe snapshot for ``run_date``."""
     path = curated_universe_path(data_dir, run_date=run_date)
@@ -133,11 +144,11 @@ def run_price_ingest(
 ) -> PriceIngestRun:
     """Build run-date prices for universe tickers from SimFin shareprices/latest."""
     curated_path = curated_prices_snapshot_path(data_dir, run_date=run_date)
-    if should_skip_artifact(curated_path, force=force):
+    tickers = load_universe_tickers(data_dir, run_date=run_date)
+    if should_skip_price_snapshot(curated_path, tickers=tickers, force=force):
         return PriceIngestRun(curated_path=curated_path, run_skipped=True)
 
     snapshot = snapshot_date or run_date
-    tickers = load_universe_tickers(data_dir, run_date=run_date)
     shareprices = load_raw_shareprices(data_dir, snapshot_date=snapshot)
     rows, missing = build_price_rows(shareprices, tickers, run_date=run_date)
 
