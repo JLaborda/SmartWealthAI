@@ -312,6 +312,21 @@ def test_unknown_industry_id_has_null_sector(lake: Path) -> None:
     assert row["sector"] is None or pd.isna(row["sector"])
 
 
+def test_build_universe_uppercases_ticker_and_pads_cik(lake: Path) -> None:
+    """Join keys must be stable: ticker upper-case, CIK zero-padded to 10 digits."""
+    _write_companies(
+        lake,
+        ["aapl;111052;Apple Inc.;50;USA;320193"],
+    )
+    _write_industries(lake, ["50;Consumer Electronics;Technology"])
+
+    result = build_universe(lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+
+    universe = pd.read_parquet(result.universe_path)
+    assert list(universe["ticker"]) == ["AAPL"]
+    assert universe.iloc[0]["cik"] == "0000320193"
+
+
 def test_missing_cik_allowed_in_universe(lake: Path) -> None:
     _write_companies(lake, ["NOCIK;666001;No CIK Inc.;50;USA;"])
 
