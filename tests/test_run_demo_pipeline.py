@@ -10,12 +10,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 import click
+import pandas as pd
 import pytest
 from click.testing import CliRunner
 
 from smartwealthai.lake_paths import curated_portfolio_path
 from smartwealthai.magic_formula_ranking import ScoringResult
-from smartwealthai.price_ingest import PriceIngestRun
+from smartwealthai.price_ingest import PriceIngestRun, run_price_ingest
 from smartwealthai.run_demo_pipeline import (
     PipelineResult,
     PipelineStepResult,
@@ -190,6 +191,39 @@ def test_run_demo_pipeline_skips_download_and_completes(lake: Path) -> None:
     ]
     assert result.scoring is not None
     assert result.scoring.portfolio_count >= 0
+
+
+@patch("smartwealthai.run_demo_pipeline.run_download", return_value=0)
+@patch("smartwealthai.run_demo_pipeline.run_price_ingest", wraps=run_price_ingest)
+def test_run_demo_pipeline_forwards_force_refresh_and_portfolio_size(
+    mock_prices: object,
+    mock_download: object,
+    lake: Path,
+) -> None:
+    """Pipeline flags must reach download, price ingest, and equal-weight selection."""
+    result = run_demo_pipeline(
+        lake,
+        run_date=RUN_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+        refresh_days=3,
+        force=True,
+        skip_mlflow=True,
+        portfolio_size=1,
+    )
+
+    mock_download.assert_called_once_with(  # type: ignore[attr-defined]
+        data_dir=lake,
+        as_of_date=SNAPSHOT_DATE,
+        refresh_days=3,
+        force=True,
+    )
+    assert mock_prices.call_args.kwargs["force"] is True  # type: ignore[attr-defined]
+    assert result.ok
+    assert result.scoring is not None
+    assert result.scoring.portfolio_count == 1
+    portfolio = pd.read_parquet(result.scoring.portfolio_path)
+    assert len(portfolio) == 1
+    assert portfolio["weight"].iloc[0] == pytest.approx(1.0)
 
 
 def test_run_demo_pipeline_scores_universe_and_writes_portfolio(lake: Path) -> None:
