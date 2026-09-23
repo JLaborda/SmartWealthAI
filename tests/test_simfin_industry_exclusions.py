@@ -39,6 +39,22 @@ def test_reference_csv_covers_insurers_and_utilities() -> None:
     assert df["exclusion_reason"].isin(["bank", "insurer", "utility"]).all()
 
 
+def test_build_exclusions_does_not_treat_banking_as_banks() -> None:
+    """Bank exclusion is an exact industry name, so Investment Banking stays in."""
+    industries = pd.DataFrame(
+        {
+            "Industry": ["Investment Banking", "Banks"],
+            "Sector": ["Financial Services", "Financial Services"],
+        },
+        index=pd.Index([1, 2], name="IndustryId"),
+    )
+
+    result = build_exclusions(industries)
+
+    assert list(result["industry_name"]) == ["Banks"]
+    assert result.iloc[0]["exclusion_reason"] == "bank"
+
+
 def test_build_exclusions_selects_banks_insurers_and_utilities() -> None:
     industries = pd.DataFrame(
         {
