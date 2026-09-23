@@ -23,6 +23,7 @@ from smartwealthai.normalize_simfin import (
     load_universe_tickers,
     resolve_show_progress,
 )
+from smartwealthai.pit_fundamentals import _select_pit_fundamentals
 from smartwealthai.simfin_normalizer import (
     DEFAULT_MAPPING_PATH,
     _index_balance_by_ticker,
@@ -110,6 +111,47 @@ def test_normalize_simfin_uses_restated_date_for_new_version(lake_with_simfin: P
     as_of = row["as_of_date"]
     as_of_date = as_of.date() if hasattr(as_of, "date") else as_of
     assert as_of_date == date(2025, 10, 31)
+
+
+def test_normalize_simfin_hides_restated_balance_until_restated_date(
+    lake_with_simfin: Path,
+) -> None:
+    """A restated balance joined to an earlier income publish date must not leak."""
+    balance_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="balance",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    balance_path.write_text(
+        balance_path.read_text().replace(
+            "2024-09-28;2024-11-01;;USD;2024;Q4;152987000000;176000000000;29943000000;",
+            "2024-09-28;2024-11-01;2025-06-15;USD;2024;Q4;152987000000;176000000000;99900000000;",
+        )
+    )
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.written_rows == 1
+    frame = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    )
+    row = frame.iloc[0]
+    as_of = row["as_of_date"]
+    as_of_date = as_of.date() if hasattr(as_of, "date") else as_of
+    assert as_of_date == date(2025, 6, 15)
+    assert row["version_id"] == 2
+    assert row["cash"] == 99_900_000_000
+    assert row["as_of_source"] == "restated_date"
+    assert _select_pit_fundamentals(frame, date(2025, 1, 15)).empty
+    visible = _select_pit_fundamentals(frame, date(2025, 6, 15))
+    assert len(visible) == 1
+    assert visible.iloc[0]["cash"] == 99_900_000_000
 
 
 def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin: Path) -> None:

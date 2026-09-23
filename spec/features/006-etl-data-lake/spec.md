@@ -224,7 +224,7 @@ poetry run score-universe --run-date 2026-06-19
 | Area | Decision |
 | --- | --- |
 | **Demo normalizer input** | SimFin bulk parquets from `raw/simfin/` (income TTM + balance quarterly + cashflow TTM). |
-| **`as_of_date` (demo)** | SimFin `Publish Date`; `Restated Date` → new `version_id`. |
+| **`as_of_date` (demo)** | SimFin `Publish Date`; `Restated Date` → new `version_id`. A joined balance or cashflow `Restated Date` later than the income as-of moves the curated `as_of_date` forward so restated statement values are not visible earlier. |
 | **SEC normalizer (phase 2)** | `companyfacts` JSON from `raw/sec_edgar/...`; EDGAR acceptance as `as_of_date`. |
 | **Mapping** | `config/fundamentals/simfin_mapping_v1.yaml` (demo); `mapping_v1.yaml` (SEC phase 2). |
 | Canonical fields | Core ~14 columns for ROC/EY/QC plus QV columns (`accounts_receivable`, `cost_of_revenue`, `depreciation_amortization`, `sga_expense`, `operating_cash_flow`) in `simfin_mapping_v1.yaml`. |

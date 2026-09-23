@@ -509,6 +509,21 @@ def _build_curated_row(
         issues.append(_issue_row(ticker=ticker, reason="invalid_period"))
         return None, issues
     version_id = _version_id(income_row, meta)
+    # Restated balance/cashflow values are not knowable at the income publish date.
+    component_restated = [
+        stamp
+        for stamp in (
+            _restated_date(balance_row, meta),
+            _restated_date(cashflow_row, meta),
+        )
+        if stamp is not None
+    ]
+    if component_restated:
+        version_id = 2
+        latest_component = max(component_restated)
+        if latest_component > as_of_date:
+            as_of_date = latest_component
+            as_of_source = "restated_date"
 
     row: dict[str, object] = {
         "cik": cik,
@@ -572,9 +587,17 @@ def _period_label(income_row: pd.Series, meta: dict, report_date: date) -> str:
     return fiscal_period_label(report_date)
 
 
-def _version_id(income_row: pd.Series, meta: dict) -> int:
-    restated = income_row.get(meta["restated_date"])
+def _restated_date(row: pd.Series | None, meta: dict) -> date | None:
+    if row is None:
+        return None
+    restated = row.get(meta["restated_date"])
     if pd.notna(restated):
+        return pd.Timestamp(restated).date()
+    return None
+
+
+def _version_id(income_row: pd.Series, meta: dict) -> int:
+    if _restated_date(income_row, meta) is not None:
         return 2
     return 1
 
