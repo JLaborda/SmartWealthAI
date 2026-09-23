@@ -169,6 +169,37 @@ def test_run_skips_when_curated_snapshot_exists(lake: Path) -> None:
     assert second.run_skipped is True
 
 
+def test_run_price_ingest_force_rebuilds_changed_prices(lake: Path) -> None:
+    """`--force` must replace a curated snapshot after raw shareprices change."""
+    first = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+    assert first.curated_path is not None
+
+    raw_path = shareprices_raw_path(lake, snapshot_date=SNAPSHOT_DATE)
+    raw_path.write_text(
+        raw_path.read_text().replace(
+            "AAPL;2026-06-17;270.0;275.0;269.0;274.0;273.5;",
+            "AAPL;2026-06-17;270.0;275.0;269.0;274.0;111.0;",
+        )
+    )
+
+    skipped = run_price_ingest(data_dir=lake, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
+    assert skipped.run_skipped is True
+    unchanged = pd.read_parquet(first.curated_path)
+    assert unchanged.loc[unchanged["ticker"] == "AAPL", "adj_close"].iloc[0] == pytest.approx(
+        273.5
+    )
+
+    rebuilt = run_price_ingest(
+        data_dir=lake,
+        run_date=RUN_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+        force=True,
+    )
+    assert rebuilt.run_skipped is False
+    prices = pd.read_parquet(rebuilt.curated_path)
+    assert prices.loc[prices["ticker"] == "AAPL", "adj_close"].iloc[0] == pytest.approx(111.0)
+
+
 def test_cli_records_missing_tickers(lake: Path) -> None:
     universe_path = curated_universe_path(lake, run_date=RUN_DATE)
     universe = pd.read_parquet(universe_path)
