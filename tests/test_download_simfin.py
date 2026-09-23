@@ -81,6 +81,16 @@ def test_should_not_skip_when_lake_file_is_stale(tmp_path: Path) -> None:
     assert should_skip_dataset(target, refresh_days=7, force=False, now=now) is False
 
 
+def test_should_not_skip_when_lake_file_age_equals_refresh_days(tmp_path: Path) -> None:
+    """Age equal to refresh_days is stale (`<`, not `<=`), so the lake copy is refreshed."""
+    target = tmp_path / "us-income-ttm.csv"
+    target.write_text("csv")
+    now = 1_700_000_000.0
+    boundary_mtime = now - (7 * 86400)
+    os.utime(target, (boundary_mtime, boundary_mtime))
+    assert should_skip_dataset(target, refresh_days=7, force=False, now=now) is False
+
+
 def test_should_not_skip_when_force_enabled(tmp_path: Path) -> None:
     target = tmp_path / "us-income-ttm.csv"
     target.write_text("csv")
