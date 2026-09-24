@@ -135,7 +135,11 @@ def test_normalize_simfin_routes_missing_publish_date_to_issues(lake_with_simfin
 
 
 def test_fiscal_period_label_uses_calendar_quarter() -> None:
+    assert fiscal_period_label(date(2024, 1, 1)) == "2024Q1"
+    assert fiscal_period_label(date(2024, 3, 31)) == "2024Q1"
+    assert fiscal_period_label(date(2024, 4, 1)) == "2024Q2"
     assert fiscal_period_label(date(2024, 9, 28)) == "2024Q3"
+    assert fiscal_period_label(date(2024, 12, 31)) == "2024Q4"
 
 
 def test_cli_normalize_simfin_requires_scope(lake_with_simfin: Path) -> None:
@@ -211,6 +215,32 @@ def test_latest_balance_row_returns_none_when_report_date_before_all(
     )
 
     assert row is None
+
+
+def test_latest_balance_row_includes_statement_dated_on_the_report_date() -> None:
+    """A balance sheet published on the income report date is the latest known."""
+    balance = pd.DataFrame(
+        {
+            "Ticker": ["AAPL", "AAPL"],
+            "Report Date": pd.to_datetime(["2024-06-30", "2024-09-28"]),
+            "Cash, Cash Equivalents & Short Term Investments": [2.0, 9.0],
+        }
+    )
+    indexed = _index_balance_by_ticker(
+        balance,
+        ticker_col="Ticker",
+        report_col="Report Date",
+    )
+
+    row = _latest_balance_row(
+        indexed,
+        ticker="AAPL",
+        report_date=pd.Timestamp("2024-09-28"),
+        report_col="Report Date",
+    )
+
+    assert row is not None
+    assert row["Cash, Cash Equivalents & Short Term Investments"] == 9.0
 
 
 def _add_msft_rows(lake_with_simfin: Path) -> None:
@@ -606,6 +636,35 @@ def test_normalize_simfin_routes_as_of_before_period_end_to_issues(lake_with_sim
     assert result.written_rows == 0
     issues = pd.read_parquet(curated_issues_path(lake_with_simfin, run_date=SIMFIN_FIXTURE_DATE))
     assert issues.iloc[0]["reason"] == "as_of_before_period_end"
+
+
+def test_normalize_simfin_keeps_publish_date_equal_to_period_end(lake_with_simfin: Path) -> None:
+    """Same-day publication is known on the period end and must be stored."""
+    income_path = simfin_bulk_path(
+        lake_with_simfin,
+        dataset="income",
+        variant="ttm",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    original = income_path.read_text()
+    income_path.write_text(original.replace("2024-09-28;2024-11-01;", "2024-09-28;2024-09-28;"))
+
+    result = normalize_simfin(
+        lake_with_simfin,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+        run_date=SIMFIN_FIXTURE_DATE,
+    )
+
+    assert result.written_rows == 1
+    assert result.issue_rows == 0
+    row = pd.read_parquet(
+        curated_fundamentals_path(lake_with_simfin, cik="0000320193", period="2024Q4")
+    ).iloc[0]
+    as_of = row["as_of_date"]
+    as_of_date = as_of.date() if hasattr(as_of, "date") else as_of
+    assert as_of_date == date(2024, 9, 28)
 
 
 def test_normalize_simfin_uses_calendar_period_when_fiscal_labels_missing(

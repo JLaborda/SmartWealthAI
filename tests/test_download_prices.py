@@ -115,6 +115,26 @@ def test_build_price_rows_empty_when_run_date_before_all_prices(lake: Path) -> N
     assert missing == ["AAPL", "MSFT"]
 
 
+def test_build_price_rows_uses_close_printed_on_the_run_date() -> None:
+    """The run-date print is eligible; a prior session must not win over it."""
+    shareprices = pd.DataFrame(
+        {
+            "Ticker": ["AAPL", "AAPL"],
+            "Date": ["2026-06-17", "2026-06-18"],
+            "Close": [274.0, 280.0],
+            "Adj. Close": [273.5, 279.5],
+            "Volume": [1.0, 2.0],
+        }
+    )
+
+    rows, missing = build_price_rows(shareprices, ["AAPL"], run_date=date(2026, 6, 18))
+
+    assert missing == []
+    assert len(rows) == 1
+    assert rows[0]["price_date"] == "2026-06-18"
+    assert rows[0]["adj_close"] == pytest.approx(279.5)
+
+
 def test_load_universe_tickers_raises_when_universe_missing(lake: Path) -> None:
     universe_path = curated_universe_path(lake, run_date=RUN_DATE)
     universe_path.unlink()

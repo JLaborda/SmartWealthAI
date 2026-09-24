@@ -186,6 +186,22 @@ def test_select_pit_fundamentals_returns_empty_frame_unchanged() -> None:
     assert _select_pit_fundamentals(pd.DataFrame(), RUN_DATE).empty
 
 
+def test_select_pit_fundamentals_keeps_filing_published_on_decision_date() -> None:
+    """A filing dated on the decision date is known; the next day is not."""
+    frame = pd.DataFrame(
+        [
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-06-01"), "version_id": 1, "ebit": 10.0},
+            {"cik": CIK, "as_of_date": pd.Timestamp(RUN_DATE), "version_id": 1, "ebit": 40.0},
+            {"cik": CIK, "as_of_date": pd.Timestamp("2026-06-19"), "version_id": 1, "ebit": 99.0},
+        ]
+    )
+
+    selected = _select_pit_fundamentals(frame, RUN_DATE)
+
+    assert len(selected) == 1
+    assert selected.iloc[0]["ebit"] == 40.0
+
+
 def test_fundamentals_paths_skips_missing_cik_directories(pit_lake: Path) -> None:
     paths = _fundamentals_paths_for_ciks(
         pit_lake,
