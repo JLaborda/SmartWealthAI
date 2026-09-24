@@ -16,7 +16,9 @@ from click.testing import CliRunner
 from smartwealthai.lake_paths import (
     curated_cheap_scores_path,
     curated_combined_ranking_path,
+    curated_fundamentals_path,
     curated_portfolio_path,
+    curated_prices_snapshot_path,
     curated_quality_scores_path,
     curated_universe_path,
 )
@@ -167,6 +169,109 @@ def test_partition_metrics_excludes_invalid_and_negative_ebit_from_rankable() ->
     assert [row.ticker for row in partitioned.rankable] == ["OK"]
     assert {row.ticker for row in partitioned.quality_review} == {"BAD_ROC"}
     assert {row.ticker for row in partitioned.cheap_review} == {"BAD_EY", "BAD_ROC"}
+
+
+def test_score_universe_keeps_factor_ranks_independent(tmp_path: Path) -> None:
+    """One-factor failures still occupy that factor's cross-sectional rank.
+
+    Quality and cheapness ranks are separate. A name that fails only EY must
+    not free ROC rank 1 for peers, and a name that fails only ROC must not
+    free EY rank 1. The combined rank uses those full-universe ranks.
+    """
+    lake = tmp_path / "lake"
+    names = {
+        "DUAL": {
+            "cik": "0000000001",
+            "ebit": 100.0,
+            "current_assets": 200.0,
+            "current_liabilities": 80.0,
+            "cash": 20.0,
+            "short_term_debt": 0.0,
+            "ppe_net": 100.0,
+            "shares_outstanding": 10.0,
+            "adj_close": 25.0,
+            "long_term_debt": 0.0,
+        },
+        "CASHY": {
+            "cik": "0000000002",
+            "ebit": 200.0,
+            "current_assets": 200.0,
+            "current_liabilities": 50.0,
+            "cash": 500.0,
+            "short_term_debt": 0.0,
+            "ppe_net": 50.0,
+            "shares_outstanding": 10.0,
+            "adj_close": 10.0,
+            "long_term_debt": 0.0,
+        },
+        "THIN": {
+            "cik": "0000000003",
+            "ebit": 80.0,
+            "current_assets": 10.0,
+            "current_liabilities": 10.0,
+            "cash": 1.0,
+            "short_term_debt": 0.0,
+            "ppe_net": 0.0,
+            "shares_outstanding": 10.0,
+            "adj_close": 5.0,
+            "long_term_debt": 0.0,
+        },
+    }
+    universe_path = curated_universe_path(lake, run_date=RUN_DATE)
+    universe_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        [{"ticker": ticker, "cik": spec["cik"]} for ticker, spec in names.items()]
+    ).to_parquet(universe_path, index=False)
+
+    price_rows = []
+    for ticker, spec in names.items():
+        fundamentals = {
+            "cik": spec["cik"],
+            "as_of_date": pd.Timestamp(RUN_DATE),
+            "version_id": 1,
+            "preferred_equity": 0.0,
+            "minority_interest": 0.0,
+            **{key: value for key, value in spec.items() if key not in {"cik", "adj_close"}},
+        }
+        path = curated_fundamentals_path(lake, cik=str(spec["cik"]), period="2024Q4")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([fundamentals]).to_parquet(path, index=False)
+        price_rows.append(
+            {
+                "run_date": RUN_DATE.isoformat(),
+                "ticker": ticker,
+                "price_date": RUN_DATE.isoformat(),
+                "close": spec["adj_close"],
+                "adj_close": spec["adj_close"],
+                "volume": 1.0,
+            }
+        )
+    prices_path = curated_prices_snapshot_path(lake, run_date=RUN_DATE)
+    prices_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(price_rows).to_parquet(prices_path, index=False)
+
+    result = score_universe(lake, run_date=RUN_DATE, skip_mlflow=True)
+    quality = pd.read_parquet(result.quality_path).set_index("ticker")
+    cheap = pd.read_parquet(result.cheap_path).set_index("ticker")
+    combined = pd.read_parquet(result.combined_path)
+    quality_issues = pd.read_parquet(result.quality_issues_path)
+    cheap_issues = pd.read_parquet(result.cheap_issues_path)
+
+    assert result.rankable_count == 1
+    assert set(quality.index) == {"CASHY", "DUAL"}
+    assert quality.loc["CASHY", "roc_rank"] == 1
+    assert quality.loc["DUAL", "roc_rank"] == 2
+    assert set(cheap.index) == {"THIN", "DUAL"}
+    assert cheap.loc["THIN", "ey_rank"] == 1
+    assert cheap.loc["DUAL", "ey_rank"] == 2
+    assert list(combined["ticker"]) == ["DUAL"]
+    assert combined.iloc[0]["roc_rank"] == 2
+    assert combined.iloc[0]["ey_rank"] == 2
+    assert combined.iloc[0]["combined_rank"] == 4
+    assert set(quality_issues["ticker"]) == {"THIN"}
+    assert "invalid_roc_denominator" in quality_issues.iloc[0]["flags"]
+    assert set(cheap_issues["ticker"]) == {"CASHY"}
+    assert "invalid_ev" in cheap_issues.iloc[0]["flags"]
 
 
 def test_build_combined_ranking_sums_ranks_and_orders_by_market_cap_tiebreak() -> None:
