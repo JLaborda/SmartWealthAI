@@ -151,6 +151,53 @@ def test_bank_sanity_excludes_ticker_even_without_industry_match(lake: Path) -> 
     assert sanity["exclusion_reason"] == "bank_sanity"
 
 
+def test_listed_bank_keeps_industry_reason_when_also_in_bank_statements(lake: Path) -> None:
+    """Industry-list exclusions outrank the statement sanity fallback."""
+    _write_companies(
+        lake,
+        ["JPM;111053;JPMorgan Chase & Co.;104002;USA;0000019617"],
+    )
+    _write_industries(lake, ["104002;Banks;Financial Services"])
+    _write_statement_index(
+        lake,
+        dataset="income_banks",
+        rows=["JPM;111053;2024-12-31;2025-02-01;;USD;2024;Q4;1000000"],
+    )
+
+    result = build_universe(
+        lake,
+        run_date=RUN_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+        exclusions_path=REFERENCE_PATH,
+    )
+
+    exclusions = pd.read_parquet(result.exclusions_path)
+    assert list(exclusions["ticker"]) == ["JPM"]
+    assert exclusions.iloc[0]["exclusion_reason"] == "bank"
+
+
+def test_ticker_in_both_sanity_lists_is_excluded_as_bank(lake: Path) -> None:
+    _write_companies(
+        lake,
+        ["BOTH;444001;Both Lists Corp.;50;USA;0001000003"],
+    )
+    _write_industries(lake, ["50;Application Software;Technology"])
+    statement = ["BOTH;444001;2024-12-31;2025-02-01;;USD;2024;Q4;1000000"]
+    _write_statement_index(lake, dataset="income_banks", rows=statement)
+    _write_statement_index(lake, dataset="income_insurance", rows=statement)
+
+    result = build_universe(
+        lake,
+        run_date=RUN_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+        exclusions_path=REFERENCE_PATH,
+    )
+
+    exclusions = pd.read_parquet(result.exclusions_path)
+    assert list(exclusions["ticker"]) == ["BOTH"]
+    assert exclusions.iloc[0]["exclusion_reason"] == "bank_sanity"
+
+
 def test_insurance_sanity_excludes_ticker(lake: Path) -> None:
     _write_companies(
         lake,
