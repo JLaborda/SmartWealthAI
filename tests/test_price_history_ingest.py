@@ -106,6 +106,31 @@ def test_write_curated_daily_prices_skips_existing_partitions(lake: Path) -> Non
     assert skipped == 1
 
 
+def test_write_curated_daily_prices_force_replaces_existing_year(lake: Path) -> None:
+    shareprices = load_raw_shareprices_daily(lake, snapshot_date=SNAPSHOT_DATE)
+    wide = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2025, 12, 31),
+        end_date=END_DATE,
+    )
+    narrow = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2026, 6, 16),
+        end_date=date(2026, 6, 17),
+    )
+    write_curated_daily_prices(lake, wide, force=False)
+    written, skipped = write_curated_daily_prices(lake, narrow, force=True)
+
+    assert skipped == 0
+    assert curated_prices_path(lake, ticker="AAPL", year=2026) in written
+    year_2026 = pd.read_parquet(curated_prices_path(lake, ticker="AAPL", year=2026))
+    assert set(year_2026["price_date"]) == {"2026-06-16", "2026-06-17"}
+    year_2025 = pd.read_parquet(curated_prices_path(lake, ticker="AAPL", year=2025))
+    assert set(year_2025["price_date"]) == {"2025-12-31"}
+
+
 def test_lookup_daily_adj_close_returns_latest_on_or_before_date(lake: Path) -> None:
     run_price_history_ingest(
         data_dir=lake,
@@ -121,6 +146,23 @@ def test_lookup_daily_adj_close_returns_latest_on_or_before_date(lake: Path) -> 
     assert lookup_daily_adj_close(
         lake, ticker="AAPL", as_of_date=date(2026, 6, 18)
     ) == pytest.approx(273.5)
+
+
+def test_lookup_daily_adj_close_uses_prior_year_when_decision_date_is_january(
+    lake: Path,
+) -> None:
+    run_price_history_ingest(
+        data_dir=lake,
+        tickers=["AAPL"],
+        start_date=date(2025, 1, 1),
+        end_date=END_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+    )
+
+    # 2025-12-31 adj close is 270; the next session (2026-01-02) is 274.
+    assert lookup_daily_adj_close(
+        lake, ticker="aapl", as_of_date=date(2026, 1, 1)
+    ) == pytest.approx(270.0)
 
 
 def test_lookup_daily_adj_close_raises_when_no_history(lake: Path) -> None:
@@ -290,6 +332,34 @@ def test_ensure_raw_shareprices_daily_skips_fresh_copy(lake: Path) -> None:
     assert result == raw_path
 
 
+def test_ensure_raw_shareprices_daily_force_refetches_fresh_partition(
+    lake: Path, tmp_path: Path
+) -> None:
+    raw_path = shareprices_daily_raw_path(lake, snapshot_date=SNAPSHOT_DATE)
+    seen: dict[str, object] = {}
+
+    def fake_fetch(**kwargs: object) -> Path:
+        seen.update(kwargs)
+        dest = tmp_path / "us-shareprices-daily.csv"
+        dest.write_text("Ticker;Date\n")
+        return dest
+
+    result = ensure_raw_shareprices_daily(
+        lake,
+        snapshot_date=SNAPSHOT_DATE,
+        refresh_days=7,
+        force=True,
+        fetch_csv=fake_fetch,
+    )
+
+    assert result == raw_path
+    assert seen["refresh_days"] == 0
+    assert seen["dataset"] == "shareprices"
+    assert seen["variant"] == "daily"
+    assert seen["market"] == "us"
+    assert raw_path.read_text() == "Ticker;Date\n"
+
+
 def test_lookup_daily_adj_close_raises_when_as_of_before_window(lake: Path) -> None:
     run_price_history_ingest(
         data_dir=lake,
@@ -306,6 +376,25 @@ def test_lookup_daily_adj_close_raises_when_as_of_before_window(lake: Path) -> N
 def test_resolve_history_tickers_requires_scope(lake: Path) -> None:
     with pytest.raises(ValueError, match="universe_run_date or explicit_tickers"):
         resolve_history_tickers(lake, universe_run_date=None, explicit_tickers=())
+
+
+def test_resolve_history_tickers_intersects_universe_and_explicit(lake: Path) -> None:
+    universe = resolve_history_tickers(lake, universe_run_date=RUN_DATE, explicit_tickers=())
+    assert "AAPL" in universe
+    assert universe == sorted(universe)
+
+    explicit = resolve_history_tickers(
+        lake, universe_run_date=None, explicit_tickers=("msft", "aapl")
+    )
+    assert explicit == ["AAPL", "MSFT"]
+
+    narrowed = resolve_history_tickers(
+        lake, universe_run_date=RUN_DATE, explicit_tickers=("aapl", "ZZZZ")
+    )
+    assert narrowed == ["AAPL"]
+
+    outside = resolve_history_tickers(lake, universe_run_date=RUN_DATE, explicit_tickers=("ZZZZ",))
+    assert outside == []
 
 
 def test_cli_rejects_inverted_date_range(lake: Path) -> None:
