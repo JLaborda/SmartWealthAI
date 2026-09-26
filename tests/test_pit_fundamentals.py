@@ -369,6 +369,68 @@ def test_load_pit_fundamentals_history_returns_multi_period_rows(pit_lake: Path)
     assert history.iloc[1]["accounts_receivable"] == 33_410_000_000
 
 
+def test_load_pit_fundamentals_history_keeps_knowable_restatement_per_period(
+    pit_lake: Path,
+) -> None:
+    shutil.rmtree(pit_lake / "curated" / "fundamentals" / f"cik={CIK}")
+    rows_by_period = {
+        "2023Q4": [
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2025-03-01"),
+                fiscal_period_end=pd.Timestamp("2023-09-30"),
+                version_id=1,
+                statement_variant="quarterly",
+                ebit=10.0,
+            ),
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2025-03-01"),
+                fiscal_period_end=pd.Timestamp("2023-09-30"),
+                version_id=2,
+                statement_variant="quarterly",
+                ebit=12.0,
+            ),
+        ],
+        "2024Q4": [
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2024-11-01"),
+                fiscal_period_end=pd.Timestamp("2024-09-28"),
+                version_id=1,
+                statement_variant="quarterly",
+                ebit=40.0,
+            ),
+        ],
+        "2025Q1": [
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2027-01-01"),
+                fiscal_period_end=pd.Timestamp("2025-03-29"),
+                version_id=1,
+                statement_variant="quarterly",
+                ebit=99.0,
+            ),
+        ],
+    }
+    for period, rows in rows_by_period.items():
+        path = (
+            pit_lake
+            / "curated"
+            / "fundamentals"
+            / f"cik={CIK}"
+            / f"period={period}"
+            / "fundamentals.parquet"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(rows).to_parquet(path, index=False)
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 2
+    assert history.iloc[0]["fiscal_period_end"] == pd.Timestamp("2023-09-30")
+    assert history.iloc[0]["version_id"] == 2
+    assert history.iloc[0]["ebit"] == 12.0
+    assert history.iloc[1]["fiscal_period_end"] == pd.Timestamp("2024-09-28")
+    assert history.iloc[1]["ebit"] == 40.0
+
+
 def test_load_pit_fundamentals_history_ignores_ttm_rows(pit_lake: Path) -> None:
     _write_fundamentals(
         pit_lake,

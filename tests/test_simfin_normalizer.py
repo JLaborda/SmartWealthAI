@@ -691,6 +691,46 @@ def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
     assert quarterly["operating_cash_flow"] == 118_254_000_000
 
 
+def test_normalize_simfin_rejects_quarterly_cashflow_with_mismatched_report_date(
+    tmp_path: Path,
+) -> None:
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+    cashflow_path = simfin_bulk_path(
+        tmp_path,
+        dataset="cashflow",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    original = cashflow_path.read_text()
+    assert original.count("2024-09-28") == 1
+    cashflow_path.write_text(original.replace("2024-09-28", "2024-09-27", 1))
+
+    result = normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    assert result.issue_rows >= 1
+    issues = pd.read_parquet(curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE))
+    assert "missing_qv_inputs" in set(issues["reason"])
+
+    matched_prior_year = pd.read_parquet(
+        curated_fundamentals_path(tmp_path, cik="0000320193", period="2023Q4")
+    )
+    prior_quarterly = matched_prior_year.loc[
+        matched_prior_year["statement_variant"] == "quarterly"
+    ]
+    assert prior_quarterly.iloc[0]["operating_cash_flow"] == 110_543_000_000
+
+    current_year = pd.read_parquet(
+        curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4")
+    )
+    mismatched = current_year.loc[current_year["statement_variant"] == "quarterly"]
+    assert mismatched.empty
+
+
 def test_normalize_simfin_routes_missing_qv_inputs_to_issues(tmp_path: Path) -> None:
     _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
     cashflow_path = simfin_bulk_path(

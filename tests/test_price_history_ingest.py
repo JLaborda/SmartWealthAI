@@ -60,6 +60,52 @@ def test_load_raw_shareprices_daily_reads_fixture(lake: Path) -> None:
     assert "MSFT" in frame["Ticker"].values
 
 
+def test_build_daily_price_rows_keeps_inclusive_endpoints_and_uppercases_ticker() -> None:
+    shareprices = pd.DataFrame(
+        [
+            {
+                "Ticker": "aapl",
+                "Date": "2026-05-31",
+                "Close": 1.0,
+                "Adj. Close": 1.0,
+                "Volume": 1,
+            },
+            {
+                "Ticker": "aapl",
+                "Date": "2026-06-01",
+                "Close": 2.0,
+                "Adj. Close": 2.0,
+                "Volume": 1,
+            },
+            {
+                "Ticker": "aapl",
+                "Date": "2026-06-30",
+                "Close": 3.0,
+                "Adj. Close": 3.0,
+                "Volume": 1,
+            },
+            {
+                "Ticker": "aapl",
+                "Date": "2026-07-01",
+                "Close": 4.0,
+                "Adj. Close": 4.0,
+                "Volume": 1,
+            },
+        ]
+    )
+
+    rows = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2026, 6, 1),
+        end_date=date(2026, 6, 30),
+    )
+
+    assert [row["price_date"] for row in rows] == ["2026-06-01", "2026-06-30"]
+    assert [row["adj_close"] for row in rows] == pytest.approx([2.0, 3.0])
+    assert {row["ticker"] for row in rows} == {"AAPL"}
+
+
 def test_build_daily_price_rows_filters_tickers_and_date_range(lake: Path) -> None:
     shareprices = load_raw_shareprices_daily(lake, snapshot_date=SNAPSHOT_DATE)
     rows = build_daily_price_rows(
