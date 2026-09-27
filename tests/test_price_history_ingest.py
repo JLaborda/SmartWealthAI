@@ -123,6 +123,25 @@ def test_lookup_daily_adj_close_returns_latest_on_or_before_date(lake: Path) -> 
     ) == pytest.approx(273.5)
 
 
+def test_lookup_daily_adj_close_uses_prior_year_when_current_year_missing(
+    lake: Path,
+) -> None:
+    """A missing decision-year partition still resolves the prior year's last print."""
+    shareprices = load_raw_shareprices_daily(lake, snapshot_date=SNAPSHOT_DATE)
+    rows = build_daily_price_rows(
+        shareprices,
+        ["AAPL"],
+        start_date=date(2025, 1, 1),
+        end_date=date(2025, 12, 31),
+    )
+    write_curated_daily_prices(lake, rows, force=False)
+
+    assert not curated_prices_path(lake, ticker="AAPL", year=2026).exists()
+    assert lookup_daily_adj_close(
+        lake, ticker="AAPL", as_of_date=date(2026, 6, 18)
+    ) == pytest.approx(270.0)
+
+
 def test_lookup_daily_adj_close_raises_when_no_history(lake: Path) -> None:
     with pytest.raises(LookupError, match="No daily price history"):
         lookup_daily_adj_close(lake, ticker="AAPL", as_of_date=RUN_DATE)
