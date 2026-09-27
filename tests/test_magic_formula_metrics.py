@@ -80,6 +80,29 @@ def test_compute_nwc_floors_at_zero() -> None:
     assert nwc == 0.0
 
 
+def test_build_metrics_floors_negative_nwc_before_roc() -> None:
+    """Negative raw NWC is floored at zero so positive fixed assets still produce ROC."""
+    result = build_metrics(
+        ticker="NWC",
+        ebit=80.0,
+        current_assets=0.0,
+        current_liabilities=50.0,
+        cash=100.0,
+        short_term_debt=0.0,
+        net_fixed_assets=40.0,
+        shares_outstanding=10.0,
+        adj_close=10.0,
+        long_term_debt=0.0,
+        preferred_equity=0.0,
+        minority_interest=0.0,
+    )
+
+    assert result.nwc == 0.0
+    assert result.roc_denominator == 40.0
+    assert result.roc == pytest.approx(2.0)
+    assert "invalid_roc_denominator" not in result.flags
+
+
 def test_compute_nwc_positive_when_operating_capital_positive() -> None:
     nwc = compute_nwc(
         current_assets=200.0,
