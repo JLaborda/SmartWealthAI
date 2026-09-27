@@ -369,6 +369,46 @@ def test_load_pit_fundamentals_history_returns_multi_period_rows(pit_lake: Path)
     assert history.iloc[1]["accounts_receivable"] == 33_410_000_000
 
 
+def test_load_pit_fundamentals_history_prefers_later_as_of_over_higher_version(
+    pit_lake: Path,
+) -> None:
+    """A later knowable filing wins even when an earlier row has a higher version_id."""
+    shutil.rmtree(pit_lake / "curated" / "fundamentals" / f"cik={CIK}")
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q4"
+        / "fundamentals.parquet"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        [
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2025-01-15"),
+                fiscal_period_end=pd.Timestamp("2024-09-28"),
+                version_id=2,
+                statement_variant="quarterly",
+                ebit=12.0,
+            ),
+            _base_fundamentals_row(
+                as_of_date=pd.Timestamp("2025-11-01"),
+                fiscal_period_end=pd.Timestamp("2024-09-28"),
+                version_id=1,
+                statement_variant="quarterly",
+                ebit=40.0,
+            ),
+        ]
+    ).to_parquet(path, index=False)
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 1
+    assert int(history.iloc[0]["version_id"]) == 1
+    assert history.iloc[0]["ebit"] == 40.0
+
+
 def test_load_pit_fundamentals_history_ignores_ttm_rows(pit_lake: Path) -> None:
     _write_fundamentals(
         pit_lake,
