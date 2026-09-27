@@ -6,7 +6,7 @@ done (demo cross-sectional slice) — EY scoring and ranks: `src/smartwealthai/m
 
 ## Objective
 
-Score the cheapness of every company that survives the universe filter, the permanent loss filter, and the quality scoring step. For the MVP, cheapness is a strict Greenblatt-style **Earnings Yield (EY) = EBIT / Enterprise Value**. Future iterations can plug additional valuation signals (FCF yield, EV/EBITDA, shareholder yield) through the same interface.
+Score the cheapness of every company in the investable universe. For the demo slice, cheapness is Greenblatt-style **Earnings Yield (EY) = EBIT / Enterprise Value**. The EY rank does not require a valid ROC. The permanent-loss filter is phase 2 and is not applied by `score-universe`.
 
 ## MVP scope
 
@@ -30,41 +30,62 @@ Score the cheapness of every company that survives the universe filter, the perm
 
 | Input | Source | Notes |
 | --- | --- | --- |
-| Passing universe + permanent loss filter pass list | `curated/universe` + `curated/permanent_loss` | Only `pass` rows are scored. |
+| Universe | `curated/universe/run_date=<YYYY-MM-DD>/universe.parquet` | Every row is scored. `curated/permanent_loss` is not read. |
 | PIT fundamentals (income statement, balance sheet) | `curated/fundamentals` | Filtered by `as_of_date <= run_date`. |
 | Run-date market cap | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` join `curated/fundamentals` | `shares_outstanding * adj_close`; `price_date` is the latest trading day ≤ `run_date`. |
 | Enterprise value components | `curated/fundamentals` | Total debt, preferred equity, minority interest, cash. |
 | Run date | Pipeline parameter | |
-| EY formula version | `config/cheap/ey.yaml` | Versioned. |
+| EY formula version | `src/smartwealthai/magic_formula_metrics.py` | Constant `FORMULA_VERSION = "v1"`. There is no `config/cheap/ey.yaml`. |
 
-## EY definition (canonical Greenblatt)
+## EY definition (shipped v1)
+
+Implemented in `src/smartwealthai/magic_formula_metrics.py`. Same EBIT and PIT row as [`007-high-quality-stocks`](../007-high-quality-stocks/spec.md).
 
 ```
-EY = EBIT / Enterprise Value
-EV = Market Cap + Total Debt + Preferred Equity + Minority Interest - Cash and Equivalents
+total_debt = long_term_debt + short_term_debt
+market_cap = shares_outstanding * adj_close
+EV = market_cap + total_debt + preferred_equity + minority_interest - cash
+EY = EBIT / EV    # only when EBIT > 0 and EV > 0
 ```
 
-with:
+| Input | Curated field | Notes |
+| --- | --- | --- |
+| EBIT | `ebit` | SimFin `Operating Income (Loss)`, TTM |
+| Shares | `shares_outstanding` | SimFin `Shares (Basic)` |
+| Price | `adj_close` | Run-date snapshot, not raw `close` |
+| Long-term / short-term debt | `long_term_debt`, `short_term_debt` | Summed in scoring. Capital leases are not in `simfin_mapping_v1.yaml` and are not added. |
+| Preferred equity, minority interest | `preferred_equity`, `minority_interest` | Null counts as `0`. Missing values do not raise `missing_inputs`. |
+| Cash | `cash` | Subtracted in EV. Same field as NWC excess cash. |
 
-- `EBIT` = Operating income before interest and taxes. Trailing twelve months. Same definition as in `high-quality-stocks.md` so both scores share the same `EBIT`.
-- `Market Cap` = `shares_outstanding * close` on `run_date`.
-- All other components from the latest filing whose `as_of_date <= run_date`.
+Demo `score-universe` scores the curated universe. It does not apply the permanent-loss filter. A universe ticker with no fundamentals row or no price row is omitted from both the cheapness score file and `cheap.parquet`.
 
-The formula and its variants are versioned in `config/cheap/ey.yaml`. Any change requires a new version id so backtests on prior versions remain reproducible.
+**Validation flags:**
+
+| Flag | When | EY rank |
+| --- | --- | --- |
+| `missing_inputs` | A required ROC/EY input is null (preferred equity and minority interest are not required) | No |
+| `negative_ebit` | `ebit < 0` | No. ROC may still be ranked. |
+| `invalid_ev` | `EV <= 0` | No |
+
+`is_cheap_rankable` does not look at ROC. A name can sit in the quality score file and the cheapness review queue at the same time. The combined rank (`roc_rank + ey_rank`) includes a name only when both factors are rankable.
+
+**Rank.** Higher EY is better (rank 1). Equal EY breaks toward smaller market cap with distinct ranks `1..N`.
+
+Bump `FORMULA_VERSION` in `magic_formula_metrics.py` when the formula changes.
 
 ## Outputs
 
 | Output | Path / target |
 | --- | --- |
-| Cheapness scores parquet | `curated/scores/cheap/run_date=<YYYY-MM-DD>/scores.parquet` with `cik, ticker, ebit, market_cap, total_debt, preferred_equity, minority_interest, cash, ev, ey, ey_rank, formula_version, as_of_date` |
-| Review queue rows | `curated/issues/run_date=<YYYY-MM-DD>/cheap.parquet` for invalid denominators, negative EBIT, missing inputs |
+| Cheapness scores parquet | `curated/scores/cheap/run_date=<YYYY-MM-DD>/scores.parquet` with `run_date, cik, ticker, ebit, market_cap, total_debt, preferred_equity, minority_interest, cash, ev, ey, ey_rank, formula_version, as_of_date` |
+| Review queue rows | `curated/issues/run_date=<YYYY-MM-DD>/cheap.parquet` with `run_date, cik, ticker, flags, ebit, roc, ey` |
 | MLflow metrics | `cheap_n_valid`, `cheap_n_invalid`, EY quantiles |
 
 ## Mermaid diagram
 
 ```mermaid
 flowchart TD
-    Passing["Universe pass + Permanent loss pass"] --> Loader["Load PIT fundamentals + market cap"]
+    Passing["Universe snapshot"] --> Loader["Load PIT fundamentals + adj_close"]
     Loader --> Components["EBIT, Market Cap, Total Debt, Preferred Equity, Minority Interest, Cash"]
     Components --> EV["Compute EV"]
     EV --> Validate{"EV > 0 and EBIT present?"}
@@ -81,13 +102,12 @@ flowchart TD
 
 ## Expected flow
 
-1. Load the passing universe and join with PIT fundamentals + market cap.
-2. Compute Enterprise Value from `market_cap + total_debt + preferred_equity + minority_interest - cash`.
-3. Validate inputs: missing component rows are dropped; `EV <= 0` and `EBIT <= 0` rows are flagged for review.
-4. Compute `EY`.
-5. Produce a cross-sectional rank from highest EY (rank 1) to lowest.
-6. Persist parquet and log MLflow metrics.
-7. The combined Greenblatt rank (`roc_rank + ey_rank`) is built downstream by `portfolio-construction` (inside the same pipeline). Tie-break by market cap from `high-quality-stocks` carries over.
+1. Load the universe snapshot for `run_date` and join PIT fundamentals plus `adj_close`.
+2. Compute total debt, market cap, and EV in `build_metrics`.
+3. Leave `ey` null and append `negative_ebit` or `invalid_ev` when EBIT is not positive or EV is not positive. Write those rows to `cheap.parquet`.
+4. Rank valid EY descending, then market cap ascending.
+5. Persist parquet. `as_of_date` on the score row is the decision `run_date`.
+6. `score_universe` builds the combined rank in the same run (`magic_formula_ranking.build_combined_ranking`) and the top-30 equal-weight portfolio. There is no separate portfolio-construction CLI.
 
 ## Acceptance criteria
 
@@ -98,12 +118,14 @@ flowchart TD
 - The formula version travels with each scored row.
 - The MLflow run logs at minimum count of valid rows, count of invalid rows, EY median, and EY quantiles.
 
-## Open questions
+## Decisions (v1)
 
-- For Enterprise Value, do we use `Long Term Debt + Short Term Debt + Capital Lease Obligations` for `Total Debt`, or a narrower definition? Recommendation: include capital leases under `Total Debt` and document as `formula_version = v1`.
-- ~~Cash definition: `CashAndCashEquivalents` only, or `CashAndCashEquivalents + ShortTermInvestments`?~~ **Closed (v1):** include short-term investments — SimFin column `Cash, Cash Equivalents & Short Term Investments` maps to curated `cash`.
-- Preferred equity: use book value or market value? Recommendation: book value (market is rarely available for free).
-- Should the EY rank skip companies that fail to score on quality (i.e., invalid ROC denominator)? Recommendation: no; keep the two ranks independent so the combined score only excludes a name when both fail.
+| Question | Shipped behavior |
+| --- | --- |
+| Total debt | `long_term_debt + short_term_debt`. Capital leases are not mapped and not added. |
+| Cash | SimFin `Cash, Cash Equivalents & Short Term Investments` → curated `cash`. |
+| Preferred equity | Book value from SimFin `Preferred Equity`. Null becomes `0` (minority interest too). |
+| Independence from ROC | EY rank does not require a valid ROC. Combined rank drops a name when either factor fails. |
 
 ## Risks
 

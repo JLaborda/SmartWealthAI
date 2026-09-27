@@ -6,7 +6,7 @@ done (demo cross-sectional slice) — ROC scoring and ranks: `src/smartwealthai/
 
 ## Objective
 
-Score the economic quality of every company that survives the universe filter and the permanent loss filter. For the MVP, the quality factor is a strict Greenblatt-style **Return on Capital (ROC)** computed from point-in-time fundamentals. Future iterations can plug additional quality signals into the same interface.
+Score the economic quality of every company in the investable universe. For the demo slice, the quality factor is Greenblatt-style **Return on Capital (ROC)** from point-in-time fundamentals. The permanent-loss filter is phase 2 and is not applied by `score-universe`.
 
 ## MVP scope
 
@@ -31,40 +31,60 @@ Score the economic quality of every company that survives the universe filter an
 
 | Input | Source | Notes |
 | --- | --- | --- |
-| Passing universe + permanent loss filter pass list | `curated/universe` + `curated/permanent_loss` | Only `pass` rows are scored. |
+| Universe | `curated/universe/run_date=<YYYY-MM-DD>/universe.parquet` | Every row is scored. `curated/permanent_loss` is not read. |
 | PIT fundamentals (income statement, balance sheet) | `curated/fundamentals` | Filtered by `as_of_date <= run_date`. |
-| Market cap | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` join `curated/fundamentals` | Tie-break uses `shares_outstanding * adj_close` on `run_date`. |
+| Market cap | `curated/prices/run_date=<YYYY-MM-DD>/prices.parquet` join `curated/fundamentals` | `shares_outstanding * adj_close`. |
 | Run date | Pipeline parameter | |
-| ROC formula version | `config/quality/roc.yaml` | Versioned to allow future variants. |
+| ROC formula version | `src/smartwealthai/magic_formula_metrics.py` | Constant `FORMULA_VERSION = "v1"`. There is no `config/quality/roc.yaml`. |
 
-## ROC definition (canonical Greenblatt)
+## ROC definition (shipped v1)
+
+Implemented in `src/smartwealthai/magic_formula_metrics.py`. Column names come from `config/fundamentals/simfin_mapping_v1.yaml`.
 
 ```
-ROC = EBIT / (Net Working Capital + Net Fixed Assets)
+NWC = max(current_assets - cash - current_liabilities + short_term_debt, 0)
+ROC = EBIT / (NWC + ppe_net)    # only when the denominator is > 0
 ```
 
-with:
+| Input | Curated field | SimFin column |
+| --- | --- | --- |
+| EBIT | `ebit` | `Operating Income (Loss)` (TTM income) |
+| Current assets / liabilities | `current_assets`, `current_liabilities` | `Total Current Assets`, `Total Current Liabilities` |
+| Excess cash | `cash` | `Cash, Cash Equivalents & Short Term Investments` |
+| Short-term debt | `short_term_debt` | `Short Term Debt` |
+| Net fixed assets | `ppe_net` | `Property, Plant & Equipment, Net` |
 
-- `EBIT` = Operating income before interest and taxes. Trailing twelve months.
-- `Net Working Capital` = `max(Current Assets - Excess Cash - Current Liabilities + Short-Term Debt, 0)` (Greenblatt uses non-interest-bearing current liabilities; we use this approximation and version it).
-- `Net Fixed Assets` = Total fixed assets (PP&E net of depreciation).
-- All values from the latest filing whose `as_of_date <= run_date`.
+Demo `score-universe` ranks every ticker in `curated/universe/run_date=<date>/universe.parquet`. It does not read a permanent-loss pass list (that filter is phase 2).
 
-The formula and its variants are versioned in `config/quality/roc.yaml`. Any change requires a new version id so backtests on prior versions remain reproducible.
+**Row selection.** `load_pit_fundamentals_bulk` keeps one fundamentals row per CIK. Inside a `period=*` partition it keeps `statement_variant == ttm` when any TTM row is present; a partition with no TTM row contributes its last row. Across those candidates it keeps the greatest `as_of_date <= run_date`, then the greatest `version_id`. Price is `adj_close` from `curated/prices/run_date=<date>/prices.parquet`. A universe ticker with no fundamentals row or no price row is omitted from the score file and the review queue. That case is not flagged `missing_inputs`.
+
+**Validation flags** (`MetricsResult.flags`):
+
+| Flag | When | Quality rank |
+| --- | --- | --- |
+| `missing_inputs` | Any of `ebit`, `current_assets`, `current_liabilities`, `cash`, `short_term_debt`, `ppe_net`, `shares_outstanding`, `adj_close`, `long_term_debt` is null | No |
+| `invalid_roc_denominator` | `NWC + ppe_net <= 0` | No |
+| `negative_ebit` | `ebit < 0` | Yes, when ROC was computed |
+
+Negative EBIT still gets a ROC and a quality rank when the denominator is positive. Those names are excluded from the EY rank (see [`003-cheap-stocks`](../003-cheap-stocks/spec.md)).
+
+**Rank.** `assign_metric_ranks` sorts by descending ROC, then ascending market cap, and assigns ranks `1..N`. Equal ROC values do not share a rank; the smaller market cap gets the better rank. There is no `tiebreak_rank` column.
+
+Bump `FORMULA_VERSION` in `magic_formula_metrics.py` when the formula changes. Score rows carry that string so a later backtest can tell which definition produced them.
 
 ## Outputs
 
 | Output | Path / target |
 | --- | --- |
-| Quality scores parquet | `curated/scores/quality/run_date=<YYYY-MM-DD>/scores.parquet` with `cik, ticker, ebit, nwc, net_fixed_assets, roc, roc_rank, market_cap, tiebreak_rank, formula_version, as_of_date` |
-| Review queue rows | `curated/issues/run_date=<YYYY-MM-DD>/quality.parquet` for invalid denominators and other warnings |
+| Quality scores parquet | `curated/scores/quality/run_date=<YYYY-MM-DD>/scores.parquet` with `run_date, cik, ticker, ebit, nwc, net_fixed_assets, roc, roc_rank, market_cap, formula_version, as_of_date` |
+| Review queue rows | `curated/issues/run_date=<YYYY-MM-DD>/quality.parquet` with `run_date, cik, ticker, flags, ebit, roc, ey` |
 | MLflow metrics | `quality_n_valid`, `quality_n_invalid`, ROC quantiles |
 
 ## Mermaid diagram
 
 ```mermaid
 flowchart TD
-    Passing["Universe pass + Permanent loss pass"] --> Loader["Load PIT fundamentals + market cap"]
+    Passing["Universe snapshot"] --> Loader["Load PIT fundamentals + adj_close"]
     Loader --> Compute["Compute EBIT, NWC, Net Fixed Assets"]
     Compute --> Validate{"Denominator > 0?"}
 
@@ -78,13 +98,12 @@ flowchart TD
 
 ## Expected flow
 
-1. Load the passing universe and join with PIT fundamentals.
-2. Compute `EBIT`, `Net Working Capital`, and `Net Fixed Assets` using the formula version configured for the run.
-3. Validate inputs: drop rows with missing components; flag rows with `denominator <= 0` and route them to the review queue.
-4. Compute `ROC`.
-5. Produce a cross-sectional rank from highest ROC (rank 1) to lowest.
-6. Resolve ties by ascending market cap.
-7. Persist the parquet output and log MLflow metrics.
+1. Load the universe snapshot for `run_date` and join PIT fundamentals plus the run-date price row.
+2. Compute NWC, the ROC denominator, and ROC (`build_metrics`).
+3. Route `missing_inputs` and `invalid_roc_denominator` to `quality.parquet`. Keep negative-EBIT names in the quality rank when ROC exists.
+4. Assign unique ranks: higher ROC first, smaller market cap on a tie (`assign_metric_ranks`).
+5. Persist parquet. `as_of_date` on the score row is the decision `run_date`, not the filing publish date (that date stays on the fundamentals row).
+6. Log MLflow metrics from `score-universe` (the standalone CLI always logs; `run-demo-pipeline --skip-mlflow` is the skip switch).
 
 ## Acceptance criteria
 
@@ -96,12 +115,14 @@ flowchart TD
 - The MLflow run logs at minimum count of valid rows, count of invalid rows, ROC median, and ROC quantiles.
 - The formula version travels with each scored row, so a backtest using a past `formula_version` is reproducible.
 
-## Open questions
+## Decisions (v1)
 
-- Greenblatt himself uses Pre-Tax Operating Earnings; do we use `EBIT` straight from EDGAR (`OperatingIncomeLoss + InterestAndDebtExpense`) or compute Pre-Tax Operating Earnings explicitly? Recommendation: use `OperatingIncomeLoss` from EDGAR and document the choice as `formula_version = v1`.
-- ~~Excess cash definition for `Net Working Capital`~~ **Closed (v1):** curated `cash` uses SimFin `Cash, Cash Equivalents & Short Term Investments` for both NWC and EV (known approximation — NWC excess-cash adjustment is slightly aggressive vs cash-equivalents-only).
-- Should very small ROC differences (e.g., < 0.1 percentage point) be treated as ties for the market-cap tie-break? Recommendation: no in the MVP; revisit if rank stability becomes a problem.
-- For companies with negative EBIT but positive denominator, ROC is negative. Do we exclude them, or rank them at the bottom? Recommendation: rank them at the bottom; they will likely never enter the top 30 anyway.
+| Question | Shipped behavior |
+| --- | --- |
+| EBIT source | SimFin `Operating Income (Loss)` → curated `ebit`. Demo scoring does not read EDGAR `OperatingIncomeLoss`. |
+| Excess cash | Curated `cash` (cash + equivalents + short-term investments) for both NWC and EV. Slightly aggressive vs cash-equivalents-only. |
+| Near-ties | No epsilon. Equal ROC values are ordered only by ascending market cap, then given distinct ranks. |
+| Negative EBIT | ROC is computed and quality-ranked when the denominator is positive. EY is not (cheapness review flag `negative_ebit`). |
 
 ## Risks
 

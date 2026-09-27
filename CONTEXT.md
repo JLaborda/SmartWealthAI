@@ -65,7 +65,7 @@ _Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for
 _Avoid_: using ROC rank alone as production quality in Phase 2 — see **FS-Score**
 
 **Net working capital (NWC)**:
-`max(Current Assets − Excess Cash − Current Liabilities + Short-Term Debt, 0)` per versioned Greenblatt-style config. **v1:** excess cash uses curated `cash` (SimFin cash + cash equivalents + short-term investments — same field as EV).
+`max(Current Assets − Excess Cash − Current Liabilities + Short-Term Debt, 0)` in `magic_formula_metrics.compute_nwc` (`FORMULA_VERSION = v1`). Excess cash uses curated `cash` (SimFin cash + cash equivalents + short-term investments — same field as EV).
 _Avoid_: total working capital without the excess-cash adjustment
 
 **Earnings yield (EY)**:
@@ -73,7 +73,7 @@ _Avoid_: total working capital without the excess-cash adjustment
 _Avoid_: using EY rank alone as production cheapness in Phase 2 — see **value pool**
 
 **Enterprise value (EV)**:
-`Market Cap + Total Debt + Preferred Equity + Minority Interest − Cash`. **v1:** cash is SimFin cash + cash equivalents + short-term investments (curated `cash`).
+`Market Cap + Total Debt + Preferred Equity + Minority Interest − Cash`. **v1:** market cap is `shares_outstanding * adj_close`; total debt is `long_term_debt + short_term_debt` (no capital leases); null preferred equity and minority interest count as zero; cash is SimFin cash + cash equivalents + short-term investments (curated `cash`).
 _Avoid_: market cap alone as “value”
 
 **Combined rank**:
@@ -109,7 +109,7 @@ Rank across all passing companies on one run date. Not comparable across dates w
 _Avoid_: time-series rank, percentile across history
 
 **Formula version**:
-Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
+Version id stamped on score rows so runs stay reproducible. Demo Magic Formula ROC/EY is the constant `v1` in `src/smartwealthai/magic_formula_metrics.py`.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
