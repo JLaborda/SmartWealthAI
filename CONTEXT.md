@@ -48,6 +48,46 @@ _Avoid_: penalize, down-rank, soft filter
 Hard exclusion for fraud or bankruptcy/distress risk before any score. Spec: `spec/features/008-permanent-loss-filter/spec.md`.
 _Avoid_: risk score, stop-loss, drawdown rule
 
+**Confirmed fraud signals**:
+Structural or event-based fraud evidence from filings or regulators, such as recent restatements, repeated auditor changes, late-filer notices, or SEC enforcement actions. These are distinct from statistical manipulation models. Spec: `spec/features/008-permanent-loss-filter/spec.md`.
+_Avoid_: using Beneish M-Score as if it were confirmed fraud
+
+**Manipulation risk**:
+Statistical risk that reported earnings or fundamentals are being managed or distorted. In phase 2, this starts with **Beneish M-Score** and may later include other forensic models. It is not the same as confirmed fraud. Spec: `spec/features/008-permanent-loss-filter/spec.md`.
+_Avoid_: treating manipulation risk as proof of fraud
+
+**Beneish unavailable**:
+A company at a run date where **Beneish M-Score** cannot be computed (missing multi-period inputs or invalid derived ratios). **Fail-open** while fundamentals coverage is incomplete: route to **review queue** and allow pass through the manipulation screen. **Fail-closed** once multi-period ETL coverage is sufficient (default **≥95%** of the universe scorable on a run date): hard-exclude names that cannot be scored. Threshold versioned in `config/permanent_loss/`.
+_Avoid_: treating missing Beneish as confirmed clean, silent pass without review queue
+
+**Beneish M-Score**:
+Classic 8-variable forensic accounting model that estimates **manipulation risk** from multi-period fundamentals. Gray/Carlisle *Quantitative Value* Ch. 3 labels the same model **PROBM** (probability of manipulation); in this repo the canonical name is **Beneish M-Score** (`beneish_score.py`). Coefficients versioned under `config/permanent_loss/beneish_v1.yaml`. In QV, the worst tail is hard-excluded via the **forensic bottom-percentile gate**, not an absolute academic cutoff.
+_Avoid_: treating PROBM as a separate production model from Beneish, calling it confirmed fraud
+
+**Forensic bottom-percentile gate**:
+Cross-sectional hard exclusion of the worst manipulation-risk tail among forensic survivors on a run date. Phase 2a: bottom 5% by **Beneish M-Score** (`FRD_BENEISH_BOTTOM_PCT`) and bottom 5% by **COMBOACCRUAL** (`FRD_COMBOACCRUAL_BOTTOM_PCT`). No absolute academic cutoffs in the QV production path.
+_Avoid_: M-Score > −1.78 as the production cutoff, time-series percentile across history
+
+**Scaled total accruals (STA)**:
+Accrual-flow manipulation signal from *Quantitative Value* Ch. 3: `(net income - operating cash flow) / total assets`. Higher STA → higher manipulation risk. Implemented in `accrual_scores.py`; pairs with **SNOA** in **COMBOACCRUAL**.
+_Avoid_: conflating STA with Beneish M-Score
+
+**Scaled net operating assets (SNOA)**:
+Accrual-stock manipulation signal from *Quantitative Value* Ch. 3: `(operating assets - operating liabilities) / lagged total assets` (falls back to current total assets when prior period missing). Higher SNOA → higher manipulation risk. Implemented in `accrual_scores.py`.
+_Avoid_: treating SNOA as a distress/bankruptcy model
+
+**COMBOACCRUAL**:
+Average cross-sectional percentile of **STA** and **SNOA** on a run date. Bottom 5% hard-excluded via `FRD_COMBOACCRUAL_BOTTOM_PCT` (`comboaccrual_gate_v1.yaml`).
+_Avoid_: averaging raw STA/SNOA values without cross-sectional percentiles
+
+**Forensic model fusion (phase 2b)**:
+Post–phase 2a approach: first add book-faithful **separate bottom-5% gates** per forensic measure (COMBOACCRUAL, Beneish/PMAN, PFD or aligned distress model); only then experiment with **embedding / ML fusion** if backtests show incremental value without sacrificing explainability.
+_Avoid_: jumping to ML fusion before individual gates are baseline-tested
+
+**Probability of financial distress (PFD)**:
+Campbell et al. logit model from *Quantitative Value* Ch. 3; estimates 12-month distress risk from market and balance-sheet inputs. **Backlog (phase 2b):** bottom-5% gate alongside existing **`BK_*` hard rules** (both kept; overlap measured in backtest before trimming).
+_Avoid_: conflating PFD with manipulation risk (STA/SNOA/Beneish) or treating PFD as confirmed fraud
+
 **Review queue**:
 Rows flagged for human review—invalid denominators, missing inputs, negative EBIT for EY, etc.—stored under `curated/issues/`.
 _Avoid_: silent drop, auto-fix without audit

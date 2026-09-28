@@ -1,0 +1,15 @@
+version: distress_rules_v1
+
+rules:
+  BK_ALTMAN_Z:
+    threshold: 1.81
+    compare: lt
+  BK_INT_COVERAGE:
+    threshold: 1.0
+    compare: lt
+  BK_NETDEBT_EBITDA:
+    net_debt_ebitda_threshold: 7.0
+    require_negative_fcf: true
+  BK_NEGATIVE_EQUITY:
+    threshold: 0.0
+    compare: lt

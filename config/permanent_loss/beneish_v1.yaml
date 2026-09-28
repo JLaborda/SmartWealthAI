@@ -1,0 +1,14 @@
+version: beneish_v1
+
+# Classic 8-variable Beneish M-Score (Beneish 1999). Coefficients are versioned
+# so book-specific variants (Gray/Carlisle) can swap this file without code changes.
+intercept: -4.84
+coefficients:
+  dsri: 0.92
+  gmi: 0.528
+  aqi: 0.404
+  sgi: 0.892
+  depi: 0.115
+  sgai: -0.172
+  tata: 4.679
+  lvgi: -0.327

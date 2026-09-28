@@ -286,6 +286,28 @@ def curated_exclusions_path(data_dir: Path, *, run_date: date) -> Path:
     )
 
 
+def curated_permanent_loss_exclusions_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for forensic / permanent-loss exclusions on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "permanent_loss"
+        / f"run_date={run_date.isoformat()}"
+        / "exclusions.parquet"
+    )
+
+
+def curated_permanent_loss_issues_path(data_dir: Path, *, run_date: date) -> Path:
+    """Build the path for permanent-loss review-queue rows on a run date."""
+    return (
+        data_dir
+        / "curated"
+        / "issues"
+        / f"run_date={run_date.isoformat()}"
+        / "permanent_loss.parquet"
+    )
+
+
 def yfinance_raw_path(
     data_dir: Path,
     *,
