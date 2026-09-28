@@ -1,6 +1,6 @@
-# SmartWealthAI
+# Equity screening
 
-Ubiquitous language for the quantitative value-investing MVP. Canonical formulas and acceptance criteria live in `docs/mvp/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
+Ubiquitous language for the quantitative value-investing / Magic Formula module. This is one context in a portfolio monorepo — see [`CONTEXT-MAP.md`](CONTEXT-MAP.md). Canonical formulas and acceptance criteria live in `docs/mvp/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
 
 ## Language
 
