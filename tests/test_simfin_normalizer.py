@@ -673,6 +673,52 @@ def test_normalize_simfin_processes_all_income_tickers_when_unscoped(
     assert result.written_rows >= 1
 
 
+def test_quarterly_balance_requires_exact_date_while_ttm_uses_prior_day(
+    tmp_path: Path,
+) -> None:
+    """Quarterly income must not attach an earlier balance; TTM still may."""
+    _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
+    balance_path = simfin_bulk_path(
+        tmp_path,
+        dataset="balance",
+        variant="quarterly",
+        market="us",
+        as_of_date=SIMFIN_FIXTURE_DATE,
+    )
+    original = balance_path.read_text()
+    shifted = original.replace(
+        "AAPL;111052;2024-09-28;2024-11-01;;USD;2024;Q4;"
+        "152987000000;176000000000;29943000000;0;45680000000;95281000000;0;0;"
+        "364980000000;308030000000;15115800000;33410000000",
+        "AAPL;111052;2024-09-27;2024-11-01;;USD;2024;Q4;"
+        "152987000000;176000000000;29943000000;0;45680000000;95281000000;0;0;"
+        "364980000000;308030000000;15115800000;111",
+    )
+    assert shifted != original
+    balance_path.write_text(shifted)
+
+    normalize_simfin(
+        tmp_path,
+        snapshot_date=SIMFIN_FIXTURE_DATE,
+        tickers={"AAPL"},
+    )
+
+    issues = pd.read_parquet(curated_issues_path(tmp_path, run_date=SIMFIN_FIXTURE_DATE))
+    aapl_missing_balance = issues.loc[
+        (issues["ticker"] == "AAPL") & (issues["reason"] == "missing_balance_row")
+    ]
+    assert len(aapl_missing_balance) == 1
+
+    q4 = pd.read_parquet(curated_fundamentals_path(tmp_path, cik="0000320193", period="2024Q4"))
+    assert set(q4["statement_variant"]) == {"ttm"}
+    assert q4.iloc[0]["accounts_receivable"] == 111
+
+    q3 = pd.read_parquet(curated_fundamentals_path(tmp_path, cik="0000320193", period="2023Q4"))
+    quarterly = q3.loc[q3["statement_variant"] == "quarterly"]
+    assert len(quarterly) == 1
+    assert quarterly.iloc[0]["accounts_receivable"] == 29_508_000_000
+
+
 def test_normalize_simfin_writes_quarterly_qv_fields(tmp_path: Path) -> None:
     _copy_simfin_fixtures(tmp_path, include_multiperiod=True)
 

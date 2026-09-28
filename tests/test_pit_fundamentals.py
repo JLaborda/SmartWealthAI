@@ -369,6 +369,42 @@ def test_load_pit_fundamentals_history_returns_multi_period_rows(pit_lake: Path)
     assert history.iloc[1]["accounts_receivable"] == 33_410_000_000
 
 
+def test_load_pit_fundamentals_history_includes_filing_on_decision_date(
+    pit_lake: Path,
+) -> None:
+    """A filing dated the decision date is knowable; the next day's restatement is not."""
+    path = (
+        pit_lake
+        / "curated"
+        / "fundamentals"
+        / f"cik={CIK}"
+        / "period=2024Q4"
+        / "fundamentals.parquet"
+    )
+    pd.DataFrame(
+        [
+            _base_fundamentals_row(
+                statement_variant="quarterly",
+                as_of_date=pd.Timestamp("2026-06-18"),
+                version_id=1,
+                ebit=40.0,
+            ),
+            _base_fundamentals_row(
+                statement_variant="quarterly",
+                as_of_date=pd.Timestamp("2026-06-19"),
+                version_id=2,
+                ebit=99.0,
+            ),
+        ]
+    ).to_parquet(path, index=False)
+
+    history = load_pit_fundamentals_history(pit_lake, ticker="AAPL", as_of_date=RUN_DATE)
+
+    assert len(history) == 1
+    assert history.iloc[0]["ebit"] == 40.0
+    assert history.iloc[0]["version_id"] == 1
+
+
 def test_load_pit_fundamentals_history_ignores_ttm_rows(pit_lake: Path) -> None:
     _write_fundamentals(
         pit_lake,

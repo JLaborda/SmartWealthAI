@@ -123,6 +123,48 @@ def test_lookup_daily_adj_close_returns_latest_on_or_before_date(lake: Path) -> 
     ) == pytest.approx(273.5)
 
 
+def test_lookup_daily_adj_close_ignores_later_print_in_same_year(lake: Path) -> None:
+    """A later session in the same year partition must not leak into an earlier as-of."""
+    run_price_history_ingest(
+        data_dir=lake,
+        tickers=["AAPL"],
+        start_date=date(2025, 1, 1),
+        end_date=END_DATE,
+        snapshot_date=SNAPSHOT_DATE,
+    )
+
+    # 2026-06-16 adj close is 270.5; the next session (2026-06-17) is 273.5.
+    assert lookup_daily_adj_close(
+        lake, ticker="AAPL", as_of_date=date(2026, 6, 16)
+    ) == pytest.approx(270.5)
+
+
+def test_ensure_raw_shareprices_daily_copies_missing_partition(lake: Path, tmp_path: Path) -> None:
+    raw_path = shareprices_daily_raw_path(lake, snapshot_date=SNAPSHOT_DATE)
+    raw_path.unlink()
+    seen: dict[str, object] = {}
+
+    def fake_fetch(**kwargs: object) -> Path:
+        seen.update(kwargs)
+        dest = tmp_path / "us-shareprices-daily.csv"
+        dest.write_text("Ticker;Date\n")
+        return dest
+
+    result = ensure_raw_shareprices_daily(
+        lake,
+        snapshot_date=SNAPSHOT_DATE,
+        refresh_days=7,
+        force=False,
+        fetch_csv=fake_fetch,
+    )
+
+    assert result == raw_path
+    assert seen["refresh_days"] == 7
+    assert seen["dataset"] == "shareprices"
+    assert seen["variant"] == "daily"
+    assert raw_path.read_text() == "Ticker;Date\n"
+
+
 def test_lookup_daily_adj_close_raises_when_no_history(lake: Path) -> None:
     with pytest.raises(LookupError, match="No daily price history"):
         lookup_daily_adj_close(lake, ticker="AAPL", as_of_date=RUN_DATE)
