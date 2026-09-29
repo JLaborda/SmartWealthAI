@@ -25,8 +25,8 @@ def test_credit_module_help_identifies_css(tmp_path: Path) -> None:
     assert "Credit Scoring System" in combined
 
 
-def test_credit_module_default_run_prints_css_stub(tmp_path: Path) -> None:
-    """python -m credit (no args) exits 0 and prints the CSS stub message."""
+def test_credit_module_default_run_lists_css_stages(tmp_path: Path) -> None:
+    """python -m credit (no args) exits 0 and lists CSS stages."""
     result = subprocess.run(
         [sys.executable, "-m", "credit"],
         capture_output=True,
@@ -36,6 +36,7 @@ def test_credit_module_default_run_prints_css_stub(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "Credit Scoring System" in result.stdout
+    assert "build-application-mart" in result.stdout
     assert "css-chapter5-mart-and-scoring.md" in result.stdout
 
 
