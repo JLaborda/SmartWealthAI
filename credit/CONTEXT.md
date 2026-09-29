@@ -5,7 +5,7 @@ Ubiquitous language for the credit domain module (`credit/`). See [`CONTEXT-MAP.
 ## Language
 
 **CSS (Credit Scoring System)**:
-The end-to-end application credit scoring capability in this portfolio: data mart → features/bins → model → credit score → monitoring. Named as in *Financial AI in Practice* (author shorthand for the system — not a universal industry acronym like PD or LGD).
+The end-to-end application credit scoring capability in this portfolio: data mart → features/bins → model → credit score → monitoring. Named as in Elliot Taehun Kim (2026), *Financial AI in Practice* (author shorthand for the system — not a universal industry acronym like PD or LGD).
 _Avoid_: using “CSS” in UI copy without expanding it once (collision with Cascading Style Sheets in web/tech contexts); assuming every interviewer knows the acronym; blending with fraud detection
 
 **Scorecard**:
@@ -54,3 +54,12 @@ _Avoid_: claiming calibrated “optimal” banking params without a documented b
 - Exact **bad**/**good** mapping is dataset-specific: document target column and default value on the mart README.
 - **CSS v1 use of the score:** **rank applications by risk only** (no approve/decline). Optional later: fictional cutoff from a profit/risk trade-off. Out of scope: assignment/matching engines.
 - **Score scaling:** book notebook parameters first; optimizing pdo/base on a larger database is explicitly later.
+
+## Sources
+
+Credit provenance (full portfolio list: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md)):
+
+1. **Elliot Taehun Kim (2026)** — *Financial AI in Practice: A Playbook for Credit, Fraud, and Investment Systems*
+   Architecture patterns, feature engineering, and ML pipelines for credit risk, fraud, and investment systems (CSS v1 follows chapters 5–6).
+
+**Demo datasets** (not live bank BFSI data): book sample (`train_df_sample.pkl` after LFS) preferred for notebook fidelity; practical fallbacks **Home Credit** then **FICO HELOC**; **AMEX Default Prediction** optional/scale-only. Document **target** → **bad**/**good** on the mart README.

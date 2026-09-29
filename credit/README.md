@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** planned — chapter 5–6 of *Financial AI in Practice*, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md)
+**Status:** planned — Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -26,3 +26,10 @@ No live bank BFSI data. Prefer the book sample after Git LFS; practical fallback
 ## Packaging
 
 One Poetry project at repo root: `credit` is a second installable package beside investing — `poetry install` is enough. Orchestration is **CLI + stages** (not Airflow locally).
+
+## Sources
+
+1. **Elliot Taehun Kim (2026)** — *Financial AI in Practice: A Playbook for Credit, Fraud, and Investment Systems*
+   Architecture patterns, feature engineering, and ML pipelines for credit risk (CSS follows chapters 5–6).
+
+Full portfolio Sources: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md).

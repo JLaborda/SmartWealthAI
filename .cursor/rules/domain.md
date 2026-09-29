@@ -1,5 +1,5 @@
 ---
-description: How agents consume CONTEXT.md, ADRs, and MVP specs (Matt Pocock skills)
+description: How agents consume CONTEXT-MAP, domain CONTEXT files, ADRs, and specs (Matt Pocock skills)
 alwaysApply: false
 ---
 
@@ -9,43 +9,47 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Layout
 
-**Single-context** — ubiquitous language in `CONTEXT.md` at the repo root plus system-wide ADRs.
+**Portfolio (multi-context)** — domain map in `CONTEXT-MAP.md`; one ubiquitous-language file per domain; system-wide ADRs in `docs/adr/`.
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root (ubiquitous language; created or extended by `/grill-with-docs` when terms are resolved).
-- **`docs/adr/`** — architectural decision records for cross-cutting choices.
-- **`docs/mvp/architecture/architecture.md`** — MVP vision, closed decisions, and module map (canonical during spec-driven phase).
-- **Relevant `docs/mvp/features/<feature>.md`** — feature scope and acceptance criteria for the area you are changing.
+- **`CONTEXT-MAP.md`** — domains, relationships, delivery sequencing, Sources.
+- **Domain glossary** — investing: `CONTEXT.md`; credit: `credit/CONTEXT.md`.
+- **`docs/adr/`** — architectural decision records for cross-cutting choices (including ADR-0003 Phase 2 QV cancelled).
+- **Investing:** `docs/mvp/architecture/architecture.md` (frozen historical vision) and `docs/mvp/features/<feature>.md` when changing investing.
+- **Credit:** `credit/docs/` feature specs when present; `credit/README.md` for domain entry.
 
-If `CONTEXT.md` or `docs/adr/` do not exist yet, **proceed silently**. Do not flag their absence or suggest creating them upfront. Use `docs/mvp/` as the source of truth until `/grill-with-docs` materializes terms into `CONTEXT.md`.
+If a CONTEXT file or `docs/adr/` does not exist yet, **proceed silently**. Do not flag their absence or suggest creating them upfront.
 
-Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy exploration per `AGENTS.md`.
+Do not treat `src/` or `notebooks/` as canonical architecture for new domains; see `AGENTS.md`.
 
 ## File structure
 
 ```
 /
-├── CONTEXT.md                 ← ubiquitous language (extend via grill-with-docs)
+├── CONTEXT-MAP.md             ← portfolio domains + relationships
+├── CONTEXT.md                 ← investing ubiquitous language
+├── investing/README.md
+├── credit/
+│   ├── CONTEXT.md             ← credit / CSS ubiquitous language
+│   ├── README.md
+│   └── docs/                  ← credit feature specs
 ├── docs/
 │   ├── adr/                   ← system-wide ADRs
-│   ├── agents/                ← agent skill config (this folder)
-│   └── mvp/
-│       ├── architecture/
-│       └── features/
-└── src/                       ← implementation (not planning truth)
+│   └── mvp/                   ← investing demo specs (delivered / frozen vision)
+└── src/                       ← investing demo implementation (migrate later)
 ```
 
 ## Use CONTEXT vocabulary
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), prefer terms from `CONTEXT.md` when defined there; otherwise use terms consistently with `docs/mvp/` (e.g. point-in-time, universe, EY rank, Magic Formula replica).
+When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), prefer terms from the **matching domain** CONTEXT file; do not mix investing terms (ROC, EY, model portfolio) with credit terms (scorecard, WOE, PSI).
 
-If the concept you need isn't in `CONTEXT.md` yet, either reconsider invented language or note the gap for `/grill-with-docs`.
+If the concept you need isn't in the domain CONTEXT yet, either reconsider invented language or note the gap for `/grill-with-docs`.
 
 ## Flag ADR conflicts
 
-If your output contradicts an existing ADR or a **closed decision** in `docs/mvp/architecture/architecture.md`, surface it explicitly rather than silently overriding:
+If your output contradicts an existing ADR or a **closed decision** in investing architecture docs, surface it explicitly rather than silently overriding:
 
 > _Contradicts [decision or ADR] — but worth reopening because…_
 
-Update the architecture doc or ADR before implementing a conflicting change.
+Update the ADR or architecture doc before implementing a conflicting change. Phase 2 QV is cancelled (ADR-0003) — do not treat the Phase 2 PRD as ready for implementation.

@@ -141,8 +141,8 @@ _Avoid_: ad-hoc snapshot without run id
 Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)):
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
-- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
-- **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
+- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
+- **Phase 2 (Quantitative Value):** **cancelled** for active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). Multi-period fundamentals for a QV funnel are **not** a current delivery requirement; lake design may still keep the door open without blocking credit work.
 
 Terminology reminders:
 
@@ -150,3 +150,13 @@ Terminology reminders:
 - “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
 - MVP specs in `docs/mvp/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
+
+## Sources
+
+Investing provenance (full portfolio list: [`CONTEXT-MAP.md`](CONTEXT-MAP.md)):
+
+1. **Joel Greenblatt (2010)** — *The Little Book That Still Beats the Market*
+   Foundations of the Magic Formula: systematic ranking by return on capital (ROC) and earnings yield.
+
+2. **Wesley R. Gray & Tobias E. Carlisle (2012)** — *Quantitative Value: A Practitioner's Guide to Automating Intelligent Investment and Eliminating Behavioral Errors*
+   Quantitative framework for accounting-manipulation screens (M-Score / F-Score), financial strength, competitive advantages (moats), and intrinsic valuation. **Not in active execution** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).

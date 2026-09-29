@@ -53,4 +53,10 @@ Application **CSS**: public demo data → application mart → scoring → rank 
 3. **`platform/`** — Terraform / AWS; orchestrator choice open (Airflow vs EventBridge/ECS vs Prefect).
 4. Optional: migrate investing code into `investing/`; Poetry → uv; fraud module.
 
-Phase 2 Quantitative Value (as production investing path) is **not** in active execution.
+Phase 2 Quantitative Value (as production investing path) is **not** in active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`).
+
+---
+
+## How this repo is built
+
+Specs in Git (`docs/mvp/`, `credit/docs/`, ADRs, CONTEXT) drive implementation — **spec-driven development** with Cursor agents. Decisions land in Markdown first; code follows the matching feature doc. See [`AGENTS.md`](AGENTS.md) and [`docs/README.md`](docs/README.md).

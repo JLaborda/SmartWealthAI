@@ -1,12 +1,14 @@
 # SmartWealthAI - MVP Architecture
 
+> **Status: frozen historical vision (investing).** Phase 2 Quantitative Value and the broader “full MVP” roadmap below are **not** in active execution. See [ADR-0003](../../adr/0003-phase2-qv-cancelled.md) and [`CONTEXT-MAP.md`](../../../CONTEXT-MAP.md). The **delivered** investing path is the June 30 Magic Formula demo slice. Active portfolio work continues under `credit/`.
+
 This document is a living specification for designing the SmartWealthAI MVP with a spec-driven development workflow. Its purpose is to capture decisions, open questions, assumptions, and acceptance criteria before writing implementation code.
 
 This is a portfolio project intended to showcase MLOps practices applied to a quantitative value investing system. The end user is a particular investor, but the system itself behaves as an automated agent that runs end-to-end without manual intervention.
 
-## June 30 demo slice (current delivery target)
+## June 30 demo slice (delivered)
 
-The **first shippable vertical** is narrower than the full vision below. See [`demo-slice.md`](../demo-slice.md) and [ADR-0002](../../adr/0002-june-demo-scope-cut.md): SimFin ETL → US-market universe → ROC/EY → top-30 equal-weight portfolio → Streamlit dashboard. Backtest, permanent loss filter, sell-watch, and paper trading are **phase 2**. The full architecture in this document remains the north star.
+The **first shippable vertical** is narrower than the full vision below. See [`demo-slice.md`](../demo-slice.md) and [ADR-0002](../../adr/0002-june-demo-scope-cut.md): SimFin ETL → US-market universe → ROC/EY → top-30 equal-weight portfolio → Streamlit dashboard. Modules labeled “phase 2” in this document were planned extensions; **Phase 2 QV as an active execution track is cancelled** ([ADR-0003](../../adr/0003-phase2-qv-cancelled.md)). The architecture text below is retained as **frozen reference**, not a live north star.
 
 ## MVP vision
 

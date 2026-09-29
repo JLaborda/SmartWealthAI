@@ -18,8 +18,29 @@ poetry run run-demo-pipeline --run-date 2026-06-18
 poetry run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
+### Operator notes
+
+```bash
+make test
+# or: poetry run pytest
+```
+
+- **Active fundamentals path:** [`docs/mvp/guides/download-simfin.md`](../docs/mvp/guides/download-simfin.md)
+- **Frozen SEC spike:** [`docs/mvp/guides/download-fundamentals.md`](../docs/mvp/guides/download-fundamentals.md)
+- More: [`AGENTS.md`](../AGENTS.md)
+
 Docs: [`docs/mvp/demo-slice.md`](../docs/mvp/demo-slice.md) · Glossary: [`CONTEXT.md`](../CONTEXT.md) · Map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md)
 
 ## Not in active roadmap
 
-Phase 2 Quantitative Value (forensics, FS-Score, full backtest, sell-watch as production path) is **cancelled for execution**. Cloud patterns may return later under `platform/`, shared with other domains.
+Phase 2 Quantitative Value (forensics, FS-Score, full backtest, sell-watch as production path) is **cancelled for execution** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). Cloud patterns may return later under `platform/`, shared with other domains.
+
+## Sources
+
+1. **Joel Greenblatt (2010)** — *The Little Book That Still Beats the Market*
+   Foundations of the Magic Formula: systematic ranking by return on capital (ROC) and earnings yield.
+
+2. **Wesley R. Gray & Tobias E. Carlisle (2012)** — *Quantitative Value: A Practitioner's Guide to Automating Intelligent Investment and Eliminating Behavioral Errors*
+   QV framework provenance only — **not in active execution** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md)).
+
+Full portfolio Sources: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md).

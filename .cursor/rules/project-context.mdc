@@ -1,30 +1,36 @@
 ---
-description: SmartWealthAI MVP context and canonical docs paths
+description: SmartWealthAI portfolio context and canonical docs paths
 alwaysApply: true
 ---
 
 # SmartWealthAI project context
 
-SmartWealthAI is a modular **quantitative value investing** system (MVP): US equities, Greenblatt-style quality + cheapness ranking, point-in-time correctness, explainable decisions, paper trading only (phase 2), AWS-oriented data lake design.
+SmartWealthAI is a **portfolio monorepo** for finance engineering: **investing** (Magic Formula / value screening demo) and **credit** (CSS — application scoring), with fraud and shared `platform/` later. Domains do not share domain language. Map: [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md).
 
 ## Current phase
 
-**MVP planning and spec refinement** in `docs/mvp/`. **June 30, 2026 demo slice** ([`demo-slice.md`](../../docs/mvp/demo-slice.md)) is the active delivery target. Prefer updating specs over writing code unless the user explicitly moves to implementation.
+- **Investing:** June 30 demo slice **delivered** ([`demo-slice.md`](../../docs/mvp/demo-slice.md)). Specs remain under `docs/mvp/`; code under `src/smartwealthai` until a migrate-only PR.
+- **Credit:** **Active next** — specs and new code under `credit/` ([`credit/CONTEXT.md`](../../credit/CONTEXT.md), `credit/docs/`).
+- **Phase 2 Quantitative Value:** **cancelled** for active execution ([ADR-0003](../../docs/adr/0003-phase2-qv-cancelled.md)). Prefer updating specs over writing investing QV code.
 
 ## Canonical documentation
 
-- Demo slice: `docs/mvp/demo-slice.md`
+- Portfolio map: `CONTEXT-MAP.md`
+- Investing glossary: `CONTEXT.md`
+- Credit glossary: `credit/CONTEXT.md`
+- Domain READMEs: `investing/README.md`, `credit/README.md`
 - ADRs: `docs/adr/`
-- Architecture: `docs/mvp/architecture/architecture.md`
-- Features: `docs/mvp/features/*.md`
-- Ubiquitous language: `CONTEXT.md`
+- Investing demo slice: `docs/mvp/demo-slice.md`
+- Investing architecture (frozen vision): `docs/mvp/architecture/architecture.md`
+- Investing features: `docs/mvp/features/*.md`
+- Credit features (when present): `credit/docs/`
 - Requirements (historical): `docs/mvp/requirements/requirements.md`
 - Backlog: `docs/mvp/backlog/backlog.md`
 
 ## Not canonical
 
-Do not use `src/` or `notebooks/` as reference architecture. Legacy exploration there does not define MVP boundaries.
+Do not use `notebooks/` as reference architecture. Do not treat investing `src/` layout as the template for credit — new credit code lands under `credit/`.
 
 ## Code changes
 
-Every implementation change must trace to a feature spec under `docs/mvp/features/` or the demo slice (`docs/mvp/demo-slice.md`). Read the architecture doc for cross-cutting rules before proposing design or code.
+Investing implementation changes must trace to a feature spec under `docs/mvp/features/` or the demo slice. Credit changes must trace to specs under `credit/docs/` (create the spec first). Read `CONTEXT-MAP.md` and the matching domain CONTEXT before proposing design or code.
