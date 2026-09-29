@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** planned — Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** scaffold — Poetry package + `credit-css` CLI stub ([#143](https://github.com/JLaborda/SmartWealthAI/issues/143)); application mart next ([#144](https://github.com/JLaborda/SmartWealthAI/issues/144)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -25,7 +25,19 @@ No live bank BFSI data. Prefer the book sample after Git LFS; practical fallback
 
 ## Packaging
 
-One Poetry project at repo root: `credit` is a second installable package beside investing — `poetry install` is enough. Orchestration is **CLI + stages** (not Airflow locally).
+One Poetry project at repo root: `credit` is a second installable package
+(`credit/src/credit`) beside investing — `poetry install` is enough.
+
+CLI stub (scaffold, [#143](https://github.com/JLaborda/SmartWealthAI/issues/143)):
+
+```bash
+poetry run credit-css --help
+poetry run python -m credit --help
+```
+
+Feature spec: [`docs/features/css-chapter5-mart-and-scoring.md`](docs/features/css-chapter5-mart-and-scoring.md)
+(parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142); application mart is [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)).
+Orchestration is **CLI + stages** (not Airflow locally).
 
 ## Sources
 
