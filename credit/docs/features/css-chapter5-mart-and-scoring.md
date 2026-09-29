@@ -1,9 +1,9 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
 **Status:** planned  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · tickets [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) (scaffold) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) (mart) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) (scoring)  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) (scaffold) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) (mart) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) (EDA) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) (scoring)  
 **Domain:** credit / CSS (Credit Scoring System)  
-**Glossary:** [`../CONTEXT.md`](../CONTEXT.md) · Map: [`../../CONTEXT-MAP.md`](../../CONTEXT-MAP.md)  
+**Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
 
 ## Problem Statement
@@ -38,6 +38,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 16. As an interviewer, I want clear disclaimers that demo data is public (not live bank BFSI), so that the story stays credible.
 17. As a developer, I want investing lake/SimFin code untouched by credit imports, so that bounded contexts stay separate.
 18. As a future maintainer, I want stage names that match the book’s pipeline mental model, so that cloud orchestration can wrap the same stages later.
+19. As a data scientist, I want a short EDA notebook on the **application mart** after PR1, so that I can explore class balance and data quality before modeling without duplicating the book’s notebook-only delivery.
 
 ## Implementation Decisions
 
@@ -49,7 +50,8 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **Score use (v1):** rank-only; no cutoff; book probability→score scaling first.
 - **Metrics (PR2 CLI):** AUC-ROC + KS on holdout (Gini optional later).
 - **Orchestration:** CLI + composable stages; not Airflow locally.
-- **Delivery:** Ticket 1 package scaffold → Ticket 2 mart (PR1) → Ticket 3 chapter 5 scoring (PR2).
+- **EDA:** One notebook under `credit/notebooks/` (or equivalent) that reads mart output; exploration only; sequenced **after mart, before PR2 scoring**.
+- **Delivery:** scaffold (#143) → mart (#144) → EDA notebook → chapter 5 scoring (#145).
 
 ## Testing Decisions
 
@@ -72,4 +74,4 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 ## Further Notes
 
 - Expand “CSS” on first README mention: Credit Scoring System.
-- Parent GitHub issue tracks this spec; child tickets are tracer bullets for agents.
+- Parent GitHub issue tracks this spec; child tickets are tracer bullets for agents. EDA ticket number is linked in the parent issue comment thread on GitHub.
