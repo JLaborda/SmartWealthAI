@@ -25,6 +25,20 @@ def test_credit_module_help_identifies_css(tmp_path: Path) -> None:
     assert "Credit Scoring System" in combined
 
 
+def test_credit_module_default_run_prints_css_stub(tmp_path: Path) -> None:
+    """python -m credit (no args) exits 0 and prints the CSS stub message."""
+    result = subprocess.run(
+        [sys.executable, "-m", "credit"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "Credit Scoring System" in result.stdout
+    assert "css-chapter5-mart-and-scoring.md" in result.stdout
+
+
 def test_credit_cli_main_is_importable() -> None:
     """Console-script target credit.cli:main is importable and callable."""
     from credit.cli import main
