@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-**Deferred** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec remains the target for phase 2.
+**Deferred / historical — not scheduled** for the June 30 demo slice ([ADR-0002](../../adr/0002-june-demo-scope-cut.md)). Spec body preserved as design record; active Phase 2 / full-MVP investing track cancelled ([ADR-0003](../../adr/0003-phase2-qv-cancelled.md)).
 
 ## Objective
 

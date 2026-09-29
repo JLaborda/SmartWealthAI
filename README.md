@@ -3,82 +3,60 @@
 [![Tests](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/JLaborda/SmartWealthAI/actions/workflows/pr-ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/JLaborda/SmartWealthAI?branch=main&label=coverage)](https://codecov.io/gh/JLaborda/SmartWealthAI)
 
-**A quantitative value-investing MVP: Greenblatt-style ranking on US equities.**
+**Portfolio monorepo for finance engineering:** distinct domains a manager can spot at a glance.
 
-*Status: **v0.1.0** — [June 30 demo slice](docs/mvp/demo-slice.md) runnable from CLI (Poetry + SimFin API key).*
+| Domain | Path | Status |
+| --- | --- | --- |
+| **Investing** (Magic Formula / value screening) | [`investing/`](investing/) | Demo slice **v0.1.0** delivered |
+| **Credit** — CSS (Credit Scoring System) | [`credit/`](credit/) | Planned (book ch.5–6, local-first) |
+| **Fraud** | `fraud/` | Not started |
+| **Platform** (AWS / Terraform) | `platform/` | After domain demos work locally |
 
-## Project vision
+Map & relationships: [`CONTEXT-MAP.md`](CONTEXT-MAP.md) · Investing glossary: [`CONTEXT.md`](CONTEXT.md) · Credit glossary: [`credit/CONTEXT.md`](credit/CONTEXT.md)
 
-SmartWealthAI is a modular quantitative value investing system: SimFin fundamentals, point-in-time correctness, explainable ROC/EY ranking, and a Streamlit dashboard. The full architecture (backtest, sell-watch, paper trading) is the north star; the demo slice ships a narrower vertical first.
+---
 
-Canonical specs: [`docs/mvp/`](docs/mvp/) · Ubiquitous language: [`CONTEXT.md`](CONTEXT.md) · ADRs: [`docs/adr/`](docs/adr/)
+## Investing (shipped)
 
-## Tech stack
+Greenblatt-style ranking on US equities: SimFin → PIT lake → ROC + EY → top-30 EW model portfolio → Streamlit + MLflow.
 
-* **Language:** Python 3.11+
-* **Environment & Dependencies:** Poetry
-* **Data (demo):** SimFin bulk fundamentals and `shareprices/latest` (`simfin`)
-* **Data (phase 2):** `yfinance` and free vendor fallbacks for prices / personal NAV
-* **Core libraries:** `pandas`, `simfin`, `yfinance`, `requests` (SEC spike: `edgartools` — frozen)
-* **MVP specs:** `docs/mvp/` (architecture + per-module features)
+*Code today:* `src/smartwealthai/` + `apps/dashboard/` + [`docs/mvp/`](docs/mvp/) (migration into `investing/` is a later housekeeping PR).
 
-## 🚀 Quickstart
+### Quickstart (investing demo)
 
-1.  **Install dependencies:**
-    ```bash
-    poetry install
-    ```
+```bash
+poetry install
+export SIMFIN_API_KEY="<from user secrets>"
+poetry run run-demo-pipeline --run-date 2026-06-18
+poetry run run-dashboard --data-dir data --run-date 2026-06-18
+```
 
-2.  **Run tests (with coverage summary):**
-    ```bash
-    make test
-    ```
+See [`investing/README.md`](investing/) and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
 
-3.  **Demo slice docs** — start here before coding:
-    [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)
+### Tech stack (investing)
 
-4.  **Run the full demo pipeline** (one command for a `run_date`):
+* **Language:** Python 3.11+ · **Deps:** Poetry (uv migration later, after credit demo works)
+* **Data:** SimFin bulk · **Libs:** pandas, simfin, yfinance, streamlit, mlflow-skinny
 
-    ```bash
-    export SIMFIN_API_KEY="<from user secrets>"
-    poetry run run-demo-pipeline --run-date 2026-06-18
-    ```
+---
 
-    Individual stages (`download-simfin`, `normalize-simfin`, `build-universe`, `score-universe`, …) are also available. Guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md).
+## Credit (next)
 
-5.  **Demo dashboard** (after the pipeline for the same `run_date`):
+Application **CSS**: public demo data → application mart → scoring → rank by default risk. Specs and code land under [`credit/`](credit/).
 
-    ```bash
-    poetry run run-dashboard --data-dir data --run-date 2026-06-18
-    ```
+---
 
-    Spec: [`docs/mvp/features/dashboard-reporting.md`](docs/mvp/features/dashboard-reporting.md).
+## Roadmap (portfolio)
 
-6.  **SEC fundamentals spike (frozen, phase 2):**
-    ```bash
-    export SEC_IDENTITY="Your Name your@email.com"
-    poetry run download-fundamentals --universe dow30
-    ```
+1. **Credit PR1–PR2** — mart, then chapter 5 scratch model + score (local CLI).
+2. **Credit chapter 6** — OptBinning scorecard, monitoring, explainability.
+3. **`platform/`** — Terraform / AWS; orchestrator choice open (Airflow vs EventBridge/ECS vs Prefect).
+4. Optional: migrate investing code into `investing/`; Poetry → uv; fraud module.
 
-    Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+Phase 2 Quantitative Value (as production investing path) is **not** in active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`).
 
-## Roadmap
+---
 
-See [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md) for the **June 30, 2026** delivery target and [`docs/mvp/architecture/architecture.md`](docs/mvp/architecture/architecture.md) for the full MVP north star.
+## How this repo is built
 
-### Demo slice (v0.1.0)
-
-- [x] SimFin bulk ETL → raw + curated fundamentals
-- [x] US universe (SimFin minus banks / insurers / utilities)
-- [x] ROC + EY ranking → top-30 equal-weight portfolio
-- [x] End-to-end CLI (`run-demo-pipeline`)
-- [x] Streamlit dashboard (Overview, Ranking, Portfolio)
-- [x] MLflow run logging
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
-
-### Phase 2 (after demo)
-
-- Historical S&P 500 universe, permanent loss filter, backtesting
-- Sell-watch, paper trading, SEC EDGAR normalizer (optional PIT upgrade)
-- Corroborative signals, unstructured data, portfolio evolution
+Specs in Git (`docs/mvp/`, `credit/docs/`, ADRs, CONTEXT) drive implementation — **spec-driven development** with Cursor agents. Decisions land in Markdown first; code follows the matching feature doc. See [`AGENTS.md`](AGENTS.md) and [`docs/README.md`](docs/README.md).

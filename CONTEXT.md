@@ -1,6 +1,6 @@
-# SmartWealthAI
+# Equity screening
 
-Ubiquitous language for the quantitative value-investing MVP. Canonical formulas and acceptance criteria live in `docs/mvp/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
+Ubiquitous language for the quantitative value-investing / Magic Formula module. This is one context in a portfolio monorepo — see [`CONTEXT-MAP.md`](CONTEXT-MAP.md). Canonical formulas and acceptance criteria live in `docs/mvp/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
 
 ## Language
 
@@ -9,7 +9,7 @@ The pipeline decision date (e.g. daily batch). Scoring, universe, and filters ar
 _Avoid_: as-of date (reserved for filing availability), execution date
 
 **Run-date share price (demo)**:
-Closing price on or before the run date from SimFin bulk `shareprices/latest`, joined to the universe by ticker. Used for market cap (`shares_outstanding × adj_close`) in ROC tie-break and EY. **`price_date` may lag `run_date` by up to ~30 days** on the SimFin free tier; acceptable for the June demo. Full daily history (`shareprices/daily`) and alternate vendors (e.g. yfinance) are phase 2.
+Closing price on or before the run date from SimFin bulk `shareprices/latest`, joined to the universe by ticker. Used for market cap (`shares_outstanding × adj_close`) in ROC tie-break and EY. **`price_date` may lag `run_date` by up to ~30 days** on the SimFin free tier; acceptable for the June demo. Full daily history (`shareprices/daily`) and alternate vendors (e.g. yfinance) are **deferred / not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).
 _Avoid_: Yahoo as canonical price when the universe is SimFin; requiring same-day prices in the demo pipeline
 
 **As-of date**:
@@ -29,12 +29,12 @@ Backtesting only companies that still exist today, overstating returns. Mitigate
 _Avoid_: living-universe backtest
 
 **Universe**:
-Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Phase 2:** historical S&P 500 constituents including delisted names. Spec: `docs/mvp/features/universe-construction.md`.
+Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Deferred (historical):** historical S&P 500 constituents including delisted names — **not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)). Spec: `docs/mvp/features/universe-construction.md`.
 _Avoid_: watchlist, portfolio, benchmark index today
 
 **Industry classification**:
 Provider-assigned industry code used to apply sector hard exclusions (banks, insurers, utilities). MVP source: SimFin `IndustryId` on the company record; exclusions maintained in `data/reference/simfin_industry_exclusions.csv` with optional sanity check against SimFin bank/insurance statement datasets.
-_Avoid_: SIC code (deferred with SEC ETL to phase 2), GICS, naive sector label from prices
+_Avoid_: SIC code (deferred with SEC ETL; not scheduled — [ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)), GICS, naive sector label from prices
 
 **Sector hard exclusion (banks / insurers / utilities)**:
 Hard exclusion because their financial statements are not comparable to industrial companies under Greenblatt ROC and EY—different line items, balance-sheet economics, and (for utilities) regulated returns. Not because SimFin lacks data; SimFin uses separate templates for banks and insurers.
@@ -93,7 +93,7 @@ Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
-Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper-traded in full MVP (phase 2).
+Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper trading was planned for full MVP (historical / not scheduled — [ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).
 _Avoid_: personal portfolio, watchlist (demo slice)
 
 **Watchlist**:
@@ -113,7 +113,7 @@ Recommendation to exit a holding; requires explicit user confirmation before ord
 _Avoid_: auto-sell, trim (deferred state)
 
 **Walk-forward backtest**:
-Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred to phase 2** for the June 30 demo MVP; demo slice stops at ranked model portfolio + dashboard.
+Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred / not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)); demo slice stops at ranked model portfolio + dashboard.
 _Avoid_: single in-sample fit, peeking at hold-out (when backtest ships)
 
 **Block bootstrap**:
@@ -141,8 +141,8 @@ _Avoid_: ad-hoc snapshot without run id
 Resolved scope cuts (see ADRs and [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md)):
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
-- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo for phase 2; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
-- **Phase 2 (Quantitative Value):** will need multi-period fundamentals (not only TTM snapshots)—lake design should not block adding annual/quarterly income history later.
+- SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).
+- **Phase 2 (Quantitative Value):** **cancelled** for active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). Multi-period fundamentals for a QV funnel are **not** a current delivery requirement; lake design may still keep the door open without blocking credit work.
 
 Terminology reminders:
 
@@ -150,3 +150,13 @@ Terminology reminders:
 - “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
 - MVP specs in `docs/mvp/` remain canonical until an ADR or architecture decision supersedes them; update `CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
+
+## Sources
+
+Investing provenance (full portfolio list: [`CONTEXT-MAP.md`](CONTEXT-MAP.md)):
+
+1. **Joel Greenblatt (2010)** — *The Little Book That Still Beats the Market*
+   Foundations of the Magic Formula: systematic ranking by return on capital (ROC) and earnings yield.
+
+2. **Wesley R. Gray & Tobias E. Carlisle (2012)** — *Quantitative Value: A Practitioner's Guide to Automating Intelligent Investment and Eliminating Behavioral Errors*
+   Quantitative framework for accounting-manipulation screens (M-Score / F-Score), financial strength, competitive advantages (moats), and intrinsic valuation. **Not in active execution** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).

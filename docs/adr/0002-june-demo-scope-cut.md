@@ -12,4 +12,4 @@ The **June 30 deliverable** is a reduced vertical slice, not the full architectu
 
 **Considered:** Full MVP including 20-year walk-forward backtest (rejected for June); demo + minimal backtest (rejected—user chose fastest path); Zipline for backtests (rejected—incompatible with Python 3.11, unmaintained, poor fit for fundamental annual rebalance).
 
-**Consequences:** Documented in [`docs/mvp/demo-slice.md`](../mvp/demo-slice.md). Full feature specs remain the north star; modules marked deferred are unchanged in intent. MLflow logs **pipeline runs** in the demo; the `backtesting` experiment starts in phase 2.
+**Consequences:** Documented in [`docs/mvp/demo-slice.md`](../mvp/demo-slice.md). Deferred feature specs remain as a **design record**; they are **not** an active execution track — Phase 2 QV / full-MVP investing roadmap was later **cancelled for active execution** ([ADR-0003](0003-phase2-qv-cancelled.md)). MLflow logs **pipeline runs** in the demo; a `backtesting` experiment was planned for phase 2 and is likewise not scheduled.

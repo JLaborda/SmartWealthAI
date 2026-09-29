@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-**done** (demo slice) — SimFin connector + normalizer + shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)).
+**done** (demo slice) — SimFin connector + normalizer + shareprices snapshot + end-to-end orchestrator `run-demo-pipeline` ([#63](https://github.com/JLaborda/SmartWealthAI/issues/63)). SEC spike frozen ([ADR-0001](../../adr/0001-simfin-fundamentals-mvp.md)); resume **not scheduled** ([ADR-0003](../../adr/0003-phase2-qv-cancelled.md)).
 
 ## Objective
 
@@ -22,7 +22,7 @@ Build the module that downloads, validates, normalizes, and stores financial dat
 - Weekly bulk refresh on free tier (`refresh_days=7`); incremental normalize by publish-date watermark.
 - DuckDB views on curated parquet.
 
-### Full MVP (phase 2 additions)
+### Full MVP (phase 2 additions) (historical)
 
 - SEC EDGAR ETL (frozen spike: `sec_client`, `download-fundamentals`).
 - Incremental per-CIK filing ingest when SEC normalizer ships.

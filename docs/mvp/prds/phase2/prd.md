@@ -1,12 +1,14 @@
 # PRD: MVP Phase 2 — Quantitative Value, Cloud, Backtest, Sell-Watch
 
-**Status:** Ready for implementation  
-**Canonical architecture:** `docs/mvp/architecture/architecture.md`  
+**Status:** Cancelled — not in active execution ([ADR-0003](../../../adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`)  
+**Canonical architecture:** `docs/mvp/architecture/architecture.md` (frozen historical vision)  
 **Prior delivery:** June 30 demo slice (`docs/mvp/demo-slice.md`, ADR-0002)  
 **Related specs:** ETL + data lake, permanent loss filter, backtesting, sell-watch, universe construction, dashboard reporting  
 **Related PRDs:** CI/CD (`docs/mvp/prds/ci-cd/ci-cd-prd.md`)  
 **Capacity assumption:** Solo developer, ~10–15 hours per week  
-**Estimated calendar:** Phase 2a ~13–16 weeks; Phase 2b ~8–12 weeks (~5–7 months total)
+**Estimated calendar:** Phase 2a ~13–16 weeks; Phase 2b ~8–12 weeks (~5–7 months total) — **superseded; do not schedule**
+
+> This PRD is retained as historical design notes only. Do not implement the QV funnel, Phase 2 cloud path, or sell-watch production track from this document unless ADR-0003 is superseded.
 
 ---
 
