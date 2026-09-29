@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** scaffold — Poetry package + `credit-css` CLI stub ([#143](https://github.com/JLaborda/SmartWealthAI/issues/143)); application mart next ([#144](https://github.com/JLaborda/SmartWealthAI/issues/144)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** application mart (CSS PR1) via `build_application_mart` + `credit-css build-application-mart` ([#144](https://github.com/JLaborda/SmartWealthAI/issues/144)); EDA next ([#147](https://github.com/JLaborda/SmartWealthAI/issues/147)), then scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -29,15 +29,20 @@ No live bank BFSI data. Prefer the book sample after Git LFS; practical fallback
 One Poetry project at repo root: `credit` is a second installable package
 (`credit/src/credit`) beside investing — `poetry install` is enough.
 
-CLI stub (scaffold, [#143](https://github.com/JLaborda/SmartWealthAI/issues/143)):
+CLI (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/143); mart stage [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)):
 
 ```bash
 poetry run credit-css --help
-poetry run python -m credit --help
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/application_source/applications.csv \
+  --output-dir data/credit/application_mart
+poetry run python -m credit build-application-mart --help
 ```
 
+Hermetic CI uses the fixture under `tests/credit/fixtures/application_source/`. The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy (documented only in PR1 — no partition files yet).
+
 Feature spec: [`docs/features/css-chapter5-mart-and-scoring.md`](docs/features/css-chapter5-mart-and-scoring.md)
-(parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142); application mart is [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)).
+(parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142)).
 Orchestration is **CLI + stages** (not Airflow locally).
 
 ## Sources
