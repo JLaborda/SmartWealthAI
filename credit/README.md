@@ -19,6 +19,7 @@ No live bank BFSI data. Prefer the book sample after Git LFS; practical fallback
 | Cut | Scope |
 | --- | --- |
 | **PR1** | Application mart (load / clean / validate) + CLI |
+| **EDA** | Notebook on mart output (balance, missingness, exploratory views) — [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) |
 | **PR2** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) |
 | Later | Chapter 6 scorecard / monitoring / explainability |
 | Later | Approve/decline cutoff (profit/risk); `platform/` (AWS / Terraform) |
