@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-**done** (demo slice) — universe builder ([#58](https://github.com/JLaborda/SmartWealthAI/issues/58)); industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)). Full S&P 500 historical mode in phase 2.
+**done** (demo slice) — universe builder ([#58](https://github.com/JLaborda/SmartWealthAI/issues/58)); industry exclusions reference CSV ([#56](https://github.com/JLaborda/SmartWealthAI/issues/56)). Full S&P 500 historical mode is **deferred / not scheduled** ([ADR-0003](../../adr/0003-phase2-qv-cancelled.md)).
 
 ## Objective
 
@@ -24,7 +24,7 @@ Produce the investable universe of US common stocks for each decision date. This
 - No market-cap or ADV floors in demo (optional parameters disabled).
 - Produce daily snapshot under `curated/universe/run_date=<YYYY-MM-DD>/`.
 
-### Full MVP (phase 2)
+### Full MVP (phase 2) (historical)
 
 - S&P 500 historical constituents (incl. delisted) from `data/reference/sp500_constituents.csv`.
 - Common-stock filters (exclude ADRs, REITs, BDCs, ETFs, preferred-only).
@@ -77,7 +77,7 @@ flowchart TD
     Excluded --> ExclusionLog["exclusions.parquet"]
 ```
 
-## Mermaid diagram (full MVP — phase 2)
+## Mermaid diagram (full MVP — phase 2, historical)
 
 ```mermaid
 flowchart TD
@@ -142,7 +142,7 @@ flowchart TD
 
 **Code:** `src/smartwealthai/universe_builder.py`, CLI `poetry run build-universe`.
 
-### Full MVP (phase 2)
+### Full MVP (phase 2) (historical)
 
 - Bankrupt companies that were once in the index appear in past universe snapshots up to their delisting date and are excluded only after that date with reason `delisted`.
 - No company whose SIC code is in the excluded sector ranges appears in any universe snapshot.

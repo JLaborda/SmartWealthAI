@@ -29,7 +29,7 @@ Do **not** put shared `ingest/`, `benchmarks/`, or `serving/` at the repo root a
 
 - **Investing ↔ Credit ↔ Fraud**: no domain coupling. Shared only via `platform/` (later) and repo tooling/CI.
 - Do not reuse investing terms (ROC, EY, model portfolio) for credit, or credit terms (scorecard, WOE, PSI) for investing.
-- **Phase 2 Quantitative Value** (forensics, FS-Score, backtest, sell-watch as production scoring): **cancelled for active execution**. Demo-slice investing stays as delivered.
+- **Phase 2 Quantitative Value** (forensics, FS-Score, backtest, sell-watch as production scoring): **cancelled for active execution** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). Demo-slice investing stays as delivered.
 - **Cloud / `platform/`**: deferred until credit (and other) domain content is demonstrable locally; then generalized (not a daily QV job).
 
 ## Delivery sequencing (credit)

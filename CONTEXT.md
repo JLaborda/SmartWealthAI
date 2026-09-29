@@ -9,7 +9,7 @@ The pipeline decision date (e.g. daily batch). Scoring, universe, and filters ar
 _Avoid_: as-of date (reserved for filing availability), execution date
 
 **Run-date share price (demo)**:
-Closing price on or before the run date from SimFin bulk `shareprices/latest`, joined to the universe by ticker. Used for market cap (`shares_outstanding × adj_close`) in ROC tie-break and EY. **`price_date` may lag `run_date` by up to ~30 days** on the SimFin free tier; acceptable for the June demo. Full daily history (`shareprices/daily`) and alternate vendors (e.g. yfinance) are phase 2.
+Closing price on or before the run date from SimFin bulk `shareprices/latest`, joined to the universe by ticker. Used for market cap (`shares_outstanding × adj_close`) in ROC tie-break and EY. **`price_date` may lag `run_date` by up to ~30 days** on the SimFin free tier; acceptable for the June demo. Full daily history (`shareprices/daily`) and alternate vendors (e.g. yfinance) are **deferred / not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).
 _Avoid_: Yahoo as canonical price when the universe is SimFin; requiring same-day prices in the demo pipeline
 
 **As-of date**:
@@ -29,12 +29,12 @@ Backtesting only companies that still exist today, overstating returns. Mitigate
 _Avoid_: living-universe backtest
 
 **Universe**:
-Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Phase 2:** historical S&P 500 constituents including delisted names. Spec: `docs/mvp/features/universe-construction.md`.
+Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Deferred (historical):** historical S&P 500 constituents including delisted names — **not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)). Spec: `docs/mvp/features/universe-construction.md`.
 _Avoid_: watchlist, portfolio, benchmark index today
 
 **Industry classification**:
 Provider-assigned industry code used to apply sector hard exclusions (banks, insurers, utilities). MVP source: SimFin `IndustryId` on the company record; exclusions maintained in `data/reference/simfin_industry_exclusions.csv` with optional sanity check against SimFin bank/insurance statement datasets.
-_Avoid_: SIC code (deferred with SEC ETL to phase 2), GICS, naive sector label from prices
+_Avoid_: SIC code (deferred with SEC ETL; not scheduled — [ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)), GICS, naive sector label from prices
 
 **Sector hard exclusion (banks / insurers / utilities)**:
 Hard exclusion because their financial statements are not comparable to industrial companies under Greenblatt ROC and EY—different line items, balance-sheet economics, and (for utilities) regulated returns. Not because SimFin lacks data; SimFin uses separate templates for banks and insurers.
@@ -93,7 +93,7 @@ Version id for ROC, EY, or filter rules so runs and backtests stay reproducible.
 _Avoid_: “latest formula”, implicit default
 
 **Model portfolio**:
-Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper-traded in full MVP (phase 2).
+Target long-only holdings from the pipeline; **June 30 demo:** top 30 names by combined rank, equal-weight only, market-cap tie-break on ranks. No watchlist in demo slice. Paper trading was planned for full MVP (historical / not scheduled — [ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)).
 _Avoid_: personal portfolio, watchlist (demo slice)
 
 **Watchlist**:
@@ -113,7 +113,7 @@ Recommendation to exit a holding; requires explicit user confirmation before ord
 _Avoid_: auto-sell, trim (deferred state)
 
 **Walk-forward backtest**:
-Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred to phase 2** for the June 30 demo MVP; demo slice stops at ranked model portfolio + dashboard.
+Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/mvp/features/backtesting.md`. **Deferred / not scheduled** ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md)); demo slice stops at ranked model portfolio + dashboard.
 _Avoid_: single in-sample fit, peeking at hold-out (when backtest ships)
 
 **Block bootstrap**:

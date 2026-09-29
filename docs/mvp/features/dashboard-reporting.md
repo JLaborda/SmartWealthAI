@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-**done** — demo slice three-page app ([#62](https://github.com/JLaborda/SmartWealthAI/issues/62)); full MVP pages in phase 2.
+**done** — demo slice three-page app ([#62](https://github.com/JLaborda/SmartWealthAI/issues/62)); full MVP pages **deferred / not scheduled** ([ADR-0003](../../adr/0003-phase2-qv-cancelled.md)).
 
 ### Demo run
 
@@ -29,7 +29,7 @@ Surface every input, score, decision, and audit trail produced by the pipeline i
 - MLflow run link per pipeline execution.
 - Read-only views (no sell-watch confirmation in demo).
 
-### Full MVP (phase 2)
+### Full MVP (phase 2) (historical)
 
 - Streamlit app deployed on AWS (likely Fargate Spot behind an ALB, or App Runner if cheaper at MVP scale).
 - Additional pages: permanent loss filter, sell-watch, backtests, portfolio evolution.
@@ -71,7 +71,7 @@ Surface every input, score, decision, and audit trail produced by the pipeline i
 | **Ranking + model portfolio** | Combined Greenblatt rank with tie-break; top **30** equal-weight holdings. |
 | **MLflow links** | Direct links to runs by date and `git_sha` tag. |
 
-### Full MVP (phase 2)
+### Full MVP (phase 2) (historical)
 
 | Page | What it shows |
 | --- | --- |
@@ -112,7 +112,7 @@ flowchart LR
 - [x] Every numeric score traces to a curated parquet row.
 - [x] Dashboard renders correctly when curated parquet for a module is missing (clear empty state).
 
-### Full MVP (phase 2)
+### Full MVP (phase 2) (historical)
 
 - The dashboard is fully readable from cached parquet; no network calls to the live pipeline are made for display.
 - Every numeric score on the dashboard can be traced to a row in a curated parquet file.

@@ -1,8 +1,8 @@
 # June 30 demo slice — simplest Magic Formula
 
-**Status:** accepted (see [ADR-0002](../adr/0002-june-demo-scope-cut.md))  
+**Status:** **delivered** (investing domain) — see [ADR-0002](../adr/0002-june-demo-scope-cut.md)  
 **Target date:** 2026-06-30  
-**North star:** Full MVP in [`architecture/architecture.md`](architecture/architecture.md) — this document defines only what ships first.
+**Architecture reference:** [`architecture/architecture.md`](architecture/architecture.md) is a **frozen historical investing vision**, not a live north star ([ADR-0003](../adr/0003-phase2-qv-cancelled.md)). Active portfolio direction: multi-domain monorepo — [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md); **credit CSS** next.
 
 ## Objective
 
@@ -21,7 +21,9 @@ Deliver a working, explainable Greenblatt-style Magic Formula pipeline on real U
 | 7 | Dashboard | [`dashboard-reporting.md`](features/dashboard-reporting.md) — ranking table, portfolio, per-name explainability |
 | 8 | MLflow | Log each pipeline run (params, scoring metrics, portfolio artifact) — `src/smartwealthai/mlflow_run_logging.py`, wired in `score-universe` ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)) |
 
-## Out of scope (phase 2)
+## Out of scope (deferred / historical — not scheduled)
+
+Items below were cut from the June demo ([ADR-0002](../adr/0002-june-demo-scope-cut.md)). Further investing “phase 2” / full-MVP execution is **not scheduled** ([ADR-0003](../adr/0003-phase2-qv-cancelled.md)). Specs remain as design record.
 
 - Permanent loss filter ([`permanent-loss-filter.md`](features/permanent-loss-filter.md))
 - Backtesting and crisis report ([`backtesting.md`](features/backtesting.md))
@@ -88,7 +90,9 @@ flowchart LR
 - [x] MLflow run exists with portfolio parquet artifact and git commit SHA tag.
 - [x] Hermetic CI tests do not call SimFin or yfinance live.
 
-## After the demo (phase 2 order)
+## Historical next steps (not scheduled)
+
+> Investing Magic Formula demo is **delivered**. The list below is **historical planning — not scheduled**. Active portfolio direction: multi-domain monorepo; **credit CSS** next ([CONTEXT-MAP](../../CONTEXT-MAP.md), [ADR-0003](../adr/0003-phase2-qv-cancelled.md)).
 
 1. Historical S&P 500 universe + permanent loss filter  
 2. Minimal backtest (annual rebalance, 20 years) — custom pandas/DuckDB loop, not Zipline  
