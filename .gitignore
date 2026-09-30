@@ -16,3 +16,6 @@ data/*
 .DS_Store
 backup*
 notebooks/*
+# Credit EDA notebooks (root notebooks/* would ignore any notebooks/)
+!credit/notebooks/
+!credit/notebooks/**

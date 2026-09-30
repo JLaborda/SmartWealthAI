@@ -10,6 +10,7 @@ import pandas as pd
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "application_source"
 SOURCE_CSV = FIXTURES / "applications.csv"
+SOURCE_PKL = FIXTURES / "amex_sample.pkl"
 
 
 def test_build_application_mart_writes_mart_from_fixture(tmp_path: Path) -> None:
@@ -135,3 +136,58 @@ def test_cli_build_application_mart_writes_mart_from_fixture(tmp_path: Path) -> 
     assert (output_dir / "README.md").exists()
     assert "retained" in result.stdout.lower()
     assert "rejected" in result.stdout.lower()
+
+
+def test_build_application_mart_loads_amex_shaped_pickle(tmp_path: Path) -> None:
+    """Pickle sources with customer_ID index and lowercase target are supported."""
+    from credit.application_mart import build_application_mart
+
+    result = build_application_mart(
+        SOURCE_PKL,
+        tmp_path,
+        application_id_column="customer_ID",
+        target_column="target",
+        bad_value=1,
+        good_value=0,
+    )
+    mart = pd.read_parquet(result.mart_path)
+
+    assert result.retained_rows >= 1
+    assert result.rejected_rows >= 1
+    assert "customer_ID" in mart.columns
+    assert mart["customer_ID"].is_unique
+    assert set(mart["target"].unique()) <= {0, 1}
+    text = result.readme_path.read_text(encoding="utf-8")
+    assert "target" in text
+    assert "`1`" in text or "1" in text
+
+
+def test_cli_build_application_mart_accepts_pickle_column_overrides(
+    tmp_path: Path,
+) -> None:
+    """CLI passes AMEX-shaped id/target column overrides through to the seam."""
+    output_dir = tmp_path / "mart_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "credit",
+            "build-application-mart",
+            "--source",
+            str(SOURCE_PKL),
+            "--output-dir",
+            str(output_dir),
+            "--application-id-column",
+            "customer_ID",
+            "--target-column",
+            "target",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    mart = pd.read_parquet(output_dir / "application_mart.parquet")
+    assert "customer_ID" in mart.columns
+    assert "target" in mart.columns

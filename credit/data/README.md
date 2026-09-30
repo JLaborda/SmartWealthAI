@@ -19,14 +19,19 @@ Public demo data only — not live bank BFSI data.
 
 Do not commit full Kaggle dumps. Hermetic CI continues to use `tests/credit/fixtures/application_source/applications.csv`.
 
-## Mart regeneration (after pkl loader lands)
+## Mart regeneration (book sample)
 
 ```bash
+git lfs pull --include="credit/data/*"
 poetry run credit-css build-application-mart \
   --source credit/data/train_df_sample.pkl \
   --output-dir data/credit/application_mart \
   --application-id-column customer_ID \
-  --target-column target
+  --target-column target \
+  --bad-value 1 \
+  --good-value 0
 ```
+
+EDA notebook (reads the mart): `credit/notebooks/eda_application_mart.ipynb`.
 
 Mart artifacts under `data/credit/` stay gitignored (`data/*`).

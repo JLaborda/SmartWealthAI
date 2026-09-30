@@ -1,8 +1,8 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — PR1 application mart (`build_application_mart` + `credit-css build-application-mart`); EDA and PR2 scoring still planned  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) (scaffold, done) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) (mart) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) (EDA) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) (scoring)  
-**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/cli.py` · Tests: `tests/credit/test_application_mart.py`  
+**Status:** in progress — application mart + book-sample EDA (#147); PR2 scoring still planned  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) (scaffold, done) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) (mart, done) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) (EDA) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) (scoring)  
+**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` · Tests: `tests/credit/test_application_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
