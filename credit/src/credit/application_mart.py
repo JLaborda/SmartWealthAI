@@ -99,8 +99,7 @@ def _load_source_frame(source_path: Path) -> pd.DataFrame:
     if suffix == ".csv":
         return pd.read_csv(source_path)
     raise ValueError(
-        f"Unsupported source format '{source_path.suffix}'; "
-        "use .csv, .pkl, or .pickle"
+        f"Unsupported source format '{source_path.suffix}'; use .csv, .pkl, or .pickle"
     )
 
 
@@ -175,8 +174,8 @@ def _partition_rows(
         retained[application_id_column] = retained[application_id_column].map(
             _normalize_application_id
         )
-        retained[target_column] = (
-            pd.to_numeric(retained[target_column], errors="coerce").astype(int)
+        retained[target_column] = pd.to_numeric(retained[target_column], errors="coerce").astype(
+            int
         )
 
     return retained.reset_index(drop=True), rejects.reset_index(drop=True)
