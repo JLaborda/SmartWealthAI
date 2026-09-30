@@ -181,6 +181,12 @@ def test_cli_build_application_mart_accepts_pickle_column_overrides(
             "customer_ID",
             "--target-column",
             "target",
+            "--bad-value",
+            "1",
+            "--good-value",
+            "0",
+            "--decision-date-column",
+            "S_2",
         ],
         capture_output=True,
         text=True,
@@ -191,3 +197,189 @@ def test_cli_build_application_mart_accepts_pickle_column_overrides(
     mart = pd.read_parquet(output_dir / "application_mart.parquet")
     assert "customer_ID" in mart.columns
     assert "target" in mart.columns
+    assert "bad=1" in result.stdout
+    assert "good=0" in result.stdout
+
+
+def test_build_application_mart_loads_pickle_suffix_alias(tmp_path: Path) -> None:
+    """`.pickle` suffix is accepted the same way as `.pkl`."""
+    from credit.application_mart import build_application_mart
+
+    alias = tmp_path / "amex_sample.pickle"
+    alias.write_bytes(SOURCE_PKL.read_bytes())
+    result = build_application_mart(
+        alias,
+        tmp_path / "out",
+        application_id_column="customer_ID",
+        target_column="target",
+    )
+    assert result.retained_rows >= 1
+    assert result.mart_path.exists()
+
+
+def test_build_application_mart_rejects_unsupported_source_format(tmp_path: Path) -> None:
+    """Non CSV/pickle sources raise a clear ValueError."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "applications.json"
+    source.write_text("[]", encoding="utf-8")
+    try:
+        build_application_mart(source, tmp_path / "out")
+        raise AssertionError("expected ValueError")
+    except ValueError as exc:
+        assert "Unsupported source format" in str(exc)
+
+
+def test_build_application_mart_requires_application_id_presence(tmp_path: Path) -> None:
+    """Missing application id column/index name is an explicit error."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "no_id.csv"
+    source.write_text("TARGET,AMT_INCOME_TOTAL\n0,100.0\n", encoding="utf-8")
+    try:
+        build_application_mart(source, tmp_path / "out")
+        raise AssertionError("expected ValueError")
+    except ValueError as exc:
+        assert "SK_ID_CURR" in str(exc)
+
+
+def test_build_application_mart_requires_target_column(tmp_path: Path) -> None:
+    """Missing target column is an explicit error."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "no_target.csv"
+    source.write_text("SK_ID_CURR,AMT_INCOME_TOTAL\n1,100.0\n", encoding="utf-8")
+    try:
+        build_application_mart(source, tmp_path / "out")
+        raise AssertionError("expected ValueError")
+    except ValueError as exc:
+        assert "TARGET" in str(exc)
+
+
+def test_build_application_mart_coerces_float16_and_category_for_parquet(
+    tmp_path: Path,
+) -> None:
+    """AMEX-like float16 / category dtypes are normalized before parquet write."""
+    from credit.application_mart import build_application_mart
+
+    frame = pd.DataFrame(
+        {
+            "target": [0, 1],
+            "P_2_mean": pd.Series([0.1, 0.9], dtype="float16"),
+            "D_63_last": pd.Categorical(["CL", "CO"]),
+        },
+        index=pd.Index(["cust_x", "cust_y"], name="customer_ID"),
+    )
+    source = tmp_path / "amex_dtypes.pkl"
+    frame.to_pickle(source)
+
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        application_id_column="customer_ID",
+        target_column="target",
+    )
+    mart = pd.read_parquet(result.mart_path)
+    assert result.retained_rows == 2
+    assert mart["P_2_mean"].dtype != "float16"
+    assert str(mart["D_63_last"].dtype) != "category"
+
+
+def test_build_application_mart_writes_empty_mart_when_all_rows_rejected(
+    tmp_path: Path,
+) -> None:
+    """All-reject sources still write an empty mart parquet and reject file."""
+    from credit.application_mart import build_application_mart
+
+    frame = pd.DataFrame(
+        {"target": [0, 1], "P_2_mean": [0.1, 0.2]},
+        index=pd.Index(["", ""], name="customer_ID"),
+    )
+    source = tmp_path / "amex_all_reject.pkl"
+    frame.to_pickle(source)
+
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        application_id_column="customer_ID",
+        target_column="target",
+    )
+    mart = pd.read_parquet(result.mart_path)
+    rejects = pd.read_parquet(tmp_path / "out" / "rejects.parquet")
+    assert result.retained_rows == 0
+    assert result.rejected_rows == 2
+    assert len(mart) == 0
+    assert set(rejects["reject_reason"]) == {"missing_application_id"}
+
+
+def test_build_application_mart_keeps_non_integral_numeric_ids(tmp_path: Path) -> None:
+    """Non-integral numeric application ids are retained without int coercion."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "float_ids.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1.5,0\n2.5,1\n",
+        encoding="utf-8",
+    )
+    result = build_application_mart(source, tmp_path / "out")
+    mart = pd.read_parquet(result.mart_path)
+    assert result.retained_rows == 2
+    assert set(mart["SK_ID_CURR"]) == {1.5, 2.5}
+
+
+def test_cli_parses_non_numeric_and_float_label_values(tmp_path: Path) -> None:
+    """CLI label parser accepts string tokens and non-integral floats."""
+    source = tmp_path / "labels.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1,0\n2,1\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "mart_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "credit",
+            "build-application-mart",
+            "--source",
+            str(source),
+            "--output-dir",
+            str(output_dir),
+            "--bad-value",
+            "default",
+            "--good-value",
+            "1.5",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "bad=default" in result.stdout
+    assert "good=1.5" in result.stdout
+    # Numeric 0/1 targets do not match these label tokens → all rejected
+    mart = pd.read_parquet(output_dir / "application_mart.parquet")
+    assert len(mart) == 0
+
+
+def test_build_application_mart_preserves_non_numeric_object_ids(tmp_path: Path) -> None:
+    """Non-numeric object application ids are kept when float coercion fails."""
+    from credit.application_mart import build_application_mart
+
+    frame = pd.DataFrame(
+        {"target": [0, 1]},
+        index=pd.Index([b"cust_a", b"cust_b"], name="customer_ID"),
+    )
+    source = tmp_path / "bytes_ids.pkl"
+    frame.to_pickle(source)
+
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        application_id_column="customer_ID",
+        target_column="target",
+    )
+    mart = pd.read_parquet(result.mart_path)
+    assert result.retained_rows == 2
+    assert mart["customer_ID"].is_unique
