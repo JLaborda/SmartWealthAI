@@ -12,7 +12,7 @@ This is **not** fraud detection and **not** the investing screener.
 
 ## Data (demo only)
 
-No live bank BFSI data. Prefer the book sample after Git LFS; practical fallbacks: **Home Credit**, then **FICO HELOC**. AMEX Default Prediction is optional/scale-only (too large for v1). Always document the **target** → **bad**/**good** mapping on the mart README.
+No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. Full Kaggle AMEX and Home Credit dumps come later and must not be committed. Hermetic CI uses `tests/credit/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
 
 ## Delivery cuts
 
