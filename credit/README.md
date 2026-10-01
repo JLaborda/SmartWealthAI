@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) done; **competition mart (#152) in progress**. **Next:** competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **next:** competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -43,6 +43,13 @@ poetry run credit-css build-competition-mart \
   --raw-dir data/credit/raw/home_credit \
   --output-dir data/credit/application_mart/home_credit
 ```
+
+**AMEX prepare contract** (statement → one row per `customer_ID`, ordered by `S_2`):
+
+- Continuous numerics → `{col}_mean` / `_std` / `_min` / `_max` / `_last`
+- Official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) and any other non-numeric statement features → `{col}_mode` / `{col}_last` only (e.g. `D_63_mode`, `D_63_last`)
+- Labels: inner join `train_labels.csv`; `target` **1 = bad**, **0 = good**
+- Runtime: full official `train_data.parquet` (~4 GB / 5.5M statement rows) is minutes, not seconds — expect ~3–5 min wall time on a laptop after load; hermetic CI fixtures stay tiny.
 
 Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the hermetic CI default:
 

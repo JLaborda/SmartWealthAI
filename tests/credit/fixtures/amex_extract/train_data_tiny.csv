@@ -1,4 +1,4 @@
-customer_ID,S_2,P_2,D_39,B_1
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2017-03-01,0.1,1.0,0.5
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2017-03-01,0.2,2.0,
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2017-04-01,,3.0,0.7
+customer_ID,S_2,P_2,D_39,B_1,B_30,D_63,D_64
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2017-03-01,0.1,1.0,0.5,0,CR,O
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2017-03-01,0.2,2.0,,1,CO,R
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2017-04-01,,3.0,0.7,0,CR,O

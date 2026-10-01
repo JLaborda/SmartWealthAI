@@ -1,7 +1,7 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — book path + competition raw (#151) done; **competition mart (#152) implementing**; next = competition EDA (#153) then scoring (#145)  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) · **now:** [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
+**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **next:** scratch scoring on book sample (#145) **in parallel with** generalist competition EDA (#153)  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done → **parallel:** [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) + [#153](https://github.com/JLaborda/SmartWealthAI/issues/153)  
 **Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
@@ -55,8 +55,11 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **Score use (v1):** rank-only; no cutoff; book probability→score scaling first.
 - **Metrics (PR2 CLI):** AUC-ROC + KS on holdout (Gini optional later).
 - **Orchestration:** CLI + composable stages; not Airflow locally.
-- **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) after raw (#151) + mart (#152); before serious #145 work.
-- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → **competition raw (#151) → competition mart (#152) → competition EDA (#153) → scoring (#145)**.
+- **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) is a **generalist** pass (class balance, missingness, dtypes/cats present, target definition check, obvious DQ / leakage smells) plus a short **“possible later data improvements”** notes section — **not** a feature-engineering project and **not** a hard gate on scratch scoring (#145). Prefer starting #145 on the book-sample path in parallel; competition-backed scoring can follow after #153 has flagged or cleared serious data issues. EDA may *propose* mart/schema improvements; implementing them needs the schema-change communication bar (issue + spec + READMEs).
+- **AMEX statement → application grain (#157 done):** continuous numerics → `mean`/`std`/`min`/`max`/`last`; official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) → **`mode` + `last` only**; non-numeric statement features are not silently dropped (`{col}_mode` / `{col}_last`).
+- **No extra feature engineering in this cut (owner decision):** keep the book/AMEX-style aggregation contract above. No rolling windows, EWMA, short-horizon stats, or other FE beyond what the prepare already ships. Recency is represented by `*_last` only until a later, explicit schema-change slice.
+- **Mart schema change communication (owner decision):** green tests are not enough. For every credit stage that creates, drops, or renames mart columns / changes grain (raw → application), the change must (1) say so in the PR/agent summary in plain language, (2) update the mart README sidecar and `credit/data/README.md` in the same change, and (3) open or update a GitHub issue plus a line in this feature spec **before** merge. Example that failed this bar once: silent loss of AMEX categoricals before [#157](https://github.com/JLaborda/SmartWealthAI/issues/157).
+- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → **scratch scoring on book sample (#145) in parallel with generalist competition EDA (#153)** → competition-backed scoring later if needed.
 
 ## Testing Decisions
 
@@ -73,6 +76,8 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Airflow, AWS, Terraform, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP)
 - Kaggle leaderboard submissions
 - Community redistributed AMEX parquet/feather as primary provenance
+- Extra FE beyond the book/AMEX aggregation contract (rolling windows, EWMA, short-horizon stats, etc.)
+- Feature store (Feast / Tecton / similar), DVC, and credit **model-registry / model-change demo** slices (explicit later backlog — not chapter 5)
 - Fraud module
 - Migrating investing code into `investing/`
 - Poetry → uv migration
@@ -81,4 +86,5 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 ## Further Notes
 
 - Expand “CSS” on first README mention: Credit Scoring System.
-- Parent GitHub issue [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) tracks this spec; child tickets are tracer bullets for agents. Competition wave: [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145).
+- Parent GitHub issue [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) tracks this spec; child tickets are tracer bullets for agents. Competition wave: [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145).
+- **Later (not this cut):** document a credit model change with experiment/model registry (likely reuse investing’s MLflow pattern — registry ≠ feature store). DVC only if we need versioned large datasets beyond gitignore + LFS + local raw; MVP already says no DVC.

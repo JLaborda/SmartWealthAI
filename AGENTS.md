@@ -47,6 +47,7 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 3. Resolve open questions in the spec; record decisions in the spec or ADR.
 4. Implement only what the spec allows for the current phase.
 5. After implementation, update the feature spec (implementation status, acceptance criteria, links to code when it exists).
+6. **Credit mart schema changes:** if a stage creates, drops, or renames mart columns or changes grain (raw → application), do not rely on green tests alone — say the transform in the PR/agent summary, update the mart README sidecar + `credit/data/README.md` in the same change, and open/update a GitHub issue plus a line in the credit feature spec **before** merge. See [`credit/docs/features/css-chapter5-mart-and-scoring.md`](credit/docs/features/css-chapter5-mart-and-scoring.md).
 
 ## Runtime
 
