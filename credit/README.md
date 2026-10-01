@@ -2,7 +2,8 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done (mart + book-sample EDA). **Next:** competition raw data ([#151](https://github.com/JLaborda/SmartWealthAI/issues/151)) → mart ([#152](https://github.com/JLaborda/SmartWealthAI/issues/152)) → EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done (mart + book-sample EDA). **Next:** competition raw ([#151](https://github.com/JLaborda/SmartWealthAI/issues/151): stage + AMEX parquet CLI) → mart joins ([#152](https://github.com/JLaborda/SmartWealthAI/issues/152)) → EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+
 
 ## What it will do
 
