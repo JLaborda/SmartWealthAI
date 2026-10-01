@@ -49,6 +49,7 @@ poetry run credit-css build-competition-mart \
 - Continuous numerics → `{col}_mean` / `_std` / `_min` / `_max` / `_last`
 - Official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) and any other non-numeric statement features → `{col}_mode` / `{col}_last` only (e.g. `D_63_mode`, `D_63_last`)
 - Labels: inner join `train_labels.csv`; `target` **1 = bad**, **0 = good**
+- Runtime: full official `train_data.parquet` (~4 GB / 5.5M statement rows) is minutes, not seconds — expect ~3–5 min wall time on a laptop after load; hermetic CI fixtures stay tiny.
 
 Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the hermetic CI default:
 

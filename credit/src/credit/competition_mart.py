@@ -119,13 +119,13 @@ def prepare_amex_application_table(raw_dir: Path, output_path: Path) -> Path:
     if not labels_path.is_file():
         raise FileNotFoundError(f"Missing AMEX labels: {labels_path}")
 
-    statements = pd.read_parquet(statements_path)
-    if "customer_ID" not in statements.columns:
+    # Full AMEX train is multi-GB: avoid an extra full-frame .copy() before sort.
+    work = pd.read_parquet(statements_path)
+    if "customer_ID" not in work.columns:
         raise ValueError("AMEX statements must include customer_ID")
-    if "S_2" not in statements.columns:
+    if "S_2" not in work.columns:
         raise ValueError("AMEX statements must include S_2 (statement date) for last-* aggregation")
 
-    work = statements.copy()
     work["S_2"] = pd.to_datetime(work["S_2"], errors="coerce")
     work = work.sort_values(["customer_ID", "S_2"], kind="mergesort")
 
@@ -139,19 +139,10 @@ def prepare_amex_application_table(raw_dir: Path, output_path: Path) -> Path:
 
     parts: list[pd.DataFrame] = []
     if continuous_cols:
-        # Single groupby.agg keeps the wide feature frame contiguous.
-        continuous = work.groupby("customer_ID", sort=False)[continuous_cols].agg(
-            ["mean", "std", "min", "max", "last"]
-        )
-        continuous.columns = [f"{col}_{stat}" for col, stat in continuous.columns]
-        parts.append(continuous.reset_index())
+        parts.append(_aggregate_continuous(work, continuous_cols))
 
     if categorical_cols:
-        categorical = work.groupby("customer_ID", sort=False)[categorical_cols].agg(
-            [_series_mode, "last"]
-        )
-        categorical.columns = [f"{col}_{stat}" for col, stat in categorical.columns]
-        parts.append(categorical.reset_index())
+        parts.append(_aggregate_categoricals(work, categorical_cols))
 
     if parts:
         features = parts[0]
@@ -173,16 +164,42 @@ def prepare_amex_application_table(raw_dir: Path, output_path: Path) -> Path:
     return output_path
 
 
-def _series_mode(series: pd.Series) -> object:
-    """Most frequent value; first mode on ties. Empty → NA."""
-    modes = series.mode(dropna=True)
-    if modes.empty:
-        return pd.NA
-    return modes.iloc[0]
+def _aggregate_continuous(work: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """mean/std/min/max/last per customer; rebuild frame to avoid fragmented blocks."""
+    aggregated = work.groupby("customer_ID", sort=False)[columns].agg(
+        ["mean", "std", "min", "max", "last"]
+    )
+    flat_cols = [f"{col}_{stat}" for col, stat in aggregated.columns]
+    # Multilevel agg leaves a fragmented BlockManager on wide AMEX frames; rebuild once.
+    out = pd.DataFrame(aggregated.to_numpy(), columns=flat_cols, index=aggregated.index)
+    return out.reset_index()
 
 
-# pandas groupby.agg uses __name__ for the MultiIndex level ("mode", not "_series_mode").
-_series_mode.__name__ = "mode"
+def _aggregate_categoricals(work: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """mode + last per customer via counts (not Python Series.mode per group)."""
+    last = work.groupby("customer_ID", sort=False)[columns].last()
+    last.columns = [f"{col}_last" for col in last.columns]
+
+    mode_parts: list[pd.Series] = []
+    for col in columns:
+        counts = (
+            work.groupby(["customer_ID", col], sort=False, dropna=True)
+            .size()
+            .reset_index(name="n")
+            .sort_values(
+                ["customer_ID", "n", col],
+                ascending=[True, False, True],
+                kind="mergesort",
+            )
+            .drop_duplicates(subset=["customer_ID"])
+            .set_index("customer_ID")[col]
+            .rename(f"{col}_mode")
+        )
+        # Customers whose history is all-NA for this col are absent from counts.
+        mode_parts.append(counts.reindex(last.index))
+
+    modes = pd.concat(mode_parts, axis=1)
+    return modes.join(last).reset_index()
 
 
 def prepare_home_credit_application_table(raw_dir: Path, output_path: Path) -> Path:
