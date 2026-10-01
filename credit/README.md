@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done (mart + book-sample EDA). **Next:** competition raw data ([#151](https://github.com/JLaborda/SmartWealthAI/issues/151)) → mart ([#152](https://github.com/JLaborda/SmartWealthAI/issues/152)) → EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) done; **competition mart (#152) in progress**. **Next:** competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -27,6 +27,21 @@ poetry run credit-css build-application-mart \
   --good-value 0
 # Exploration notebook (optional; not CI):
 # credit/notebooks/eda_application_mart.ipynb
+```
+
+### Competition marts (AMEX / Home Credit)
+
+After staging raw extracts (see [`credit/data/README.md`](data/README.md)):
+
+```bash
+poetry run credit-css build-competition-mart \
+  --source-kind amex \
+  --raw-dir data/credit/raw/amex \
+  --output-dir data/credit/application_mart/amex
+poetry run credit-css build-competition-mart \
+  --source-kind home_credit \
+  --raw-dir data/credit/raw/home_credit \
+  --output-dir data/credit/application_mart/home_credit
 ```
 
 Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the hermetic CI default:

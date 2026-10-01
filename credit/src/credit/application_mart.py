@@ -92,14 +92,16 @@ def build_application_mart(
 
 
 def _load_source_frame(source_path: Path) -> pd.DataFrame:
-    """Load CSV or pickle application source (CI fixtures stay CSV)."""
+    """Load CSV, pickle, or parquet application source (CI fixtures stay CSV)."""
     suffix = source_path.suffix.lower()
     if suffix in _PICKLE_SUFFIXES:
         return pd.read_pickle(source_path)
     if suffix == ".csv":
         return pd.read_csv(source_path)
+    if suffix == ".parquet":
+        return pd.read_parquet(source_path)
     raise ValueError(
-        f"Unsupported source format '{source_path.suffix}'; use .csv, .pkl, or .pickle"
+        f"Unsupported source format '{source_path.suffix}'; use .csv, .pkl, .pickle, or .parquet"
     )
 
 

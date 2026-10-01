@@ -24,7 +24,7 @@ data/credit/raw/home_credit/
 | Source | Competition / dataset | Notes |
 | --- | --- | --- |
 | AMEX | [American Express - Default Prediction](https://www.kaggle.com/competitions/amex-default-prediction) | **DATA ACCESS: Competition Use Only** — read Rules before download. Official archive via Kaggle CLI; then **local** CSV→parquet (`credit-css convert-amex-extract`). float64→float32 only; missing values stay missing (no community NA→`-127` tricks). |
-| Home Credit | [Home Credit Default Risk](https://www.kaggle.com/c/home-credit-default-risk) | Official archive via Kaggle CLI → `stage-competition-extract`. Multi-table raw (application / bureau / previous / balances). **Joins → application mart are #152**, not this ticket. Keys: `SK_ID_CURR`, `SK_ID_PREV`, `SK_ID_BUREAU`. |
+| Home Credit | [Home Credit Default Risk](https://www.kaggle.com/c/home-credit-default-risk) | Official archive via Kaggle CLI → `stage-competition-extract`. Multi-table raw (application / bureau / previous / balances). Application mart via `build-competition-mart` (#152); bureau joins deferred. Keys: `SK_ID_CURR`, `SK_ID_PREV`, `SK_ID_BUREAU`. |
 | FICO HELOC | **Later** (not in #151) | [Kaggle HELOC mirror](https://www.kaggle.com/datasets/averkiyoliabev/home-equity-line-of-creditheloc); [Hugging Face `mstz/heloc`](https://huggingface.co/datasets/mstz/heloc); official [FICO Explainable ML Challenge](https://community.fico.com/s/explainable-machine-learning-challenge) form (often flaky). |
 
 ### Operator steps (local)
@@ -56,9 +56,30 @@ poetry run credit-css convert-amex-extract \
 
 If the zip extracts nested folders, point `--source` at the CSV path that actually exists. Labels file (`train_labels.csv`) can stay CSV.
 
-Downstream: raw → **application mart** (#152; Home Credit joins), competition EDA (#153), then scratch scoring (#145).
+### Competition → application mart (#152)
 
-Hermetic CI continues to use `tests/credit/fixtures/application_source/applications.csv`.
+Given raw extracts above, build validated application marts (one row per applicant/application + **target** → **bad**/**good**):
+
+```bash
+# AMEX: statement parquet + train_labels → customer-level mart
+poetry run credit-css build-competition-mart \
+  --source-kind amex \
+  --raw-dir data/credit/raw/amex \
+  --output-dir data/credit/application_mart/amex
+
+# Home Credit: application_train pass-through (bureau joins later)
+poetry run credit-css build-competition-mart \
+  --source-kind home_credit \
+  --raw-dir data/credit/raw/home_credit \
+  --output-dir data/credit/application_mart/home_credit
+```
+
+**AMEX contract:** numeric features aggregated per `customer_ID` (ordered by `S_2`) as mean/std/min/max/last; inner join `train_labels.csv`; `target` 1=bad, 0=good.  
+**Home Credit contract (v1):** `application_train.csv` already application-grain; bureau/previous/balance joins deferred.
+
+Downstream: competition EDA (#153), then scratch scoring (#145).
+
+Hermetic CI uses `tests/credit/fixtures/` (tiny AMEX statements + Home Credit application rows).
 
 ## Mart regeneration (book sample)
 

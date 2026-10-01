@@ -1,8 +1,8 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — book path done (scaffold/mart/book EDA); **priority now** = competition raw data wave before serious modeling  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) · **now:** [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
-**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
+**Status:** in progress — book path + competition raw (#151) done; **competition mart (#152) implementing**; next = competition EDA (#153) then scoring (#145)  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) · **now:** [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
+**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
