@@ -323,6 +323,56 @@ def test_prepare_amex_allows_non_numeric_only_statements(tmp_path: Path) -> None
     assert table.loc["b", "note_last"] == "z"
 
 
+def test_prepare_amex_id_and_date_only_still_emits_labeled_rows(tmp_path: Path) -> None:
+    """AMEX prepare emits customer rows when statements have no feature columns."""
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame(
+        {
+            "customer_ID": ["a", "a", "b"],
+            "S_2": ["2017-03-01", "2017-04-01", "2017-03-01"],
+        }
+    ).to_parquet(raw / "train_data.parquet", index=False)
+    (raw / "train_labels.csv").write_text(
+        "customer_ID,target\na,0\nb,1\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "prepared.parquet"
+    prepare_amex_application_table(raw, out)
+    table = pd.read_parquet(out)
+    assert set(table["customer_ID"]) == {"a", "b"}
+    assert set(table["target"]) == {0, 1}
+
+
+def test_prepare_amex_all_null_categorical_mode_is_null(tmp_path: Path) -> None:
+    """All-null categorical history yields a null mode (not a crash)."""
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame(
+        {
+            "customer_ID": ["a", "a"],
+            "S_2": ["2017-03-01", "2017-04-01"],
+            "D_63": [pd.NA, pd.NA],
+            "P_2": [0.1, 0.2],
+        }
+    ).to_parquet(raw / "train_data.parquet", index=False)
+    (raw / "train_labels.csv").write_text(
+        "customer_ID,target\na,0\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "prepared.parquet"
+    prepare_amex_application_table(raw, out)
+    table = pd.read_parquet(out)
+    assert "D_63_mode" in table.columns
+    assert pd.isna(table.loc[0, "D_63_mode"])
+    assert pd.isna(table.loc[0, "D_63_last"])
+
+
+
 def test_prepare_home_credit_requires_application_train_shape(tmp_path: Path) -> None:
     """Home Credit prepare fails without application_train or required columns."""
     import pytest
