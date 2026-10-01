@@ -59,13 +59,11 @@ def convert_amex_extract_to_parquet(
     reader = pd.read_csv(source_csv, chunksize=chunksize)
     writer: pq.ParquetWriter | None = None
     row_count = 0
-    seen_customer_id = False
 
     try:
         for chunk in reader:
             if "customer_ID" not in chunk.columns:
                 raise ValueError("AMEX extract must include a customer_ID column")
-            seen_customer_id = True
             if downcast_float64:
                 float64_cols = chunk.select_dtypes(include=["float64"]).columns
                 for col in float64_cols:
@@ -76,10 +74,16 @@ def convert_amex_extract_to_parquet(
             writer.write_table(table)
             row_count += len(chunk)
     finally:
-        if writer is not None:
+        # ponytail: pandas yields a chunk or raises first, so writer is None
+        # only when this try is already failing. The finished-loop fall-through
+        # is unreachable; upgrade path is a reader that can be empty.
+        if writer is not None:  # pragma: no branch
             writer.close()
 
-    if not seen_customer_id:
+    if row_count == 0:
+        # pandas yields one empty chunk for a header-only file, so the writer
+        # may already have created a 0-row parquet.
+        output_parquet.unlink(missing_ok=True)
         raise ValueError("AMEX extract CSV was empty")
 
     return AmexParquetResult(

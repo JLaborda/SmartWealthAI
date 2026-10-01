@@ -5,6 +5,7 @@ from __future__ import annotations
 import zipfile
 from pathlib import Path
 
+import pandas as pd
 from click.testing import CliRunner
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "amex_extract"
@@ -54,3 +55,25 @@ def test_cli_stage_competition_extract_unzips(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert (dest / "application_train.csv").is_file()
+
+
+def test_cli_convert_amex_extract_can_keep_float64(tmp_path: Path) -> None:
+    """--no-downcast-float64 leaves AMEX float columns as float64."""
+    from credit.cli import main
+
+    out = tmp_path / "train_data.parquet"
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "convert-amex-extract",
+            "--source",
+            str(SOURCE_CSV),
+            "--output",
+            str(out),
+            "--no-downcast-float64",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    got = pd.read_parquet(out)
+    assert str(got["P_2"].dtype) == "float64"
