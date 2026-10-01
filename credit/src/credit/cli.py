@@ -1,4 +1,4 @@
-"""Credit Scoring System (CSS) CLI — composable stages (#143 stub; #144 mart; #147 pkl)."""
+"""Credit Scoring System (CSS) CLI — composable stages (#143–#151)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ from pathlib import Path
 import click
 
 from credit import __version__
+from credit.amex_parquet import convert_amex_extract_to_parquet
 from credit.application_mart import build_application_mart
+from credit.competition_raw import stage_competition_extract
 
 
 @click.group(
@@ -15,8 +17,8 @@ from credit.application_mart import build_application_mart
     invoke_without_command=True,
     help=(
         "Credit Scoring System (CSS) CLI. "
-        "Application credit scoring stages: build-application-mart "
-        "(scratch scoring lands in a later ticket)."
+        "Stages: build-application-mart, stage-competition-extract, "
+        "convert-amex-extract (scratch scoring lands in a later ticket)."
     ),
 )
 @click.version_option(__version__, prog_name="credit-css")
@@ -26,7 +28,8 @@ def main(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None:
         click.echo(
             "Credit Scoring System (CSS) CLI.\n"
-            "Stages: build-application-mart\n"
+            "Stages: build-application-mart, stage-competition-extract, "
+            "convert-amex-extract\n"
             "See credit/docs/features/css-chapter5-mart-and-scoring.md."
         )
 
@@ -111,3 +114,64 @@ def _parse_label_value(raw: str) -> object:
     if as_float == int(as_float):
         return int(as_float)
     return as_float
+
+
+@main.command("stage-competition-extract")
+@click.option(
+    "--source",
+    "source_path",
+    type=click.Path(path_type=Path, exists=True),
+    required=True,
+    help="Downloaded competition .zip or an already-extracted directory.",
+)
+@click.option(
+    "--dest-dir",
+    type=click.Path(path_type=Path, file_okay=False),
+    required=True,
+    help="Destination raw dir (e.g. data/credit/raw/home_credit).",
+)
+def stage_competition_extract_cmd(source_path: Path, dest_dir: Path) -> None:
+    """Stage an official Kaggle extract into the local credit raw layout."""
+    result = stage_competition_extract(source_path, dest_dir)
+    click.echo(
+        f"Staged {len(result.staged_names)} file(s) into {result.dest_dir}: "
+        f"{', '.join(result.staged_names)}"
+    )
+
+
+@main.command("convert-amex-extract")
+@click.option(
+    "--source",
+    "source_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Official AMEX CSV extract (e.g. train_data.csv).",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path, dir_okay=False),
+    required=True,
+    help="Destination parquet path.",
+)
+@click.option(
+    "--no-downcast-float64",
+    is_flag=True,
+    default=False,
+    help="Keep float64 (default converts float64→float32 for size only).",
+)
+def convert_amex_extract_cmd(
+    source_path: Path,
+    output_path: Path,
+    no_downcast_float64: bool,
+) -> None:
+    """Convert an official AMEX CSV extract to local parquet (no NA sentinels)."""
+    result = convert_amex_extract_to_parquet(
+        source_path,
+        output_path,
+        downcast_float64=not no_downcast_float64,
+    )
+    click.echo(
+        f"AMEX parquet written: {result.parquet_path} ({result.row_count} rows) "
+        f"from {result.source_path}"
+    )
