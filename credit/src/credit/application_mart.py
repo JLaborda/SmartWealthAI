@@ -1,4 +1,4 @@
-"""Build a validated application mart from local demo source data (#144)."""
+"""Build a validated application mart from local demo source data (#144, #147)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ import pandas as pd
 MART_FILENAME = "application_mart.parquet"
 REJECTS_FILENAME = "rejects.parquet"
 README_FILENAME = "README.md"
+
+_PICKLE_SUFFIXES = {".pkl", ".pickle"}
 
 
 @dataclass(frozen=True)
@@ -41,7 +43,8 @@ def build_application_mart(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    frame = pd.read_csv(source_path)
+    frame = _load_source_frame(source_path)
+    frame = _ensure_application_id_column(frame, application_id_column)
     retained, rejects = _partition_rows(
         frame,
         application_id_column=application_id_column,
@@ -49,6 +52,9 @@ def build_application_mart(
         bad_value=bad_value,
         good_value=good_value,
     )
+
+    retained = _coerce_for_parquet(retained)
+    rejects = _coerce_for_parquet(rejects)
 
     mart_path = output_dir / MART_FILENAME
     retained.to_parquet(mart_path, index=False)
@@ -60,6 +66,8 @@ def build_application_mart(
     readme_path = output_dir / README_FILENAME
     readme_path.write_text(
         _mart_readme(
+            source_path=source_path,
+            application_id_column=application_id_column,
             target_column=target_column,
             bad_value=bad_value,
             good_value=good_value,
@@ -83,6 +91,47 @@ def build_application_mart(
     )
 
 
+def _load_source_frame(source_path: Path) -> pd.DataFrame:
+    """Load CSV or pickle application source (CI fixtures stay CSV)."""
+    suffix = source_path.suffix.lower()
+    if suffix in _PICKLE_SUFFIXES:
+        return pd.read_pickle(source_path)
+    if suffix == ".csv":
+        return pd.read_csv(source_path)
+    raise ValueError(
+        f"Unsupported source format '{source_path.suffix}'; use .csv, .pkl, or .pickle"
+    )
+
+
+def _ensure_application_id_column(
+    frame: pd.DataFrame,
+    application_id_column: str,
+) -> pd.DataFrame:
+    """Promote index to a column when the application id lives on the index (AMEX sample)."""
+    if application_id_column in frame.columns:
+        return frame
+    if frame.index.name == application_id_column:
+        return frame.reset_index()
+    raise ValueError(
+        f"Application id column '{application_id_column}' not found in columns "
+        f"or as index name (index.name={frame.index.name!r})"
+    )
+
+
+def _coerce_for_parquet(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize dtypes so wide float16 / category frames write reliably."""
+    if frame.empty:
+        return frame
+    out = frame.copy()
+    for col in out.select_dtypes(include=["float16"]).columns:
+        out[col] = out[col].astype("float32")
+    for col in out.columns:
+        dtype = out[col].dtype
+        if isinstance(dtype, pd.CategoricalDtype) or str(dtype) == "category":
+            out[col] = out[col].astype(str)
+    return out
+
+
 def _partition_rows(
     frame: pd.DataFrame,
     *,
@@ -92,42 +141,65 @@ def _partition_rows(
     good_value: object,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Split source rows into retained mart rows and explicit rejects."""
+    if target_column not in frame.columns:
+        raise ValueError(f"Target column '{target_column}' not found in source")
+
+    work = frame.copy()
+    ids = work[application_id_column]
+    missing_id = ids.map(_is_blank_id)
+    dup_id = ids.duplicated(keep="first") & ~missing_id
+
+    target_num = pd.to_numeric(work[target_column], errors="coerce")
+    missing_target = target_num.isna() & ~missing_id & ~dup_id
     allowed = {bad_value, good_value}
-    seen_ids: set[object] = set()
-    retained_records: list[dict[str, object]] = []
-    reject_records: list[dict[str, object]] = []
+    invalid_target = (
+        ~missing_id
+        & ~dup_id
+        & ~missing_target
+        & ~target_num.map(lambda v: v in allowed if pd.notna(v) else False)
+    )
 
-    for row in frame.to_dict(orient="records"):
-        app_id = row.get(application_id_column)
-        target_raw = row.get(target_column)
+    reason = pd.Series(pd.NA, index=work.index, dtype="object")
+    reason = reason.mask(missing_id, "missing_application_id")
+    reason = reason.mask(dup_id & reason.isna(), "duplicate_application_id")
+    reason = reason.mask(missing_target & reason.isna(), "missing_target")
+    reason = reason.mask(invalid_target & reason.isna(), "invalid_target")
 
-        if pd.isna(app_id) or (isinstance(app_id, str) and not str(app_id).strip()):
-            reject_records.append({**row, "reject_reason": "missing_application_id"})
-            continue
+    reject_mask = reason.notna()
+    rejects = work.loc[reject_mask].copy()
+    rejects["reject_reason"] = reason.loc[reject_mask].to_numpy()
 
-        if app_id in seen_ids:
-            reject_records.append({**row, "reject_reason": "duplicate_application_id"})
-            continue
+    retained = work.loc[~reject_mask].copy()
+    if not retained.empty:
+        retained[application_id_column] = retained[application_id_column].map(
+            _normalize_application_id
+        )
+        retained[target_column] = pd.to_numeric(retained[target_column], errors="coerce").astype(
+            int
+        )
 
-        if pd.isna(target_raw):
-            reject_records.append({**row, "reject_reason": "missing_target"})
-            continue
+    return retained.reset_index(drop=True), rejects.reset_index(drop=True)
 
-        target_num = pd.to_numeric(target_raw, errors="coerce")
-        if pd.isna(target_num) or target_num not in allowed:
-            reject_records.append({**row, "reject_reason": "invalid_target"})
-            continue
 
-        seen_ids.add(app_id)
-        clean = dict(row)
-        clean[application_id_column] = int(app_id) if float(app_id) == int(app_id) else app_id
-        clean[target_column] = int(target_num)
-        retained_records.append(clean)
+def _is_blank_id(app_id: object) -> bool:
+    if pd.isna(app_id):
+        return True
+    if isinstance(app_id, str) and not app_id.strip():
+        return True
+    return False
 
-    retained = pd.DataFrame(retained_records, columns=list(frame.columns))
-    reject_columns = list(frame.columns) + ["reject_reason"]
-    rejects = pd.DataFrame(reject_records, columns=reject_columns)
-    return retained, rejects
+
+def _normalize_application_id(app_id: object) -> object:
+    """Keep string ids (AMEX hashes); coerce integral numerics to int."""
+    if isinstance(app_id, str):
+        return app_id
+    try:
+        as_float = float(app_id)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return app_id
+    if as_float == int(as_float):
+        return int(as_float)
+    return app_id
 
 
 def _resolve_split_policy(
@@ -141,6 +213,8 @@ def _resolve_split_policy(
 
 def _mart_readme(
     *,
+    source_path: Path,
+    application_id_column: str,
     target_column: str,
     bad_value: object,
     good_value: object,
@@ -168,6 +242,11 @@ def _mart_readme(
 
 Public demo data only — not live bank BFSI data.
 
+## Source
+
+- Path: `{source_path}`
+- Application id column: `{application_id_column}`
+
 ## Target → bad / good
 
 | Column | Bad (positive class) | Good (negative class) |
@@ -176,6 +255,11 @@ Public demo data only — not live bank BFSI data.
 
 Domain language: **bad** = default / payment difficulties under the dataset dictionary; \
 **good** = no default event under that definition.
+
+For the book AMEX-shaped sample (`train_df_sample.pkl`), `{target_column}=1` is default \
+(no payment within 120 days after the latest statement in the AMEX performance window) \
+and `{target_column}=0` is non-default — same convention as the AMEX Default Prediction \
+competition dictionary.
 
 ## Build counts
 

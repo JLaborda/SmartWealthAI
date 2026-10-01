@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** application mart (CSS PR1) via `build_application_mart` + `credit-css build-application-mart` ([#144](https://github.com/JLaborda/SmartWealthAI/issues/144)); EDA next ([#147](https://github.com/JLaborda/SmartWealthAI/issues/147)), then scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** application mart + book-sample EDA ([#147](https://github.com/JLaborda/SmartWealthAI/issues/147)); next: scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -12,7 +12,31 @@ This is **not** fraud detection and **not** the investing screener.
 
 ## Data (demo only)
 
-No live bank BFSI data. Prefer the book sample after Git LFS; practical fallbacks: **Home Credit**, then **FICO HELOC**. AMEX Default Prediction is optional/scale-only (too large for v1). Always document the **target** → **bad**/**good** mapping on the mart README.
+No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. Full Kaggle AMEX and Home Credit dumps come later and must not be committed. Hermetic CI uses `tests/credit/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
+
+### Local mart + EDA (book sample)
+
+```bash
+git lfs pull --include="credit/data/*"
+poetry run credit-css build-application-mart \
+  --source credit/data/train_df_sample.pkl \
+  --output-dir data/credit/application_mart \
+  --application-id-column customer_ID \
+  --target-column target \
+  --bad-value 1 \
+  --good-value 0
+# Exploration notebook (optional; not CI):
+# credit/notebooks/eda_application_mart.ipynb
+```
+
+Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the hermetic CI default:
+
+```bash
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/application_source/applications.csv \
+  --output-dir data/credit/application_mart
+```
+
 
 ## Delivery cuts
 
