@@ -104,16 +104,15 @@ def test_competition_mart_readme_documents_target_and_source_contract(
 
 def test_build_competition_mart_cli_amex(tmp_path: Path) -> None:
     """CLI build-competition-mart wraps the public competition mart seam."""
-    import subprocess
-    import sys
+    from click.testing import CliRunner
+
+    from credit.cli import main
 
     raw_dir = _stage_amex_raw(tmp_path / "raw")
     out = tmp_path / "mart"
-    proc = subprocess.run(
+    result = CliRunner().invoke(
+        main,
         [
-            sys.executable,
-            "-m",
-            "credit",
             "build-competition-mart",
             "--source-kind",
             "amex",
@@ -122,10 +121,165 @@ def test_build_competition_mart_cli_amex(tmp_path: Path) -> None:
             "--output-dir",
             str(out),
         ],
-        check=False,
-        capture_output=True,
-        text=True,
     )
-    assert proc.returncode == 0, proc.stderr
+    assert result.exit_code == 0, result.output
     assert (out / "application_mart.parquet").exists()
-    assert "retained" in proc.stdout.lower()
+    assert "retained" in result.output.lower()
+
+
+def test_build_competition_mart_cli_home_credit(tmp_path: Path) -> None:
+    """CLI build-competition-mart accepts home_credit source kind."""
+    from click.testing import CliRunner
+
+    from credit.cli import main
+
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "application_train.csv").write_text(
+        HC_APPLICATION_CSV.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    out = tmp_path / "mart"
+    result = CliRunner().invoke(
+        main,
+        [
+            "build-competition-mart",
+            "--source-kind",
+            "home_credit",
+            "--raw-dir",
+            str(raw_dir),
+            "--output-dir",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (out / "application_mart.parquet").exists()
+
+
+def test_build_competition_mart_rejects_unknown_source_kind(tmp_path: Path) -> None:
+    """Unknown source_kind fails with a clear error (no silent fallback)."""
+    import pytest
+
+    from credit.competition_mart import build_competition_mart
+
+    with pytest.raises(ValueError, match="Unsupported source_kind"):
+        build_competition_mart(
+            source_kind="fico",  # type: ignore[arg-type]
+            raw_dir=tmp_path,
+            output_dir=tmp_path / "mart",
+        )
+
+
+def test_prepare_amex_requires_statements_labels_and_key_columns(tmp_path: Path) -> None:
+    """AMEX prepare fails when raw files or required columns are missing."""
+    import pytest
+
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    out = tmp_path / "out.parquet"
+
+    with pytest.raises(FileNotFoundError, match="statements"):
+        prepare_amex_application_table(raw, out)
+
+    pd.DataFrame({"customer_ID": ["a"], "S_2": ["2017-03-01"], "P_2": [0.1]}).to_parquet(
+        raw / "train_data.parquet", index=False
+    )
+    with pytest.raises(FileNotFoundError, match="labels"):
+        prepare_amex_application_table(raw, out)
+
+    (raw / "train_labels.csv").write_text("customer_ID,target\na,0\n", encoding="utf-8")
+    pd.DataFrame({"S_2": ["2017-03-01"], "P_2": [0.1]}).to_parquet(
+        raw / "train_data.parquet", index=False
+    )
+    with pytest.raises(ValueError, match="customer_ID"):
+        prepare_amex_application_table(raw, out)
+
+    pd.DataFrame({"customer_ID": ["a"], "P_2": [0.1]}).to_parquet(
+        raw / "train_data.parquet", index=False
+    )
+    with pytest.raises(ValueError, match="S_2"):
+        prepare_amex_application_table(raw, out)
+
+    pd.DataFrame({"customer_ID": ["a"], "S_2": ["2017-03-01"], "P_2": [0.1]}).to_parquet(
+        raw / "train_data.parquet", index=False
+    )
+    (raw / "train_labels.csv").write_text("id,label\na,0\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="customer_ID and target"):
+        prepare_amex_application_table(raw, out)
+
+
+def test_prepare_amex_allows_non_numeric_only_statements(tmp_path: Path) -> None:
+    """AMEX prepare still emits customer rows when no numeric feature columns exist."""
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame(
+        {
+            "customer_ID": ["a", "a", "b"],
+            "S_2": ["2017-03-01", "2017-04-01", "2017-03-01"],
+            "note": ["x", "y", "z"],
+        }
+    ).to_parquet(raw / "train_data.parquet", index=False)
+    (raw / "train_labels.csv").write_text(
+        "customer_ID,target\na,0\nb,1\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "prepared.parquet"
+    prepare_amex_application_table(raw, out)
+    table = pd.read_parquet(out)
+    assert set(table["customer_ID"]) == {"a", "b"}
+    assert set(table["target"]) == {0, 1}
+
+
+def test_prepare_home_credit_requires_application_train_shape(tmp_path: Path) -> None:
+    """Home Credit prepare fails without application_train or required columns."""
+    import pytest
+
+    from credit.competition_mart import prepare_home_credit_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    out = tmp_path / "out.parquet"
+
+    with pytest.raises(FileNotFoundError, match="application"):
+        prepare_home_credit_application_table(raw, out)
+
+    (raw / "application_train.csv").write_text("FOO,BAR\n1,2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="SK_ID_CURR and TARGET"):
+        prepare_home_credit_application_table(raw, out)
+
+
+def test_home_credit_mart_readme_documents_pass_through_contract(tmp_path: Path) -> None:
+    """Home Credit mart README documents the pass-through prepare contract."""
+    from credit.competition_mart import build_competition_mart
+
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "application_train.csv").write_text(
+        HC_APPLICATION_CSV.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    result = build_competition_mart(
+        source_kind="home_credit",
+        raw_dir=raw_dir,
+        output_dir=tmp_path / "mart",
+    )
+    text = result.readme_path.read_text(encoding="utf-8")
+    assert "home credit" in text.lower()
+    assert "pass-through" in text.lower() or "application_train" in text.lower()
+
+
+def test_build_application_mart_accepts_parquet_source(tmp_path: Path) -> None:
+    """Existing mart seam loads application-grain parquet sources."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "apps.parquet"
+    pd.read_csv(FIXTURES / "application_source" / "applications.csv").to_parquet(
+        source, index=False
+    )
+    result = build_application_mart(source, tmp_path / "mart")
+    assert result.retained_rows >= 1
+    assert result.mart_path.exists()
