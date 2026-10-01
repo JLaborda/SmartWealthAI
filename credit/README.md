@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** application mart + book-sample EDA ([#147](https://github.com/JLaborda/SmartWealthAI/issues/147)); next: scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done (mart + book-sample EDA). **Next:** competition raw data ([#151](https://github.com/JLaborda/SmartWealthAI/issues/151)) → mart ([#152](https://github.com/JLaborda/SmartWealthAI/issues/152)) → EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -12,7 +12,7 @@ This is **not** fraud detection and **not** the investing screener.
 
 ## Data (demo only)
 
-No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. Full Kaggle AMEX and Home Credit dumps come later and must not be committed. Hermetic CI uses `tests/credit/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
+No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. **Priority:** official Kaggle **raw competition extracts** (AMEX + Home Credit) under gitignored `data/credit/raw/` (#151) — not committed; access-only (no submissions). FICO HELOC documented for later. Hermetic CI uses `tests/credit/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
 
 ### Local mart + EDA (book sample)
 

@@ -62,4 +62,8 @@ Credit provenance (full portfolio list: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md)):
 1. **Elliot Taehun Kim (2026)** — *Financial AI in Practice: A Playbook for Credit, Fraud, and Investment Systems*
    Architecture patterns, feature engineering, and ML pipelines for credit risk, fraud, and investment systems (CSS v1 follows chapters 5–6).
 
-**Demo datasets** (not live bank BFSI data): book sample (`train_df_sample.pkl` after LFS) preferred for notebook fidelity; practical fallbacks **Home Credit** then **FICO HELOC**; **AMEX Default Prediction** optional/scale-only. Document **target** → **bad**/**good** on the mart README.
+**Demo datasets** (not live bank BFSI data): book sample (`train_df_sample.pkl` after LFS) for smoke / notebook fidelity; **raw competition extracts** from **AMEX Default Prediction** and **Home Credit Default Risk** (official Kaggle downloads, local only) for serious EDA and modeling; **FICO HELOC** later (explainability / fallback). Document **target** → **bad**/**good** on the mart README. Access-only — no competition submissions as a CSS goal.
+
+**Raw competition extract**:
+Local, gitignored official contest files under the credit raw layout, before they become an **application mart**. Not an investing-style data lake and not a community redistributed encoding of the contest.
+_Avoid_: calling this the SimFin/investing lake; treating community parquet/feather mirrors as the source of truth; implying live bank BFSI data

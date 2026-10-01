@@ -1,0 +1,18 @@
+---
+description: Never commit or push directly to protected develop/main
+alwaysApply: true
+---
+
+# Branch and PR workflow
+
+`develop` and `main` are **protected**. Do not commit on them or push to them.
+
+## Required flow
+
+1. Start from up-to-date `develop`: `git fetch origin && git checkout develop && git pull --ff-only origin develop`
+2. Create a feature branch: `git checkout -b cursor/<short-topic>` (or `feat/…`)
+3. Commit only on that branch
+4. Push the branch and open a PR into `develop` with `gh pr create`
+5. Never `git push origin develop` / `main`
+
+If work was accidentally committed on `develop`, move it to a branch (`git branch <name>` then `git reset --hard origin/develop`) before opening the PR.
