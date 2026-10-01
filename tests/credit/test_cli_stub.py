@@ -37,6 +37,7 @@ def test_credit_module_default_run_lists_css_stages(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "Credit Scoring System" in result.stdout
     assert "build-application-mart" in result.stdout
+    assert "build-competition-mart" in result.stdout
     assert "css-chapter5-mart-and-scoring.md" in result.stdout
 
 
@@ -45,6 +46,17 @@ def test_credit_cli_main_is_importable() -> None:
     from credit.cli import main
 
     assert callable(main)
+
+
+def test_credit_cli_default_invocation_lists_competition_mart_stage() -> None:
+    """Invoking the Click group with no args lists build-competition-mart."""
+    from click.testing import CliRunner
+
+    from credit.cli import main
+
+    result = CliRunner().invoke(main, [])
+    assert result.exit_code == 0, result.output
+    assert "build-competition-mart" in result.output
 
 
 def test_credit_package_exposes_version(tmp_path: Path) -> None:

@@ -1,14 +1,16 @@
-"""Credit Scoring System (CSS) CLI — composable stages (#143–#151)."""
+"""Credit Scoring System (CSS) CLI — composable stages (#143–#152)."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import click
 
 from credit import __version__
 from credit.amex_parquet import convert_amex_extract_to_parquet
 from credit.application_mart import build_application_mart
+from credit.competition_mart import SourceKind, build_competition_mart
 from credit.competition_raw import stage_competition_extract
 
 
@@ -17,8 +19,9 @@ from credit.competition_raw import stage_competition_extract
     invoke_without_command=True,
     help=(
         "Credit Scoring System (CSS) CLI. "
-        "Stages: build-application-mart, stage-competition-extract, "
-        "convert-amex-extract (scratch scoring lands in a later ticket)."
+        "Stages: build-application-mart, build-competition-mart, "
+        "stage-competition-extract, convert-amex-extract "
+        "(scratch scoring lands in a later ticket)."
     ),
 )
 @click.version_option(__version__, prog_name="credit-css")
@@ -28,8 +31,8 @@ def main(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None:
         click.echo(
             "Credit Scoring System (CSS) CLI.\n"
-            "Stages: build-application-mart, stage-competition-extract, "
-            "convert-amex-extract\n"
+            "Stages: build-application-mart, build-competition-mart, "
+            "stage-competition-extract, convert-amex-extract\n"
             "See credit/docs/features/css-chapter5-mart-and-scoring.md."
         )
 
@@ -114,6 +117,46 @@ def _parse_label_value(raw: str) -> object:
     if as_float == int(as_float):
         return int(as_float)
     return as_float
+
+
+@main.command("build-competition-mart")
+@click.option(
+    "--source-kind",
+    type=click.Choice(["amex", "home_credit"], case_sensitive=False),
+    required=True,
+    help="Competition raw source: amex or home_credit.",
+)
+@click.option(
+    "--raw-dir",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+    required=True,
+    help="Local raw extract dir (e.g. data/credit/raw/amex).",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path, file_okay=False),
+    required=True,
+    help="Directory for the application mart artifact and README sidecar.",
+)
+def build_competition_mart_cmd(
+    source_kind: str,
+    raw_dir: Path,
+    output_dir: Path,
+) -> None:
+    """Prepare competition raw → validated application mart."""
+    kind = cast(SourceKind, source_kind.lower())
+    result = build_competition_mart(
+        source_kind=kind,
+        raw_dir=raw_dir,
+        output_dir=output_dir,
+    )
+    click.echo(
+        f"Competition mart written: {result.mart_path} "
+        f"({result.retained_rows} retained, {result.rejected_rows} rejected). "
+        f"Target `{result.target_column}`: bad={result.bad_value}, "
+        f"good={result.good_value}. Split policy: {result.split_policy}. "
+        f"Sidecar: {result.readme_path}"
+    )
 
 
 @main.command("stage-competition-extract")
