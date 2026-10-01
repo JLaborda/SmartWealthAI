@@ -1,8 +1,8 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — application mart + book-sample EDA (#147); PR2 scoring still planned  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) (scaffold, done) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) (mart, done) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) (EDA) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) (scoring)  
-**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` · Tests: `tests/credit/test_application_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
+**Status:** in progress — book path done (scaffold/mart/book EDA); **priority now** = competition raw data wave before serious modeling  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) · **now:** [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
+**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
@@ -16,8 +16,8 @@ The portfolio needs a demonstrable **application credit scoring** slice with rea
 Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local, no Airflow/AWS yet):
 
 1. Register the `credit` package in the monorepo Poetry project.
-2. Build a validated **application mart** from public demo data (book sample → Home Credit → FICO HELOC fallback).
-3. Train a scratch pipeline (WOE/IV → XGBoost → probability → **credit score** with book scaling) and report **AUC** + **KS** on holdout; **rank-only** (no approve/decline cutoff).
+2. Build a validated **application mart** from public demo data: book sample (smoke/hermetic) plus official **AMEX** and **Home Credit** **raw competition extracts** (local Kaggle CLI; FICO HELOC later).
+3. Train a scratch pipeline (WOE/IV → XGBoost → probability → **credit score** with book scaling) and report **AUC** + **KS** on holdout; **rank-only** (no approve/decline cutoff). Serious training targets competition-backed marts; fixtures/book remain CI/smoke.
 
 ## User Stories
 
@@ -40,19 +40,23 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 17. As a developer, I want investing lake/SimFin code untouched by credit imports, so that bounded contexts stay separate.
 18. As a future maintainer, I want stage names that match the book’s pipeline mental model, so that cloud orchestration can wrap the same stages later.
 19. As a data scientist, I want a short EDA notebook on the **application mart** after PR1, so that I can explore class balance and data quality before modeling without duplicating the book’s notebook-only delivery.
+20. As a data scientist, I want official Kaggle **raw competition extracts** (AMEX + Home Credit) hosted locally via Kaggle CLI, so that EDA and modeling can improve beyond the book sample.
+21. As a developer, I want AMEX converted locally to parquet from the official extract (not community mirrors as source of truth), so that working size is manageable with controlled provenance.
+22. As a data scientist, I want competition-backed marts and EDA before scratch scoring, so that #145 is informed by real contest data rather than copy-paste of the book alone.
 
 ## Implementation Decisions
 
 - **Packaging:** One Poetry project; add `credit` as a second package beside investing; credit CLIs via project scripts.
 - **Primary test seam (PR1):** a single `build_application_mart(...)` (or equivalent) function that takes a local source path and returns a result with mart rows written, target→bad/good mapping metadata, and retained/rejected counts. CLI is a thin wrapper.
-- **Demo data order:** book sample (LFS) → Home Credit → FICO HELOC; never imply live BFSI; AMEX full dump out of v1.
+- **Demo data:** book sample (LFS) = smoke/hermetic + notebook fidelity; **priority path** = official AMEX + Home Credit raw extracts under `data/credit/raw/{amex,home_credit}/` (gitignored); local AMEX CSV→parquet conversion under our control; **FICO HELOC later** (documented only). Never imply live BFSI. No Kaggle leaderboard submissions in this slice. No S3/DVC in MVP.
+- **Raw layout language:** operator docs may say “local raw”; domain speech is **raw competition extract** → **application mart** (do not copy the investing lake vocabulary into credit).
 - **Split:** time-based when application/decision date exists; else stratified random; document on mart README; fit WOE/model on develop only.
 - **Label language:** provider **target** column in schemas; domain speech **bad**/**good**.
 - **Score use (v1):** rank-only; no cutoff; book probability→score scaling first.
 - **Metrics (PR2 CLI):** AUC-ROC + KS on holdout (Gini optional later).
 - **Orchestration:** CLI + composable stages; not Airflow locally.
-- **EDA:** One notebook under `credit/notebooks/` (or equivalent) that reads mart output; exploration only; sequenced **after mart, before PR2 scoring**.
-- **Delivery:** scaffold (#143) → mart (#144) → EDA notebook → chapter 5 scoring (#145).
+- **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) after raw (#151) + mart (#152); before serious #145 work.
+- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → **competition raw (#151) → competition mart (#152) → competition EDA (#153) → scoring (#145)**.
 
 ## Testing Decisions
 
@@ -66,7 +70,9 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Chapter 6 (OptBinning scorecard, Evidently/PSI monitoring, SHAP/LIME)
 - Approve/decline cutoff or profit/risk optimization
 - Agent–client assignment / matching
-- Airflow, AWS, Terraform, `platform/`
+- Airflow, AWS, Terraform, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP)
+- Kaggle leaderboard submissions
+- Community redistributed AMEX parquet/feather as primary provenance
 - Fraud module
 - Migrating investing code into `investing/`
 - Poetry → uv migration
@@ -75,4 +81,4 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 ## Further Notes
 
 - Expand “CSS” on first README mention: Credit Scoring System.
-- Parent GitHub issue tracks this spec; child tickets are tracer bullets for agents. EDA ticket number is linked in the parent issue comment thread on GitHub.
+- Parent GitHub issue [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) tracks this spec; child tickets are tracer bullets for agents. Competition wave: [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145).
