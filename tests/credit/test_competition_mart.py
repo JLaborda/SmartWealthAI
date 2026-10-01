@@ -51,6 +51,14 @@ def test_build_competition_mart_amex_one_row_per_customer_with_target(
     assert set(mart["target"]) <= {0, 1}
     assert "P_2_mean" in mart.columns
     assert "P_2_last" in mart.columns
+    assert "D_63_mode" in mart.columns
+    assert "D_63_last" in mart.columns
+    assert "D_64_mode" in mart.columns
+    assert "D_64_last" in mart.columns
+    assert "B_30_mode" in mart.columns
+    assert "B_30_last" in mart.columns
+    assert "B_30_mean" not in mart.columns
+    assert "D_63_mean" not in mart.columns
 
 
 def test_build_competition_mart_home_credit_application_grain(tmp_path: Path) -> None:
@@ -99,7 +107,10 @@ def test_competition_mart_readme_documents_target_and_source_contract(
     assert "good" in text.lower()
     assert "amex" in text.lower()
     assert "mean" in text.lower() and "last" in text.lower()
+    assert "mode" in text.lower()
+    assert "categorical" in text.lower() or "categoricals" in text.lower()
     assert "statement" in text.lower() or "aggregat" in text.lower()
+    assert "D_63" in text
 
 
 def test_build_competition_mart_cli_amex(tmp_path: Path) -> None:
@@ -210,8 +221,81 @@ def test_prepare_amex_requires_statements_labels_and_key_columns(tmp_path: Path)
         prepare_amex_application_table(raw, out)
 
 
+def test_prepare_amex_keeps_string_categorical_as_mode_and_last(tmp_path: Path) -> None:
+    """String AMEX categoricals (e.g. D_63) survive as mode + last, not dropped."""
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame(
+        {
+            "customer_ID": ["a", "a", "a", "b"],
+            "S_2": ["2017-03-01", "2017-04-01", "2017-05-01", "2017-03-01"],
+            "D_63": ["CR", "CO", "CR", "CL"],
+            "P_2": [0.1, 0.2, 0.3, 0.4],
+        }
+    ).to_parquet(raw / "train_data.parquet", index=False)
+    (raw / "train_labels.csv").write_text(
+        "customer_ID,target\na,0\nb,1\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "prepared.parquet"
+    prepare_amex_application_table(raw, out)
+    table = pd.read_parquet(out).set_index("customer_ID")
+
+    assert "D_63_mode" in table.columns
+    assert "D_63_last" in table.columns
+    assert "D_63_mean" not in table.columns
+    assert table.loc["a", "D_63_mode"] == "CR"
+    assert table.loc["a", "D_63_last"] == "CR"
+    assert table.loc["b", "D_63_mode"] == "CL"
+    assert table.loc["b", "D_63_last"] == "CL"
+    assert "P_2_mean" in table.columns
+    assert "P_2_last" in table.columns
+
+
+def test_prepare_amex_aggregates_numeric_categoricals_with_mode_and_last(
+    tmp_path: Path,
+) -> None:
+    """Official numeric-coded AMEX categoricals get mode + last only (no mean/std)."""
+    from credit.competition_mart import prepare_amex_application_table
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame(
+        {
+            "customer_ID": ["a", "a", "a"],
+            "S_2": ["2017-03-01", "2017-04-01", "2017-05-01"],
+            "B_30": [0, 1, 0],
+            "D_68": [2.0, 3.0, 2.0],
+            "P_2": [0.1, 0.2, 0.3],
+        }
+    ).to_parquet(raw / "train_data.parquet", index=False)
+    (raw / "train_labels.csv").write_text(
+        "customer_ID,target\na,0\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "prepared.parquet"
+    prepare_amex_application_table(raw, out)
+    table = pd.read_parquet(out)
+
+    assert "B_30_mode" in table.columns
+    assert "B_30_last" in table.columns
+    assert "B_30_mean" not in table.columns
+    assert "B_30_std" not in table.columns
+    assert "D_68_mode" in table.columns
+    assert "D_68_last" in table.columns
+    assert "D_68_mean" not in table.columns
+    assert table.loc[0, "B_30_mode"] == 0
+    assert table.loc[0, "B_30_last"] == 0
+    assert table.loc[0, "D_68_mode"] == 2.0
+    assert table.loc[0, "D_68_last"] == 2.0
+    assert "P_2_mean" in table.columns
+    assert "P_2_last" in table.columns
+
+
 def test_prepare_amex_allows_non_numeric_only_statements(tmp_path: Path) -> None:
-    """AMEX prepare still emits customer rows when no numeric feature columns exist."""
+    """AMEX prepare keeps non-numeric features (mode + last); no silent string drops."""
     from credit.competition_mart import prepare_amex_application_table
 
     raw = tmp_path / "raw"
@@ -229,9 +313,14 @@ def test_prepare_amex_allows_non_numeric_only_statements(tmp_path: Path) -> None
     )
     out = tmp_path / "prepared.parquet"
     prepare_amex_application_table(raw, out)
-    table = pd.read_parquet(out)
-    assert set(table["customer_ID"]) == {"a", "b"}
+    table = pd.read_parquet(out).set_index("customer_ID")
+    assert set(table.index) == {"a", "b"}
     assert set(table["target"]) == {0, 1}
+    assert "note_mode" in table.columns
+    assert "note_last" in table.columns
+    assert table.loc["a", "note_mode"] in {"x", "y"}
+    assert table.loc["a", "note_last"] == "y"
+    assert table.loc["b", "note_last"] == "z"
 
 
 def test_prepare_home_credit_requires_application_train_shape(tmp_path: Path) -> None:

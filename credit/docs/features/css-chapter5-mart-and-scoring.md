@@ -1,7 +1,7 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — book path + competition raw (#151) done; **competition mart (#152) implementing**; next = competition EDA (#153) then scoring (#145)  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) · **now:** [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
+**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **next:** competition EDA (#153) then scoring (#145)  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · **now:** [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done (unblocks [#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)  
 **Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
@@ -55,8 +55,9 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **Score use (v1):** rank-only; no cutoff; book probability→score scaling first.
 - **Metrics (PR2 CLI):** AUC-ROC + KS on holdout (Gini optional later).
 - **Orchestration:** CLI + composable stages; not Airflow locally.
-- **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) after raw (#151) + mart (#152); before serious #145 work.
-- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → **competition raw (#151) → competition mart (#152) → competition EDA (#153) → scoring (#145)**.
+- **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) unblocked after AMEX mart keeps all official categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done); run EDA before serious #145 work.
+- **AMEX statement → application grain (#157 done):** continuous numerics → `mean`/`std`/`min`/`max`/`last`; official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) → **`mode` + `last` only**; non-numeric statement features are not silently dropped (`{col}_mode` / `{col}_last`).
+- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → **competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → competition EDA (#153) → scoring (#145)**.
 
 ## Testing Decisions
 
@@ -81,4 +82,4 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 ## Further Notes
 
 - Expand “CSS” on first README mention: Credit Scoring System.
-- Parent GitHub issue [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) tracks this spec; child tickets are tracer bullets for agents. Competition wave: [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145).
+- Parent GitHub issue [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) tracks this spec; child tickets are tracer bullets for agents. Competition wave: [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) → [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) → [#153](https://github.com/JLaborda/SmartWealthAI/issues/153) → [#145](https://github.com/JLaborda/SmartWealthAI/issues/145).
