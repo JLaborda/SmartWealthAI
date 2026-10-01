@@ -372,7 +372,6 @@ def test_prepare_amex_all_null_categorical_mode_is_null(tmp_path: Path) -> None:
     assert pd.isna(table.loc[0, "D_63_last"])
 
 
-
 def test_prepare_home_credit_requires_application_train_shape(tmp_path: Path) -> None:
     """Home Credit prepare fails without application_train or required columns."""
     import pytest
