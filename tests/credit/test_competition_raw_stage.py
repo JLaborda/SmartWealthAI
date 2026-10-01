@@ -48,3 +48,53 @@ def test_stage_competition_extract_copies_directory_contents(tmp_path: Path) -> 
 
     assert (dest / "train_labels.csv").is_file()
     assert "train_labels.csv" in result.staged_names
+
+
+def test_stage_competition_extract_copies_nested_dir_and_replaces(tmp_path: Path) -> None:
+    """Nested source dirs are copied, replacing a stale directory at the dest."""
+    from credit.competition_raw import stage_competition_extract
+
+    source = tmp_path / "downloaded"
+    (source / "nested").mkdir(parents=True)
+    (source / "nested" / "train_data.csv").write_text("customer_ID\nx\n", encoding="utf-8")
+    (source / "fresh").mkdir()
+    (source / "fresh" / "labels.csv").write_text("customer_ID,target\nx,1\n", encoding="utf-8")
+    (source / "train_labels.csv").write_text("customer_ID,target\nx,1\n", encoding="utf-8")
+
+    dest = tmp_path / "raw" / "amex"
+    stale = dest / "nested"
+    stale.mkdir(parents=True)
+    (stale / "stale.txt").write_text("old", encoding="utf-8")
+
+    result = stage_competition_extract(source, dest)
+
+    assert (dest / "nested" / "train_data.csv").is_file()
+    assert not (dest / "nested" / "stale.txt").exists()
+    assert (dest / "fresh" / "labels.csv").is_file()
+    assert (dest / "train_labels.csv").is_file()
+    assert {"train_data.csv", "labels.csv", "train_labels.csv"} <= set(result.staged_names)
+
+
+def test_stage_competition_extract_requires_existing_source(tmp_path: Path) -> None:
+    """A missing zip or directory is an explicit FileNotFoundError."""
+    from credit.competition_raw import stage_competition_extract
+
+    missing = tmp_path / "no-such.zip"
+    try:
+        stage_competition_extract(missing, tmp_path / "dest")
+        raise AssertionError("expected FileNotFoundError")
+    except FileNotFoundError as exc:
+        assert "no-such.zip" in str(exc)
+
+
+def test_stage_competition_extract_rejects_non_zip_file(tmp_path: Path) -> None:
+    """A plain file is neither a zip archive nor an extracted directory."""
+    from credit.competition_raw import stage_competition_extract
+
+    source = tmp_path / "notes.txt"
+    source.write_text("not a zip", encoding="utf-8")
+    try:
+        stage_competition_extract(source, tmp_path / "dest")
+        raise AssertionError("expected ValueError")
+    except ValueError as exc:
+        assert "zip" in str(exc)
