@@ -50,7 +50,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **Primary test seam (PR1):** a single `build_application_mart(...)` (or equivalent) function that takes a local source path and returns a result with mart rows written, target→bad/good mapping metadata, and retained/rejected counts. CLI is a thin wrapper.
 - **Demo data:** book sample (LFS) = smoke/hermetic + notebook fidelity; **priority path** = official AMEX + Home Credit raw extracts under `data/credit/raw/{amex,home_credit}/` (gitignored); local AMEX CSV→parquet conversion under our control; **FICO HELOC later** (documented only). Never imply live BFSI. No Kaggle leaderboard submissions in this slice. No S3/DVC in MVP.
 - **Raw layout language:** operator docs may say “local raw”; domain speech is **raw competition extract** → **application mart** (do not copy the investing lake vocabulary into credit).
-- **Split:** time-based when application/decision date exists; else stratified random; document on mart README; fit WOE/model on develop only.
+- **Split:** time-based when application/decision date exists; else stratified random; document on mart README; fit WOE/model on develop only. **Closed (competition AMEX):** that mart is **static competition data** (not point-in-time / as-of dated); use stratified random only — do not add dating for this path.
 - **Label language:** provider **target** column in schemas; domain speech **bad**/**good**.
 - **Score use (v1):** rank-only; no cutoff; book probability→score scaling first.
 - **Metrics (PR2 CLI):** AUC-ROC + KS on holdout (Gini optional later).

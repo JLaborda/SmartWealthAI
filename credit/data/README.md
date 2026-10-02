@@ -77,7 +77,9 @@ poetry run credit-css build-competition-mart \
 **AMEX contract:** numeric features aggregated per `customer_ID` (ordered by `S_2`) as mean/std/min/max/last; inner join `train_labels.csv`; `target` 1=bad, 0=good.  
 **Home Credit contract (v1):** `application_train.csv` already application-grain; bureau/previous/balance joins deferred.
 
-Downstream: competition EDA (#153), then scratch scoring (#145).
+**Dating (closed):** the competition AMEX application mart is **not** point-in-time / as-of dated — it is **static competition data**. `S_2` is used only for statement aggregation order and is not retained as an application/decision date. Develop/holdout for this path is **stratified random** only (documented limitation). Do not add as-of dating to this mart.
+
+Downstream: competition EDA (#153 / guided #159), then scratch scoring (#145).
 
 Hermetic CI uses `tests/credit/fixtures/` (tiny AMEX statements + Home Credit application rows).
 

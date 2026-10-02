@@ -111,9 +111,7 @@ def test_competition_mart_readme_documents_target_and_source_contract(
     assert "categorical" in text.lower() or "categoricals" in text.lower()
     assert "statement" in text.lower() or "aggregat" in text.lower()
     assert "D_63" in text
-
-
-def test_build_competition_mart_cli_amex(tmp_path: Path) -> None:
+    assert "static competition" in text.lower() or "not point-in-time" in text.lower()
     """CLI build-competition-mart wraps the public competition mart seam."""
     from click.testing import CliRunner
 
