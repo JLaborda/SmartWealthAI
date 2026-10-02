@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **next:** competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) → scratch scoring ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)). Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145)** — `fit` → `pipeline.joblib` → `score` / Docker batch; FastAPI serving later. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -60,6 +60,57 @@ poetry run credit-css build-application-mart \
   --output-dir data/credit/application_mart
 ```
 
+### Scratch scoring (#145) — fit → joblib → score
+
+Hermetic fixture (CI):
+
+```bash
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --output-dir /tmp/credit_mart \
+  --application-id-column customer_ID \
+  --target-column target \
+  --bad-value 1 \
+  --good-value 0
+
+export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+export MLFLOW_ALLOW_FILE_STORE=true
+poetry run credit-css fit \
+  --mart /tmp/credit_mart/application_mart.parquet \
+  --output-dir /tmp/credit_artifact \
+  --application-id-column customer_ID \
+  --target-column target
+
+poetry run credit-css score \
+  --artifact /tmp/credit_artifact/pipeline.joblib \
+  --mart /tmp/credit_mart/application_mart.parquet \
+  --output /tmp/credit_scores.parquet
+```
+
+**EDA wrap defaults (locked):** 80% null drop; prefer `B_38_last`; WOE both `P_2_last` and `D_48_last` then drop the weaker by develop IV; no `B_38×B_30` interaction.
+
+**Artifact:** `pipeline.joblib` holds WOE/IV binner + XGBoost + score-scaling params. Rank-only (no cutoff). Holdout AUC + KS printed on `fit`.
+
+**Score scaling:** interim textbook defaults (PDO=20, base_score=600, base_odds=50) until book notebook params are confirmed.
+
+### Docker batch score
+
+Build from repo root (same artifact the CLI writes):
+
+```bash
+docker build -f credit/Dockerfile -t credit-css-score .
+docker run --rm \
+  -v /tmp/credit_artifact:/artifact:ro \
+  -v /tmp/credit_mart:/mart:ro \
+  -v /tmp/credit_out:/out \
+  credit-css-score \
+  --artifact /artifact/pipeline.joblib \
+  --mart /mart/application_mart.parquet \
+  --output /out/scores.parquet
+```
+
+FastAPI serving of the same `pipeline.joblib` is a **later PR** (not this image).
+
 
 ## Delivery cuts
 
@@ -67,7 +118,8 @@ poetry run credit-css build-application-mart \
 | --- | --- |
 | **PR1** | Application mart (load / clean / validate) + CLI |
 | **EDA** | Notebook on mart output (balance, missingness, exploratory views) — [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) |
-| **PR2** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) |
+| **PR2 / #145** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) + `pipeline.joblib` + MLflow + Docker batch score |
+| Later | FastAPI serving of the same joblib |
 | Later | Chapter 6 scorecard / monitoring / explainability |
 | Later | Approve/decline cutoff (profit/risk); `platform/` (AWS / Terraform) |
 
@@ -83,10 +135,12 @@ poetry run credit-css --help
 poetry run credit-css build-application-mart \
   --source tests/credit/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
+poetry run credit-css fit --help
+poetry run credit-css score --help
 poetry run python -m credit build-application-mart --help
 ```
 
-Hermetic CI uses the fixture under `tests/credit/fixtures/application_source/`. The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy (documented only in PR1 — no partition files yet).
+Hermetic CI uses fixtures under `tests/credit/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.
 
 Feature spec: [`docs/features/css-chapter5-mart-and-scoring.md`](docs/features/css-chapter5-mart-and-scoring.md)
 (parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142)).

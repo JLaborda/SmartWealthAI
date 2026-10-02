@@ -1,8 +1,8 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **next:** scratch scoring on book sample (#145) **in parallel with** generalist competition EDA (#153)  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done → **parallel:** [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) + [#153](https://github.com/JLaborda/SmartWealthAI/issues/153)  
-**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS)  
+**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **scratch scoring + thin MLOps (#145)** in this cut (fit → `pipeline.joblib` → batch score / Docker); FastAPI serving of the same artifact is a **later PR**; competition EDA (#153) remains parallel  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done → **active:** [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) · parallel: [#153](https://github.com/JLaborda/SmartWealthAI/issues/153)  
+**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/scoring_pipeline.py`, `credit/src/credit/binning.py`, `credit/src/credit/model.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke; optional only) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py`, `tests/credit/test_scoring_pipeline.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS) · Artifact: `pipeline.joblib` · Image: `credit/Dockerfile`  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
@@ -58,8 +58,16 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) is a **generalist** pass (class balance, missingness, dtypes/cats present, target definition check, obvious DQ / leakage smells) plus a short **“possible later data improvements”** notes section — **not** a feature-engineering project and **not** a hard gate on scratch scoring (#145). Prefer starting #145 on the book-sample path in parallel; competition-backed scoring can follow after #153 has flagged or cleared serious data issues. EDA may *propose* mart/schema improvements; implementing them needs the schema-change communication bar (issue + spec + READMEs).
 - **AMEX statement → application grain (#157 done):** continuous numerics → `mean`/`std`/`min`/`max`/`last`; official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) → **`mode` + `last` only**; non-numeric statement features are not silently dropped (`{col}_mode` / `{col}_last`).
 - **No extra feature engineering in this cut (owner decision):** keep the book/AMEX-style aggregation contract above. No rolling windows, EWMA, short-horizon stats, or other FE beyond what the prepare already ships. Recency is represented by `*_last` only until a later, explicit schema-change slice.
+- **EDA wrap defaults for #145 shortlist (locked):**
+  - WOE both `P_2_last` and `D_48_last` on develop; **drop the weaker by IV** (keep one).
+  - Prefer **`B_38_last`** (not `B_38_mode`).
+  - **No** `B_38×B_30` interaction on the first scorecard.
+  - Keep the **80%** null-drop rule when building the shortlist (`NULL_DROP_THRESHOLD = 0.80`).
+- **Artifact contract (#145):** `credit-css fit` writes a single **`pipeline.joblib`** containing WOE/IV binner + XGBoost classifier + score-scaling params. `credit-css score` (and `credit/Dockerfile` batch entrypoint) loads that file → **PD** + book-scaled **credit score** + **rank**. MLflow on fit logs params, develop/holdout AUC+KS, and the joblib (file store / `$MLFLOW_TRACKING_URI` OK).
+- **Serving split:** FastAPI / model API that loads the **same** `pipeline.joblib` is an explicit **follow-up PR** (out of #145).
+- **Score scaling params (open):** CONTEXT asks for book chapter-5 pdo / base score / base odds. Exact notebook triples were **not** recovered in-repo; code ships **interim textbook defaults** (PDO=20, base_score=600, base_odds=50) tagged `scaling_source=interim_textbook_defaults` until Jorge confirms or pastes book values.
 - **Mart schema change communication (owner decision):** green tests are not enough. For every credit stage that creates, drops, or renames mart columns / changes grain (raw → application), the change must (1) say so in the PR/agent summary in plain language, (2) update the mart README sidecar and `credit/data/README.md` in the same change, and (3) open or update a GitHub issue plus a line in this feature spec **before** merge. Example that failed this bar once: silent loss of AMEX categoricals before [#157](https://github.com/JLaborda/SmartWealthAI/issues/157).
-- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → **scratch scoring on book sample (#145) in parallel with generalist competition EDA (#153)** → competition-backed scoring later if needed.
+- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → **scratch scoring + thin MLOps (#145)** in parallel with generalist competition EDA (#153) → FastAPI serving (later) → competition-backed retrains if needed.
 
 ## Testing Decisions
 
@@ -74,14 +82,17 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Approve/decline cutoff or profit/risk optimization
 - Agent–client assignment / matching
 - Airflow, AWS, Terraform, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP)
+- **FastAPI / model serving API** (follow-up PR; same `pipeline.joblib`)
+- Kubernetes / compose swarm for credit scoring
 - Kaggle leaderboard submissions
 - Community redistributed AMEX parquet/feather as primary provenance
 - Extra FE beyond the book/AMEX aggregation contract (rolling windows, EWMA, short-horizon stats, etc.)
-- Feature store (Feast / Tecton / similar), DVC, and credit **model-registry / model-change demo** slices (explicit later backlog — not chapter 5)
+- Feature store (Feast / Tecton / similar), DVC, and credit **model-registry / model-change demo** slices beyond thin MLflow fit logging (explicit later backlog — not chapter 5)
 - Fraud module
 - Migrating investing code into `investing/`
 - Poetry → uv migration
 - Closing or implementing Phase 2 QV (cancelled; `archive/phase2-qv`)
+- Notebook as source of truth for scoring (optional notebook may call the library only)
 
 ## Further Notes
 
