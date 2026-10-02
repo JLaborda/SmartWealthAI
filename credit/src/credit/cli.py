@@ -1,4 +1,4 @@
-"""Credit Scoring System (CSS) CLI — composable stages (#143–#152)."""
+"""Credit Scoring System (CSS) CLI — composable stages (#143–#152, #145)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,11 @@ from credit.amex_parquet import convert_amex_extract_to_parquet
 from credit.application_mart import build_application_mart
 from credit.competition_mart import SourceKind, build_competition_mart
 from credit.competition_raw import stage_competition_extract
+from credit.scoring_pipeline import (
+    ARTIFACT_NAME,
+    fit_scoring_pipeline,
+    score_applications,
+)
 
 
 @click.group(
@@ -20,8 +25,7 @@ from credit.competition_raw import stage_competition_extract
     help=(
         "Credit Scoring System (CSS) CLI. "
         "Stages: build-application-mart, build-competition-mart, "
-        "stage-competition-extract, convert-amex-extract "
-        "(scratch scoring lands in a later ticket)."
+        "stage-competition-extract, convert-amex-extract, fit, score."
     ),
 )
 @click.version_option(__version__, prog_name="credit-css")
@@ -32,7 +36,7 @@ def main(ctx: click.Context) -> None:
         click.echo(
             "Credit Scoring System (CSS) CLI.\n"
             "Stages: build-application-mart, build-competition-mart, "
-            "stage-competition-extract, convert-amex-extract\n"
+            "stage-competition-extract, convert-amex-extract, fit, score\n"
             "See credit/docs/features/css-chapter5-mart-and-scoring.md."
         )
 
@@ -217,4 +221,123 @@ def convert_amex_extract_cmd(
     click.echo(
         f"AMEX parquet written: {result.parquet_path} ({result.row_count} rows) "
         f"from {result.source_path}"
+    )
+
+
+@main.command("fit")
+@click.option(
+    "--mart",
+    "mart_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Application mart parquet/csv (one row per application).",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path, file_okay=False),
+    required=True,
+    help=f"Directory for {ARTIFACT_NAME} (WOE + XGBoost + score scaling).",
+)
+@click.option(
+    "--application-id-column",
+    default="customer_ID",
+    show_default=True,
+    help="Application id column on the mart.",
+)
+@click.option(
+    "--target-column",
+    default="target",
+    show_default=True,
+    help="Binary target column (bad = positive class).",
+)
+@click.option(
+    "--holdout-fraction",
+    default=0.3,
+    show_default=True,
+    type=float,
+    help="Stratified holdout fraction (WOE/model fit on develop only).",
+)
+@click.option(
+    "--random-state",
+    default=42,
+    show_default=True,
+    type=int,
+    help="RNG seed for develop/holdout split and XGBoost.",
+)
+@click.option(
+    "--skip-mlflow",
+    is_flag=True,
+    default=False,
+    help="Skip MLflow logging (still writes pipeline.joblib).",
+)
+@click.option(
+    "--mlflow-tracking-uri",
+    default=None,
+    help="MLflow tracking URI (default: $MLFLOW_TRACKING_URI or ./mlruns).",
+)
+def fit_cmd(
+    mart_path: Path,
+    output_dir: Path,
+    application_id_column: str,
+    target_column: str,
+    holdout_fraction: float,
+    random_state: int,
+    skip_mlflow: bool,
+    mlflow_tracking_uri: str | None,
+) -> None:
+    """Fit WOE/IV + XGBoost on develop; export joblib; report holdout AUC + KS."""
+    result = fit_scoring_pipeline(
+        mart_path,
+        output_dir,
+        application_id_column=application_id_column,
+        target_column=target_column,
+        holdout_fraction=holdout_fraction,
+        random_state=random_state,
+        skip_mlflow=skip_mlflow,
+        mlflow_tracking_uri=mlflow_tracking_uri,
+    )
+    click.echo(
+        f"Artifact: {result.artifact_path} "
+        f"(features={','.join(result.feature_names)}; "
+        f"develop={result.n_develop}, holdout={result.n_holdout}; "
+        f"fit_partition={result.fit_partition}). "
+        f"Holdout AUC={result.holdout_auc:.4f} KS={result.holdout_ks:.4f} "
+        f"(develop AUC={result.develop_auc:.4f} KS={result.develop_ks:.4f})."
+    )
+    if result.mlflow_run_id:
+        click.echo(f"MLflow run id: {result.mlflow_run_id}")
+
+
+@main.command("score")
+@click.option(
+    "--artifact",
+    "artifact_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help=f"Path to {ARTIFACT_NAME} from credit-css fit.",
+)
+@click.option(
+    "--mart",
+    "mart_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Application mart to score (parquet/csv).",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path, dir_okay=False),
+    required=True,
+    help="Output parquet with pd, credit_score, rank.",
+)
+def score_cmd(
+    artifact_path: Path,
+    mart_path: Path,
+    output_path: Path,
+) -> None:
+    """Load joblib artifact → PD + book-scaled credit score + rank (rank-only)."""
+    result = score_applications(artifact_path, mart_path, output_path)
+    click.echo(
+        f"Scores written: {result.scores_path} ({result.n_scored} applications). "
+        "Columns: pd, credit_score, rank (1 = safest)."
     )
