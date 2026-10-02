@@ -9,7 +9,7 @@ Top-level folders are **products/domains**, not technical layers:
 | Path | Domain |
 | --- | --- |
 | `investing/` | Value investing / Magic Formula — **README + docs skeleton now**; demo code may remain under `src/smartwealthai` / `apps/dashboard` / `docs/mvp` until a dedicated migrate-only PR |
-| `credit/` | Credit scoring / scorecard — skeleton now; **new code lands here** from the first useful commit. Feature specs live under `credit/docs/` (not `docs/mvp/features/`). |
+| `credit/` | Credit scoring / scorecard — **active**; code and specs under `credit/` (`credit/docs/`, not `docs/mvp/features/`) |
 | `fraud/` | Fraud detection (future — create when that module starts) |
 | `platform/` | Shared infra (Terraform, AWS, shared API) — **only after** domain demos work locally |
 
