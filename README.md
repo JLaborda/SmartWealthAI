@@ -8,7 +8,7 @@
 | Domain | Path | Status |
 | --- | --- | --- |
 | **Investing** (Magic Formula / value screening) | [`investing/`](investing/) | Demo slice **v0.1.0** delivered |
-| **Credit** — CSS (Credit Scoring System) | [`credit/`](credit/) | Planned (book ch.5–6, local-first) |
+| **Credit** — CSS (Credit Scoring System) | [`credit/`](credit/) | **Active** — mart + competition EDA landed; scratch scoring next ([#145](https://github.com/JLaborda/SmartWealthAI/issues/145)) |
 | **Fraud** | `fraud/` | Not started |
 | **Platform** (AWS / Terraform) | `platform/` | After domain demos work locally |
 
