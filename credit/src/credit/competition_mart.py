@@ -94,6 +94,8 @@ def _append_source_contract(
 - Output names: `{{col}}_mode`, `{{col}}_last` (e.g. `D_63_mode`, `D_63_last`)
 - Labels: inner join `{_AMEX_LABELS}` (`customer_ID`, `target`)
 - Target → bad/good: `target` **1 = bad**, **0 = good** (AMEX default dictionary)
+- Dating: **static competition data** — not point-in-time / as-of dated;
+  `S_2` drives aggregation order only and is not kept as a decision date
 """
     else:
         contract = f"""
