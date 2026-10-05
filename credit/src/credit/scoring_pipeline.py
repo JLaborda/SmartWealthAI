@@ -16,8 +16,9 @@ from sklearn.model_selection import train_test_split
 
 from credit.binning import WoeBinner
 from credit.feature_selection import (
-    IV_PAIR_CANDIDATES,
-    select_scorecard_features,
+    IV_THRESHOLD,
+    candidate_features,
+    select_by_iv,
 )
 from credit.metrics import auc_roc, ks_statistic
 from credit.model import build_xgb_classifier, fit_classifier, predict_pd
@@ -92,38 +93,25 @@ def fit_scoring_pipeline(
     develop = frame.loc[develop_idx].reset_index(drop=True)
     holdout = frame.loc[holdout_idx].reset_index(drop=True)
 
-    # Pass 1: provisional shortlist (both P_2 and D_48 if present) → IV on develop.
-    provisional = select_scorecard_features(
+    # Book path: null-drop → WOE/IV on remaining cols → keep IV ≥ threshold.
+    candidates = candidate_features(
         develop,
-        iv_by_feature=None,
         application_id_column=application_id_column,
         target_column=target_column,
     )
-    provisional = [c for c in provisional if c in develop.columns]
-    if not provisional:
-        raise ValueError("No candidate features left after null-drop / shortlist")
+    if not candidates:
+        raise ValueError("No candidate features left after null-drop")
 
     probe = WoeBinner()
-    probe.fit(develop[provisional], develop[target_column])
-    iv_map = probe.iv_by_feature
+    probe.fit(develop[candidates], develop[target_column])
+    final_features = select_by_iv(probe.iv_by_feature, threshold=IV_THRESHOLD)
+    if not final_features:
+        raise ValueError(f"No features with IV >= {IV_THRESHOLD} after WOE/IV on develop")
 
-    # Pass 2: drop weaker of P_2_last / D_48_last by develop IV.
-    final_features = select_scorecard_features(
-        develop,
-        iv_by_feature=iv_map,
-        application_id_column=application_id_column,
-        target_column=target_column,
-    )
-    final_features = [c for c in final_features if c in develop.columns]
-    # Ensure we never keep both IV-pair candidates.
-    pair_kept = [c for c in IV_PAIR_CANDIDATES if c in final_features]
-    if len(pair_kept) > 1:
-        stronger = max(pair_kept, key=lambda c: iv_map.get(c, 0.0))
-        final_features = [c for c in final_features if c not in IV_PAIR_CANDIDATES]
-        final_features.insert(0, stronger)
-
-    binner = WoeBinner()
-    X_dev = binner.fit_transform(develop[final_features], develop[target_column])
+    # Reuse develop-fitted bins for the IV-selected subset (no second WOE pass).
+    binner = WoeBinner(n_bins=probe.n_bins)
+    binner.feature_bins = {name: probe.feature_bins[name] for name in final_features}
+    X_dev = binner.transform(develop[final_features])
     y_dev = develop[target_column].astype(int)
 
     model = build_xgb_classifier(random_state=random_state)
@@ -148,12 +136,9 @@ def fit_scoring_pipeline(
         target_column=target_column,
         wrap_notes={
             "null_drop_threshold": 0.80,
-            "preferred_b38": "B_38_last",
-            "iv_pair": list(IV_PAIR_CANDIDATES),
-            "kept_iv_pair_member": next(
-                (c for c in IV_PAIR_CANDIDATES if c in final_features), None
-            ),
-            "include_b38_b30_interaction": False,
+            "iv_threshold": IV_THRESHOLD,
+            "n_candidates_after_null_drop": len(candidates),
+            "n_features_after_iv": len(final_features),
             "iv_by_feature": {k: float(v) for k, v in binner.iv_by_feature.items()},
         },
     )
