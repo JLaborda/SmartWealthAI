@@ -53,14 +53,29 @@ class DriversResponse(BaseModel):
     drivers: list[DriverItem]
 
 
-def create_app(*, artifact_path: Path | str | None = None) -> FastAPI:
-    """Build the CSS scoring API. Artifact path from arg or ``CREDIT_PIPELINE_ARTIFACT``."""
-    path = Path(artifact_path or os.environ.get(ARTIFACT_ENV, ""))
+def resolve_artifact_path(artifact_path: Path | str | None = None) -> Path:
+    """Resolve ``pipeline.joblib`` from arg or ``CREDIT_PIPELINE_ARTIFACT``.
+
+    Raises ``FileNotFoundError`` with an operator-facing message when unset or missing.
+    """
+    raw = artifact_path if artifact_path is not None else os.environ.get(ARTIFACT_ENV)
+    if raw is None or str(raw).strip() == "":
+        raise FileNotFoundError(
+            f"pipeline artifact path not set — export {ARTIFACT_ENV}=/path/to/pipeline.joblib "
+            f"(from credit-css fit) or pass artifact_path= to create_app()"
+        )
+    path = Path(raw).expanduser().resolve()
     if not path.is_file():
         raise FileNotFoundError(
-            f"pipeline artifact not found: {path!s} "
-            f"(set {ARTIFACT_ENV} or pass artifact_path=)"
+            f"pipeline artifact not found: {path} "
+            f"(set {ARTIFACT_ENV} to the pipeline.joblib written by credit-css fit)"
         )
+    return path
+
+
+def create_app(*, artifact_path: Path | str | None = None) -> FastAPI:
+    """Build the CSS scoring API. Artifact path from arg or ``CREDIT_PIPELINE_ARTIFACT``."""
+    path = resolve_artifact_path(artifact_path)
     pipeline = load_pipeline(path)
 
     app = FastAPI(
@@ -69,10 +84,11 @@ def create_app(*, artifact_path: Path | str | None = None) -> FastAPI:
         version="0.1.0",
     )
     app.state.pipeline = pipeline
+    app.state.artifact_path = str(path)
 
     @app.get("/health")
     def health() -> dict[str, str]:
-        return {"status": "ok"}
+        return {"status": "ok", "artifact": app.state.artifact_path}
 
     @app.post("/score", response_model=ScoreResponse)
     def score(body: ScoreRequest) -> ScoreResponse:
@@ -182,7 +198,15 @@ def _features_frame(
 
 def main() -> None:
     """CLI entry: ``uvicorn`` factory against ``CREDIT_PIPELINE_ARTIFACT``."""
+    import sys
+
     import uvicorn
+
+    try:
+        resolve_artifact_path()
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
 
     uvicorn.run(
         "credit.api:create_app",
