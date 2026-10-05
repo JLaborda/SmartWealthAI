@@ -173,6 +173,11 @@ def test_feature_gains_maps_f_index_keys_and_fallbacks() -> None:
     booster.get_score.return_value = {"a": 3.0, "f99": 1.0}
     assert _feature_gains(pipeline) == {"a": 3.0}
 
+    # Non-empty booster score but nothing mappable → fall through to importances.
+    booster.get_score.return_value = {"noise": 1.0, "f99": 2.0}
+    pipeline.model.feature_importances_ = [0.4, 0.6]
+    assert _feature_gains(pipeline) == {"a": 0.4, "b": 0.6}
+
     # Empty booster score → feature_importances_.
     booster.get_score.return_value = {}
     pipeline.model.feature_importances_ = [0.25, 0.75]
