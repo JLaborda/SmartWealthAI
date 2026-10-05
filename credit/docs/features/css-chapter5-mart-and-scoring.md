@@ -58,11 +58,10 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - **EDA:** Book-sample notebook = smoke (#147 done). Competition-mart EDA (#153) is a **generalist** pass (class balance, missingness, dtypes/cats present, target definition check, obvious DQ / leakage smells) plus a short **“possible later data improvements”** notes section — **not** a feature-engineering project and **not** a hard gate on scratch scoring (#145). Prefer starting #145 on the book-sample path in parallel; competition-backed scoring can follow after #153 has flagged or cleared serious data issues. EDA may *propose* mart/schema improvements; implementing them needs the schema-change communication bar (issue + spec + READMEs).
 - **AMEX statement → application grain (#157 done):** continuous numerics → `mean`/`std`/`min`/`max`/`last`; official categoricals (`B_30`, `B_38`, `D_114`, `D_116`, `D_117`, `D_120`, `D_126`, `D_63`, `D_64`, `D_66`, `D_68`) → **`mode` + `last` only**; non-numeric statement features are not silently dropped (`{col}_mode` / `{col}_last`).
 - **No extra feature engineering in this cut (owner decision):** keep the book/AMEX-style aggregation contract above. No rolling windows, EWMA, short-horizon stats, or other FE beyond what the prepare already ships. Recency is represented by `*_last` only until a later, explicit schema-change slice.
-- **EDA wrap defaults for #145 shortlist (locked):**
-  - WOE both `P_2_last` and `D_48_last` on develop; **drop the weaker by IV** (keep one).
-  - Prefer **`B_38_last`** (not `B_38_mode`).
-  - **No** `B_38×B_30` interaction on the first scorecard.
-  - Keep the **80%** null-drop rule when building the shortlist (`NULL_DROP_THRESHOLD = 0.80`).
+- **Feature selection (locked, book-aligned):**
+  - Drop columns with null fraction ≥ **80%** (`NULL_DROP_THRESHOLD = 0.80`).
+  - Fit WOE/IV on remaining develop features; **keep IV ≥ 0.02** (`IV_THRESHOLD`, book `iv_threshold=0.02`).
+  - No fixed 8-feature shortlist; no forced drop of the weaker of `P_2_last` / `D_48_last`.
 - **WOE numeric bins (locked):** `WoeBinner.n_bins = 10`, matching book chapter 5 `pd.qcut(..., 10, duplicates='drop')`.
 - **Artifact contract (#145):** `credit-css fit` writes a single **`pipeline.joblib`** containing WOE/IV binner + XGBoost classifier + score-scaling params. `credit-css score` (and `credit/Dockerfile` batch entrypoint) loads that file → **PD** + book-scaled **credit score** + **rank**. MLflow on fit logs params, develop/holdout AUC+KS, and the joblib (file store / `$MLFLOW_TRACKING_URI` OK).
 - **Serving split:** FastAPI / model API that loads the **same** `pipeline.joblib` is an explicit **follow-up PR** (out of #145).

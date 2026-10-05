@@ -87,7 +87,7 @@ poetry run credit-css score \
   --output /tmp/credit_scores.parquet
 ```
 
-**EDA wrap defaults (locked):** 80% null drop; prefer `B_38_last`; WOE both `P_2_last` and `D_48_last` then drop the weaker by develop IV; no `B_38×B_30` interaction.
+**Feature selection (locked):** 80% null drop → WOE/IV on remaining develop features → keep **IV ≥ 0.02** (book threshold); no fixed shortlist.
 
 **Artifact:** `pipeline.joblib` holds WOE/IV binner + XGBoost + score-scaling params. Rank-only (no cutoff). Holdout AUC + KS printed on `fit`.
 

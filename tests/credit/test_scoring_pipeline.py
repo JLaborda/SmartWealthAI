@@ -86,8 +86,9 @@ def test_score_emits_pd_credit_score_and_rank(tmp_path: Path) -> None:
     assert frame["credit_score"].between(250.0, 1000.0).all()
 
 
-def test_woe_iv_pair_keeps_stronger_of_p2_and_d48(tmp_path: Path) -> None:
-    """EDA wrap: WOE both P_2_last and D_48_last; drop the weaker by develop IV."""
+def test_iv_threshold_keeps_informative_features(tmp_path: Path) -> None:
+    """Book path: keep develop features with IV >= 0.02 (no fixed 8-feature shortlist)."""
+    from credit.feature_selection import IV_THRESHOLD
     from credit.scoring_pipeline import fit_scoring_pipeline, load_pipeline
 
     mart_path = _build_mart(tmp_path)
@@ -98,14 +99,14 @@ def test_woe_iv_pair_keeps_stronger_of_p2_and_d48(tmp_path: Path) -> None:
         application_id_column="customer_ID",
         target_column="target",
         random_state=42,
+        skip_mlflow=True,
     )
     pipeline = load_pipeline(artifact_dir / "pipeline.joblib")
-    features = set(pipeline.feature_names)
-    assert "P_2_last" in features or "D_48_last" in features
-    assert not ({"P_2_last", "D_48_last"} <= features)
-    assert "B_38_last" in features
-    assert "B_38_mode" not in features
-    assert not any("x" in f.lower() or "interact" in f.lower() for f in features)
+    assert pipeline.feature_names
+    assert pipeline.wrap_notes["iv_threshold"] == IV_THRESHOLD
+    for name, iv in pipeline.wrap_notes["iv_by_feature"].items():
+        assert iv >= IV_THRESHOLD
+        assert name in pipeline.feature_names
 
 
 def test_cli_fit_and_score_print_metrics(tmp_path: Path) -> None:

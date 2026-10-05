@@ -176,66 +176,39 @@ def test_drop_high_null_empty_frame_and_threshold() -> None:
     assert "id" in kept
 
 
-def test_select_falls_back_to_b38_mode_and_generic_columns() -> None:
-    from credit.feature_selection import select_scorecard_features
-
-    # Prefer B_38_mode when last is absent
-    mode_only = pd.DataFrame(
-        {
-            "customer_ID": ["a", "b"],
-            "target": [0, 1],
-            "B_38_mode": [2.0, 4.0],
-            "P_2_last": [0.9, 0.1],
-        }
-    )
-    feats = select_scorecard_features(
-        mode_only,
-        application_id_column="customer_ID",
-        target_column="target",
-    )
-    assert "B_38_mode" in feats
-    assert "B_38_last" not in feats
-
-    # No AMEX shortlist names → fall back to remaining columns
-    generic = pd.DataFrame(
-        {
-            "customer_ID": ["a", "b", "c"],
-            "target": [0, 1, 0],
-            "AMT_INCOME": [1.0, 2.0, 3.0],
-            "CONTRACT": ["x", "y", "x"],
-        }
-    )
-    feats2 = select_scorecard_features(
-        generic,
-        application_id_column="customer_ID",
-        target_column="target",
-    )
-    assert "AMT_INCOME" in feats2
-    assert "CONTRACT" in feats2
-    assert "customer_ID" not in feats2
-    assert "target" not in feats2
-
-
-def test_select_keeps_stronger_iv_of_p2_d48_pair() -> None:
-    from credit.feature_selection import select_scorecard_features
+def test_candidate_features_after_null_drop_excludes_id_target() -> None:
+    from credit.feature_selection import candidate_features
 
     frame = pd.DataFrame(
         {
-            "customer_ID": ["a", "b"],
-            "target": [0, 1],
-            "B_38_last": [2.0, 4.0],
-            "P_2_last": [0.9, 0.1],
-            "D_48_last": [0.1, 0.9],
+            "customer_ID": ["a", "b", "c", "d", "e"],
+            "target": [0, 1, 0, 1, 0],
+            "AMT_INCOME": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "CONTRACT": ["x", "y", "x", "y", "x"],
+            "almost_all_null": [1.0, np.nan, np.nan, np.nan, np.nan],  # 80% null
         }
     )
-    feats = select_scorecard_features(
+    feats = candidate_features(
         frame,
-        iv_by_feature={"P_2_last": 0.9, "D_48_last": 0.2},
         application_id_column="customer_ID",
         target_column="target",
     )
-    assert "P_2_last" in feats
-    assert "D_48_last" not in feats
+    assert "AMT_INCOME" in feats
+    assert "CONTRACT" in feats
+    assert "almost_all_null" not in feats
+    assert "customer_ID" not in feats
+    assert "target" not in feats
+
+
+def test_select_by_iv_keeps_threshold_and_orders_by_iv() -> None:
+    from credit.feature_selection import select_by_iv
+
+    kept = select_by_iv(
+        {"weak": 0.01, "strong": 0.9, "mid": 0.05, "edge": 0.02},
+        threshold=0.02,
+    )
+    assert kept == ["strong", "mid", "edge"]
+    assert "weak" not in kept
 
 
 # --- scoring_pipeline.py ------------------------------------------------------
@@ -247,7 +220,7 @@ def test_fit_raises_when_no_candidate_features(
     from credit import scoring_pipeline as sp
 
     mart_path = _build_mart(tmp_path)
-    monkeypatch.setattr(sp, "select_scorecard_features", lambda *a, **k: [])
+    monkeypatch.setattr(sp, "candidate_features", lambda *a, **k: [])
     with pytest.raises(ValueError, match="No candidate features"):
         sp.fit_scoring_pipeline(
             mart_path,
@@ -258,30 +231,21 @@ def test_fit_raises_when_no_candidate_features(
         )
 
 
-def test_fit_defensive_iv_pair_dedupe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise defensive pair_kept>1 guard (select normally already drops weaker)."""
+def test_fit_raises_when_no_features_pass_iv_threshold(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from credit import scoring_pipeline as sp
 
     mart_path = _build_mart(tmp_path)
-    calls = {"n": 0}
-
-    def fake_select(frame, *, iv_by_feature=None, application_id_column, target_column):
-        calls["n"] += 1
-        # Pass 1 (no IV): both candidates; pass 2 (with IV): still both → hits guard.
-        return ["B_38_last", "P_2_last", "D_48_last", "B_2_last"]
-
-    monkeypatch.setattr(sp, "select_scorecard_features", fake_select)
-    result = sp.fit_scoring_pipeline(
-        mart_path,
-        tmp_path / "out",
-        application_id_column="customer_ID",
-        target_column="target",
-        skip_mlflow=True,
-        random_state=42,
-    )
-    pair = [f for f in result.feature_names if f in ("P_2_last", "D_48_last")]
-    assert len(pair) == 1
-    assert calls["n"] >= 2
+    monkeypatch.setattr(sp, "select_by_iv", lambda *a, **k: [])
+    with pytest.raises(ValueError, match="IV >="):
+        sp.fit_scoring_pipeline(
+            mart_path,
+            tmp_path / "out",
+            application_id_column="customer_ID",
+            target_column="target",
+            skip_mlflow=True,
+        )
 
 
 def test_load_pipeline_rejects_wrong_type(tmp_path: Path) -> None:
