@@ -103,7 +103,7 @@ def fit_scoring_pipeline(
     if not provisional:
         raise ValueError("No candidate features left after null-drop / shortlist")
 
-    probe = WoeBinner(n_bins=5)
+    probe = WoeBinner()
     probe.fit(develop[provisional], develop[target_column])
     iv_map = probe.iv_by_feature
 
@@ -122,7 +122,7 @@ def fit_scoring_pipeline(
         final_features = [c for c in final_features if c not in IV_PAIR_CANDIDATES]
         final_features.insert(0, stronger)
 
-    binner = WoeBinner(n_bins=5)
+    binner = WoeBinner()
     X_dev = binner.fit_transform(develop[final_features], develop[target_column])
     y_dev = develop[target_column].astype(int)
 
@@ -176,7 +176,7 @@ def fit_scoring_pipeline(
                 "pdo": scaling.pdo,
                 "base_score": scaling.base_score,
                 "base_odds": scaling.base_odds,
-                "scaling_source": "interim_textbook_defaults",
+                "scaling_source": "book_chapter5_pdo_good_odds",
             },
             metrics={
                 "develop_auc": develop_auc,
@@ -216,7 +216,7 @@ def score_applications(
     mart_path: Path,
     output_path: Path,
 ) -> ScoreResult:
-    """Load ``pipeline.joblib`` → PD + credit score + rank (1 = best / safest)."""
+    """Load ``pipeline.joblib`` → PD + book credit score + rank (1 = safest)."""
     pipeline = load_pipeline(artifact_path)
     frame = _load_mart(mart_path)
     _require_columns(frame, pipeline.application_id_column, *pipeline.feature_names)
@@ -232,7 +232,7 @@ def score_applications(
             "credit_score": scores,
         }
     )
-    # Rank 1 = highest credit score (lowest default risk).
+    # Book PDO: higher credit_score = safer (good-borrower odds). Rank 1 = highest score.
     out["rank"] = out["credit_score"].rank(method="first", ascending=False).astype(int)
     out = out.sort_values("rank").reset_index(drop=True)
 

@@ -45,7 +45,7 @@ Partition of the **application mart** into develop and holdout sets before WOE f
 _Avoid_: fitting WOE/IV or OptBinning on the holdout; using post-decision future features; implying a random Kaggle split is production-grade when a decision date exists
 
 **Probability-to-score scaling**:
-Deterministic map from predicted default probability to **credit score** points (pdo, base score, base odds). **v1 uses the book chapter 5 parameters** once available from the notebooks/sample; enlarging the mart and re-estimating those parameters is a later improvement.
+Deterministic map from predicted default probability to **credit score** points (pdo, base score, base odds). **v1 uses book chapter 5 numbers** (PDO=20, base_score=650, base_odds=20, clip 250–1000) with PDO polarity: higher score = safer; +20 ≈ doubles good-borrower odds. Enlarging the mart and re-estimating those parameters is a later improvement.
 _Avoid_: claiming calibrated “optimal” banking params without a documented baseline; skipping PD and only shipping a black-box ranker with no score points in chapter 5
 
 ## Flagged ambiguities

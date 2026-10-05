@@ -34,7 +34,7 @@ class FeatureBins:
 class WoeBinner:
     """Fit WOE encodings on develop; transform any frame with the same schema."""
 
-    n_bins: int = 5
+    n_bins: int = 10  # book ch.5: pd.qcut(..., 10)
     feature_bins: dict[str, FeatureBins] = field(default_factory=dict)
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> WoeBinner:
