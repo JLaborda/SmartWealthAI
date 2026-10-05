@@ -176,7 +176,7 @@ def fit_scoring_pipeline(
                 "pdo": scaling.pdo,
                 "base_score": scaling.base_score,
                 "base_odds": scaling.base_odds,
-                "scaling_source": "book_chapter5_notebook",
+                "scaling_source": "book_chapter5_pdo_good_odds",
             },
             metrics={
                 "develop_auc": develop_auc,
@@ -232,8 +232,8 @@ def score_applications(
             "credit_score": scores,
         }
     )
-    # Book ch.5: higher credit_score ↔ higher PD. Rank 1 = safest = lowest score.
-    out["rank"] = out["credit_score"].rank(method="first", ascending=True).astype(int)
+    # Book PDO: higher credit_score = safer (good-borrower odds). Rank 1 = highest score.
+    out["rank"] = out["credit_score"].rank(method="first", ascending=False).astype(int)
     out = out.sort_values("rank").reset_index(drop=True)
 
     output_path = Path(output_path)

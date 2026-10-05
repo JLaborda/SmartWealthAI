@@ -339,5 +339,5 @@ def score_cmd(
     result = score_applications(artifact_path, mart_path, output_path)
     click.echo(
         f"Scores written: {result.scores_path} ({result.n_scored} applications). "
-        "Columns: pd, credit_score, rank (1 = safest = lowest book score)."
+        "Columns: pd, credit_score, rank (1 = safest = highest score)."
     )

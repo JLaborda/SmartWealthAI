@@ -91,7 +91,7 @@ poetry run credit-css score \
 
 **Artifact:** `pipeline.joblib` holds WOE/IV binner + XGBoost + score-scaling params. Rank-only (no cutoff). Holdout AUC + KS printed on `fit`.
 
-**Score scaling:** book chapter 5 notebook — PDO=20, base_score=650, base_odds=20, default odds `PD/(1−PD)`, clip `[250, 1000]` (higher score ↔ higher PD). Rank 1 = safest = lowest score.
+**Score scaling:** book chapter 5 — PDO=20, base_score=650, base_odds=20 (good:bad), clip `[250, 1000]`. Higher score = safer (+20 ≈ doubles good-borrower odds). Rank 1 = safest = highest score.
 
 ### Docker batch score
 

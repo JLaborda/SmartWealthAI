@@ -79,9 +79,9 @@ def test_score_emits_pd_credit_score_and_rank(tmp_path: Path) -> None:
     assert len(frame) == result.n_scored
     assert frame["rank"].min() == 1
     assert frame["rank"].max() == len(frame)
-    # Book ch.5: higher credit_score ↔ higher PD; rank 1 = safest = lowest score.
+    # Book PDO: higher credit_score = safer; rank 1 = highest score.
     top = frame.loc[frame["rank"] == 1].iloc[0]
-    assert top["credit_score"] == frame["credit_score"].min()
+    assert top["credit_score"] == frame["credit_score"].max()
     assert frame["pd"].between(0.0, 1.0).all()
     assert frame["credit_score"].between(250.0, 1000.0).all()
 

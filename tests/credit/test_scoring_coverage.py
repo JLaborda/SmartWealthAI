@@ -365,22 +365,29 @@ def test_score_scaling_to_from_dict_roundtrip() -> None:
     assert scores.max() <= SCORE_CLIP_MAX
 
 
-def test_score_scaling_matches_book_notebook_formula() -> None:
-    """PDO=20, base=650, odds=20, default-odds, clip [250, 1000]."""
+def test_score_scaling_matches_book_pdo_good_odds() -> None:
+    """PDO=20, base=650, good:bad=20; +PDO doubles good odds; higher = safer."""
     from credit.score_scaling import ScoreScalingParams, pd_to_credit_score
 
     params = ScoreScalingParams()
-    # At PD=0.5, default odds=1 → score equals offset only.
     factor = 20.0 / np.log(2.0)
     offset = 650.0 - factor * np.log(20.0)
+    # At PD=0.5, good odds=1 → score = offset.
     mid = pd_to_credit_score(np.array([0.5]), params)[0]
     assert mid == pytest.approx(offset)
-    # Extremes clip.
-    assert pd_to_credit_score(np.array([1e-9]), params)[0] == pytest.approx(250.0)
-    assert pd_to_credit_score(np.array([1.0 - 1e-9]), params)[0] == pytest.approx(1000.0)
-    # Higher PD → higher score (book convention).
-    lo, hi = pd_to_credit_score(np.array([0.2, 0.8]), params)
-    assert hi > lo
+    # At good:bad = 20 → PD = 1/21, score = base_score.
+    pd_at_base = 1.0 / (20.0 + 1.0)
+    at_base = pd_to_credit_score(np.array([pd_at_base]), params)[0]
+    assert at_base == pytest.approx(650.0)
+    # Doubling good odds (+PDO points): odds 20 → 40 → PD = 1/41.
+    pd_doubled = 1.0 / (40.0 + 1.0)
+    doubled = pd_to_credit_score(np.array([pd_doubled]), params)[0]
+    assert doubled == pytest.approx(650.0 + 20.0)
+    # Extremes clip; higher PD → lower score.
+    assert pd_to_credit_score(np.array([1e-9]), params)[0] == pytest.approx(1000.0)
+    assert pd_to_credit_score(np.array([1.0 - 1e-9]), params)[0] == pytest.approx(250.0)
+    safer, riskier = pd_to_credit_score(np.array([0.2, 0.8]), params)
+    assert safer > riskier
 
 
 def test_mlflow_resolve_uri_from_env_and_default(
