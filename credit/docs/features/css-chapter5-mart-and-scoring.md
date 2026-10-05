@@ -63,6 +63,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
   - Prefer **`B_38_last`** (not `B_38_mode`).
   - **No** `B_38×B_30` interaction on the first scorecard.
   - Keep the **80%** null-drop rule when building the shortlist (`NULL_DROP_THRESHOLD = 0.80`).
+- **WOE numeric bins (locked):** `WoeBinner.n_bins = 10`, matching book chapter 5 `pd.qcut(..., 10, duplicates='drop')`.
 - **Artifact contract (#145):** `credit-css fit` writes a single **`pipeline.joblib`** containing WOE/IV binner + XGBoost classifier + score-scaling params. `credit-css score` (and `credit/Dockerfile` batch entrypoint) loads that file → **PD** + book-scaled **credit score** + **rank**. MLflow on fit logs params, develop/holdout AUC+KS, and the joblib (file store / `$MLFLOW_TRACKING_URI` OK).
 - **Serving split:** FastAPI / model API that loads the **same** `pipeline.joblib` is an explicit **follow-up PR** (out of #145).
 - **Score scaling params (open):** CONTEXT asks for book chapter-5 pdo / base score / base odds. Exact notebook triples were **not** recovered in-repo; code ships **interim textbook defaults** (PDO=20, base_score=600, base_odds=50) tagged `scaling_source=interim_textbook_defaults` until Jorge confirms or pastes book values.

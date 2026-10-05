@@ -103,7 +103,7 @@ def fit_scoring_pipeline(
     if not provisional:
         raise ValueError("No candidate features left after null-drop / shortlist")
 
-    probe = WoeBinner(n_bins=5)
+    probe = WoeBinner()
     probe.fit(develop[provisional], develop[target_column])
     iv_map = probe.iv_by_feature
 
@@ -122,7 +122,7 @@ def fit_scoring_pipeline(
         final_features = [c for c in final_features if c not in IV_PAIR_CANDIDATES]
         final_features.insert(0, stronger)
 
-    binner = WoeBinner(n_bins=5)
+    binner = WoeBinner()
     X_dev = binner.fit_transform(develop[final_features], develop[target_column])
     y_dev = develop[target_column].astype(int)
 
