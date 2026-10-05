@@ -48,12 +48,22 @@ _Avoid_: fitting WOE/IV or OptBinning on the holdout; using post-decision future
 Deterministic map from predicted default probability to **credit score** points (pdo, base score, base odds). **v1 uses the book chapter 5 parameters** once available from the notebooks/sample; enlarging the mart and re-estimating those parameters is a later improvement.
 _Avoid_: claiming calibrated “optimal” banking params without a documented baseline; skipping PD and only shipping a black-box ranker with no score points in chapter 5
 
+
+**Data drift (batch monitoring)**:
+A check that the **distribution** of application-mart features (or scores) in a recent batch has shifted relative to a **reference batch** (usually the develop/train window). In CSS v1 this is a local batch job, not online streaming detection.
+_Avoid_: calling any metric drop “drift”; model decay / concept drift without saying so; implying live production alerting
+
+**PSI (Population Stability Index)**:
+The v1 **data drift** statistic comparing feature (or score) distributions between a reference batch and a recent batch; reported with a simple threshold for “stable / shift / severe”. Output is a local report artifact (file); cloud publish is later.
+_Avoid_: treating PSI as a substitute for AUC/KS; using PSI on the holdout label as a performance metric; KS as a synonym for PSI
+
 ## Flagged ambiguities
 
 - **CSS** means Credit Scoring System here, not Cascading Style Sheets. Expand on first use in READMEs. Book-aligned shorthand — not guaranteed industry-wide acronym usage.
 - Exact **bad**/**good** mapping is dataset-specific: document target column and default value on the mart README.
 - **CSS v1 use of the score:** **rank applications by risk only** (no approve/decline). Optional later: fictional cutoff from a profit/risk trade-off. Out of scope: assignment/matching engines.
 - **Score scaling:** book notebook parameters first; optimizing pdo/base on a larger database is explicitly later.
+- **Monitoring v1:** **PSI** on batches is the demo drift check; SHAP/cloud alarms are optional/later.
 
 ## Sources
 
