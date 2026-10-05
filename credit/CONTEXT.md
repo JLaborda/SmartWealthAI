@@ -67,7 +67,7 @@ _Avoid_: calling v1 drivers SHAP; mixing approve/decline reasons with ranking dr
 - **CSS** means Credit Scoring System here, not Cascading Style Sheets. Expand on first use in READMEs. Book-aligned shorthand — not guaranteed industry-wide acronym usage.
 - Exact **bad**/**good** mapping is dataset-specific: document target column and default value on the mart README.
 - **CSS v1 use of the score:** **rank applications by risk only** (no approve/decline). Optional later: fictional cutoff from a profit/risk trade-off. Out of scope: assignment/matching engines.
-- **Score scaling:** book notebook parameters first; optimizing pdo/base on a larger database is explicitly later.
+- **Score scaling:** book notebook parameters preferred when available; **Friday demo may ship documented interim textbook defaults** (pdo/base_score/base_odds) until book values are pasted; optimizing pdo/base on a larger database is explicitly later.
 - **Monitoring v1:** **PSI** on batches is the demo drift check; SHAP/cloud alarms are optional/later.
 - **Explainability v1:** score and **risk drivers** are separate API calls; SHAP is optional/later stretch.
 
