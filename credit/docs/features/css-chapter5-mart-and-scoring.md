@@ -1,8 +1,8 @@
 # Feature: CSS Chapter 5 — Application mart and scratch scoring
 
-**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **scratch scoring + thin MLOps (#145)** in this cut (fit → `pipeline.joblib` → batch score / Docker); FastAPI serving of the same artifact is a **later PR**; competition EDA (#153) remains parallel  
-**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) done → **active:** [#145](https://github.com/JLaborda/SmartWealthAI/issues/145) · parallel: [#153](https://github.com/JLaborda/SmartWealthAI/issues/153)  
-**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/scoring_pipeline.py`, `credit/src/credit/binning.py`, `credit/src/credit/model.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke; optional only) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py`, `tests/credit/test_scoring_pipeline.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS) · Artifact: `pipeline.joblib` · Image: `credit/Dockerfile`  
+**Status:** in progress — book path + competition raw (#151) + competition mart (#152) + AMEX categoricals ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)) done; **scratch scoring + thin MLOps (#145 / #161)** done on develop; **FastAPI serving** (score + risk drivers, same `pipeline.joblib`) active this cut; local PSI + Terraform stretch are separate week slices; competition EDA (#153) remains parallel  
+**GitHub:** parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142) · done: [#143](https://github.com/JLaborda/SmartWealthAI/issues/143) → [#144](https://github.com/JLaborda/SmartWealthAI/issues/144) → [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) → [#151](https://github.com/JLaborda/SmartWealthAI/issues/151) → [#152](https://github.com/JLaborda/SmartWealthAI/issues/152) · [#157](https://github.com/JLaborda/SmartWealthAI/issues/157) · [#145](https://github.com/JLaborda/SmartWealthAI/issues/145)/[#161](https://github.com/JLaborda/SmartWealthAI/pull/161) · **active:** FastAPI serving (Friday demo week) · parallel: [#153](https://github.com/JLaborda/SmartWealthAI/issues/153), PSI CLI, [#162](https://github.com/JLaborda/SmartWealthAI/pull/162) glossary  
+**Code:** `credit/src/credit/application_mart.py`, `credit/src/credit/competition_mart.py`, `credit/src/credit/scoring_pipeline.py`, `credit/src/credit/api.py`, `credit/src/credit/binning.py`, `credit/src/credit/model.py`, `credit/src/credit/cli.py` · Notebook: `credit/notebooks/eda_application_mart.ipynb` (book-sample smoke; optional only) · Tests: `tests/credit/test_application_mart.py`, `tests/credit/test_competition_mart.py`, `tests/credit/test_scoring_pipeline.py`, `tests/credit/test_api_serving.py` · Sample: `credit/data/train_df_sample.pkl` (Git LFS) · Artifact: `pipeline.joblib` · Images: `credit/Dockerfile` (batch score), `credit/Dockerfile.serve` (FastAPI)  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Book:** *Financial AI in Practice* chapters 5–6 (chapter 5 only in this spec)
@@ -43,6 +43,8 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 20. As a data scientist, I want official Kaggle **raw competition extracts** (AMEX + Home Credit) hosted locally via Kaggle CLI, so that EDA and modeling can improve beyond the book sample.
 21. As a developer, I want AMEX converted locally to parquet from the official extract (not community mirrors as source of truth), so that working size is manageable with controlled provenance.
 22. As a data scientist, I want competition-backed marts and EDA before scratch scoring, so that #145 is informed by real contest data rather than copy-paste of the book alone.
+23. As a developer, I want a local FastAPI service that loads `pipeline.joblib` and exposes `POST /score` then `POST /drivers`, so that the Friday demo can curl PD / credit score / rank and top-k risk drivers without a batch parquet round-trip.
+24. As a developer, I want hermetic API tests with example feature JSON from the scoring fixture mart, so that CI never needs gitignored `data/credit/` marts or a network.
 
 ## Implementation Decisions
 
@@ -64,10 +66,13 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
   - No fixed 8-feature shortlist; no forced drop of the weaker of `P_2_last` / `D_48_last`.
 - **WOE numeric bins (locked):** `WoeBinner.n_bins = 10`, matching book chapter 5 `pd.qcut(..., 10, duplicates='drop')`.
 - **Artifact contract (#145):** `credit-css fit` writes a single **`pipeline.joblib`** containing WOE/IV binner + XGBoost classifier + score-scaling params. `credit-css score` (and `credit/Dockerfile` batch entrypoint) loads that file → **PD** + book-scaled **credit score** + **rank**. MLflow on fit logs params, develop/holdout AUC+KS, and the joblib (file store / `$MLFLOW_TRACKING_URI` OK).
-- **Serving split:** FastAPI / model API that loads the **same** `pipeline.joblib` is an explicit **follow-up PR** (out of #145).
+- **FastAPI serving (Friday demo week, locked):** lives under `credit/` (not `platform/`). Loads the **same** `pipeline.joblib` via env `CREDIT_PIPELINE_ARTIFACT` (or `create_app(artifact_path=...)`). Two POSTs:
+  1. **`POST /score`** — body = feature JSON (`application_id` + `features` map). Response: `pd`, `credit_score`, `rank` (single-application requests return `rank=1`; rank-only, no cutoff).
+  2. **`POST /drivers`** — same feature JSON + optional `top_k` (default 5). Response: top-k **risk drivers** ranked by **gain × |WOE|** for that row (XGBoost gain × absolute WOE of the applicant’s bin). **SHAP** on drivers = stretch / later.
+  Example payloads come from the hermetic scoring fixture mart (`tests/credit/fixtures/scoring_mart/`), never from gitignored `data/credit/` marts. Serving image: `credit/Dockerfile.serve` (uvicorn). Terraform / AWS = out of this slice.
 - **Score scaling params (locked):** book chapter 5 numbers (PDO=20, base_score=650, base_odds=20) with **PDO polarity** — odds = `(1−PD)/PD` (good:bad); +20 points ≈ doubles good-borrower odds; clip `[250, 1000]`. Higher `credit_score` = safer; rank 1 = highest score. (Notebook cell that used `PD/(1−PD)` inverted this; we follow the book PDO prose.) Tagged `scaling_source=book_chapter5_pdo_good_odds`.
 - **Mart schema change communication (owner decision):** green tests are not enough. For every credit stage that creates, drops, or renames mart columns / changes grain (raw → application), the change must (1) say so in the PR/agent summary in plain language, (2) update the mart README sidecar and `credit/data/README.md` in the same change, and (3) open or update a GitHub issue plus a line in this feature spec **before** merge. Example that failed this bar once: silent loss of AMEX categoricals before [#157](https://github.com/JLaborda/SmartWealthAI/issues/157).
-- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → **scratch scoring + thin MLOps (#145)** in parallel with generalist competition EDA (#153) → FastAPI serving (later) → competition-backed retrains if needed.
+- **Delivery:** scaffold (#143) → mart (#144) → book EDA (#147) → competition raw (#151) → competition mart (#152) → fix AMEX cats (#157) → scratch scoring + thin MLOps (#145/#161) → **FastAPI serving (this cut)** → local PSI (next) → Terraform stretch → competition-backed retrains if needed.
 
 ## Testing Decisions
 
@@ -75,14 +80,15 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Hermetic fixtures under the credit test tree; no network in unit/CI tests.
 - Prior art: investing SimFin normalizer tests (`normalize_simfin` result + written parquet assertions) — mirror that style for the mart.
 - PR2: assert CLI or pure function returns AUC/KS and produces ranked scores on a tiny fixture; do not assert internal WOE bin edges unless they are part of a documented public contract.
+- FastAPI serving: hermetic `TestClient` tests against an app built with a fixture-fitted `pipeline.joblib`; assert `/score` returns `pd` / `credit_score` / `rank` and `/drivers` returns ordered top-k feature names with gain×|WOE| scores. Example request bodies are derived from `tests/credit/fixtures/scoring_mart/` rows.
 
 ## Out of Scope
 
-- Chapter 6 (OptBinning scorecard, Evidently/PSI monitoring, SHAP/LIME)
+- Chapter 6 OptBinning scorecard; Evidently; **SHAP/LIME** on the drivers endpoint (stretch)
+- Local **PSI** data-drift CLI (next Friday-demo slice — not this FastAPI PR)
 - Approve/decline cutoff or profit/risk optimization
 - Agent–client assignment / matching
-- Airflow, AWS, Terraform, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP)
-- **FastAPI / model serving API** (follow-up PR; same `pipeline.joblib`)
+- Airflow, AWS, Terraform / `credit/infra/`, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP; Terraform = stretch later)
 - Kubernetes / compose swarm for credit scoring
 - Kaggle leaderboard submissions
 - Community redistributed AMEX parquet/feather as primary provenance
@@ -93,6 +99,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Poetry → uv migration
 - Closing or implementing Phase 2 QV (cancelled; `archive/phase2-qv`)
 - Notebook as source of truth for scoring (optional notebook may call the library only)
+- Changing WOE/IV/XGB defaults solely for serving (serving loads the existing artifact API)
 
 ## Further Notes
 
