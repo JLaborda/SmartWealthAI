@@ -111,23 +111,39 @@ docker run --rm \
 
 ### FastAPI serving (same joblib)
 
-Local (after `fit` wrote `/tmp/credit_artifact/pipeline.joblib`):
+Operator path: **fit → set artifact env → serve → curl**. The API loads the WOE/IV + XGB `pipeline.joblib` from `credit-css fit` (not a separate model).
 
 ```bash
+# 1) Fit (hermetic fixture shown; any application mart works)
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --output-dir /tmp/credit_mart \
+  --application-id-column customer_ID \
+  --target-column target --bad-value 1 --good-value 0
+poetry run credit-css fit \
+  --mart /tmp/credit_mart/application_mart.parquet \
+  --output-dir /tmp/credit_artifact \
+  --application-id-column customer_ID --target-column target \
+  --skip-mlflow
+
+# 2) Point the service at that joblib (required; fails clearly if unset/missing)
 export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
+
+# 3) Serve
 poetry run credit-css-serve
 # or: poetry run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
 
+# 4) Curl (example payloads from the scoring fixture — not data/credit/)
+curl -s localhost:8000/health
 curl -s localhost:8000/score \
   -H 'content-type: application/json' \
   -d @tests/credit/fixtures/serving/score_request.json
-
 curl -s localhost:8000/drivers \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/score_request.json
+  -d @tests/credit/fixtures/serving/drivers_request.json
 ```
 
-Serving image:
+Serving image (mount the fit output directory):
 
 ```bash
 docker build -f credit/Dockerfile.serve -t credit-css-serve .
@@ -137,7 +153,7 @@ docker run --rm -p 8000:8000 \
   credit-css-serve
 ```
 
-`POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Example JSON is from the hermetic scoring fixture — never commit real `data/credit/` marts.
+`POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Guide: [`docs/guides/serve-fastapi.md`](docs/guides/serve-fastapi.md).
 
 ## Delivery cuts
 
