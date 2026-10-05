@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 FIXTURE_MART = Path(__file__).parent / "fixtures" / "scoring_mart" / "applications.csv"
 EXAMPLE_PAYLOAD = Path(__file__).parent / "fixtures" / "serving" / "score_request.json"
+DRIVERS_PAYLOAD = Path(__file__).parent / "fixtures" / "serving" / "drivers_request.json"
 
 
 def _fit_artifact(tmp_path: Path) -> Path:
@@ -66,8 +67,7 @@ def test_post_drivers_returns_top_k_gain_x_abs_woe(tmp_path: Path) -> None:
     import json
 
     artifact = _fit_artifact(tmp_path)
-    body = json.loads(EXAMPLE_PAYLOAD.read_text(encoding="utf-8"))
-    body["top_k"] = 3
+    body = json.loads(DRIVERS_PAYLOAD.read_text(encoding="utf-8"))
     client = _client(artifact)
 
     response = client.post("/drivers", json=body)
@@ -76,7 +76,7 @@ def test_post_drivers_returns_top_k_gain_x_abs_woe(tmp_path: Path) -> None:
     assert payload["application_id"] == body["application_id"]
     assert payload["method"] == "gain_x_abs_woe"
     drivers = payload["drivers"]
-    assert len(drivers) == 3
+    assert len(drivers) == body["top_k"]
     scores = [d["score"] for d in drivers]
     assert scores == sorted(scores, reverse=True)
     for driver in drivers:
@@ -85,3 +85,43 @@ def test_post_drivers_returns_top_k_gain_x_abs_woe(tmp_path: Path) -> None:
         assert driver["gain"] >= 0.0
         assert driver["abs_woe"] >= 0.0
         assert driver["score"] == pytest.approx(driver["gain"] * driver["abs_woe"])
+
+
+def test_create_app_requires_pipeline_joblib(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Missing CREDIT_PIPELINE_ARTIFACT / path fails clearly before serving."""
+    from credit.api import ARTIFACT_ENV, create_app, resolve_artifact_path
+
+    monkeypatch.delenv(ARTIFACT_ENV, raising=False)
+    with pytest.raises(FileNotFoundError, match=ARTIFACT_ENV):
+        resolve_artifact_path()
+    with pytest.raises(FileNotFoundError, match=ARTIFACT_ENV):
+        create_app()
+
+    missing = tmp_path / "nope" / "pipeline.joblib"
+    monkeypatch.setenv(ARTIFACT_ENV, str(missing))
+    with pytest.raises(FileNotFoundError, match="not found"):
+        resolve_artifact_path()
+
+
+def test_create_app_loads_artifact_from_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """create_app() without artifact_path= loads CREDIT_PIPELINE_ARTIFACT from fit."""
+    import json
+
+    from credit.api import ARTIFACT_ENV, create_app
+
+    artifact = _fit_artifact(tmp_path)
+    monkeypatch.setenv(ARTIFACT_ENV, str(artifact))
+    client = TestClient(create_app())
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json()["status"] == "ok"
+    assert "pipeline.joblib" in health.json()["artifact"]
+
+    body = json.loads(EXAMPLE_PAYLOAD.read_text(encoding="utf-8"))
+    scored = client.post("/score", json=body)
+    assert scored.status_code == 200
+    assert scored.json()["rank"] == 1
