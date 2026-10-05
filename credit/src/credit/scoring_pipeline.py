@@ -176,7 +176,7 @@ def fit_scoring_pipeline(
                 "pdo": scaling.pdo,
                 "base_score": scaling.base_score,
                 "base_odds": scaling.base_odds,
-                "scaling_source": "interim_textbook_defaults",
+                "scaling_source": "book_chapter5_notebook",
             },
             metrics={
                 "develop_auc": develop_auc,
@@ -216,7 +216,7 @@ def score_applications(
     mart_path: Path,
     output_path: Path,
 ) -> ScoreResult:
-    """Load ``pipeline.joblib`` → PD + credit score + rank (1 = best / safest)."""
+    """Load ``pipeline.joblib`` → PD + book credit score + rank (1 = safest)."""
     pipeline = load_pipeline(artifact_path)
     frame = _load_mart(mart_path)
     _require_columns(frame, pipeline.application_id_column, *pipeline.feature_names)
@@ -232,8 +232,8 @@ def score_applications(
             "credit_score": scores,
         }
     )
-    # Rank 1 = highest credit score (lowest default risk).
-    out["rank"] = out["credit_score"].rank(method="first", ascending=False).astype(int)
+    # Book ch.5: higher credit_score ↔ higher PD. Rank 1 = safest = lowest score.
+    out["rank"] = out["credit_score"].rank(method="first", ascending=True).astype(int)
     out = out.sort_values("rank").reset_index(drop=True)
 
     output_path = Path(output_path)

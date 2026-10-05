@@ -349,13 +349,38 @@ def test_predict_pd_falls_back_when_class_one_absent() -> None:
 
 
 def test_score_scaling_to_from_dict_roundtrip() -> None:
-    from credit.score_scaling import ScoreScalingParams, pd_to_credit_score
+    from credit.score_scaling import (
+        SCORE_CLIP_MAX,
+        SCORE_CLIP_MIN,
+        ScoreScalingParams,
+        pd_to_credit_score,
+    )
 
-    params = ScoreScalingParams(pdo=20.0, base_score=600.0, base_odds=50.0)
+    params = ScoreScalingParams(pdo=20.0, base_score=650.0, base_odds=20.0)
     restored = ScoreScalingParams.from_dict(params.to_dict())
     assert restored == params
     scores = pd_to_credit_score(np.array([0.1, 0.5]), restored)
     assert len(scores) == 2
+    assert scores.min() >= SCORE_CLIP_MIN
+    assert scores.max() <= SCORE_CLIP_MAX
+
+
+def test_score_scaling_matches_book_notebook_formula() -> None:
+    """PDO=20, base=650, odds=20, default-odds, clip [250, 1000]."""
+    from credit.score_scaling import ScoreScalingParams, pd_to_credit_score
+
+    params = ScoreScalingParams()
+    # At PD=0.5, default odds=1 → score equals offset only.
+    factor = 20.0 / np.log(2.0)
+    offset = 650.0 - factor * np.log(20.0)
+    mid = pd_to_credit_score(np.array([0.5]), params)[0]
+    assert mid == pytest.approx(offset)
+    # Extremes clip.
+    assert pd_to_credit_score(np.array([1e-9]), params)[0] == pytest.approx(250.0)
+    assert pd_to_credit_score(np.array([1.0 - 1e-9]), params)[0] == pytest.approx(1000.0)
+    # Higher PD → higher score (book convention).
+    lo, hi = pd_to_credit_score(np.array([0.2, 0.8]), params)
+    assert hi > lo
 
 
 def test_mlflow_resolve_uri_from_env_and_default(
