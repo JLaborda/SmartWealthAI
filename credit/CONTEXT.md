@@ -57,6 +57,11 @@ _Avoid_: calling any metric drop “drift”; model decay / concept drift withou
 The v1 **data drift** statistic comparing feature (or score) distributions between a reference batch and a recent batch; reported with a simple threshold for “stable / shift / severe”. Output is a local report artifact (file); cloud publish is later.
 _Avoid_: treating PSI as a substitute for AUC/KS; using PSI on the holdout label as a performance metric; KS as a synonym for PSI
 
+
+**Risk drivers (v1)**:
+The top-k application-mart attributes highlighted after scoring to support a human-readable “why this **credit score**” story. v1 drivers are model/WOE-based (e.g. gain or |WOE|), **not** SHAP. Exposed via a **separate** request from the score itself.
+_Avoid_: calling v1 drivers SHAP; mixing approve/decline reasons with ranking drivers; implying causal legal explainability
+
 ## Flagged ambiguities
 
 - **CSS** means Credit Scoring System here, not Cascading Style Sheets. Expand on first use in READMEs. Book-aligned shorthand — not guaranteed industry-wide acronym usage.
@@ -64,6 +69,7 @@ _Avoid_: treating PSI as a substitute for AUC/KS; using PSI on the holdout label
 - **CSS v1 use of the score:** **rank applications by risk only** (no approve/decline). Optional later: fictional cutoff from a profit/risk trade-off. Out of scope: assignment/matching engines.
 - **Score scaling:** book notebook parameters first; optimizing pdo/base on a larger database is explicitly later.
 - **Monitoring v1:** **PSI** on batches is the demo drift check; SHAP/cloud alarms are optional/later.
+- **Explainability v1:** score and **risk drivers** are separate API calls; SHAP is optional/later stretch.
 
 ## Sources
 
