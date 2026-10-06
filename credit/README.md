@@ -153,7 +153,7 @@ docker run --rm -p 8000:8000 \
   credit-css-serve
 ```
 
-`POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Guide: [`docs/guides/serve-fastapi.md`](docs/guides/serve-fastapi.md).
+`POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Guide: [`docs/guides/serve-fastapi.md`](docs/guides/serve-fastapi.md). Friday 10‑min rehearsal stub: [`docs/guides/friday-demo.md`](docs/guides/friday-demo.md).
 
 ## Delivery cuts
 
