@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib). Local PSI next; Terraform stretch. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib); **local PSI** — `credit-css psi` → `psi_report.md` / `.json`. Terraform stretch. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -155,6 +155,41 @@ docker run --rm -p 8000:8000 \
 
 `POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Guide: [`docs/guides/serve-fastapi.md`](docs/guides/serve-fastapi.md).
 
+### PSI data-drift (local file report)
+
+Default path reproduces the same develop/holdout split as `fit`. Writes `psi_report.md` + `psi_report.json`. Interactive drift dashboards are out of v1.
+
+**Stable** (develop vs holdout):
+
+```bash
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/psi_mart/applications.csv \
+  --output-dir /tmp/credit_mart_psi \
+  --application-id-column customer_ID \
+  --target-column target --bad-value 1 --good-value 0
+poetry run credit-css fit \
+  --mart /tmp/credit_mart_psi/application_mart.parquet \
+  --output-dir /tmp/credit_artifact_psi \
+  --application-id-column customer_ID --target-column target \
+  --skip-mlflow
+poetry run credit-css psi \
+  --mart /tmp/credit_mart_psi/application_mart.parquet \
+  --artifact /tmp/credit_artifact_psi/pipeline.joblib \
+  --output-dir /tmp/credit_psi_stable
+```
+
+**Synthetic drift** (forced red on shifted top-IV features):
+
+```bash
+poetry run credit-css psi \
+  --mart /tmp/credit_mart_psi/application_mart.parquet \
+  --artifact /tmp/credit_artifact_psi/pipeline.joblib \
+  --output-dir /tmp/credit_psi_drift \
+  --synthetic-drift
+```
+
+Optional `--reference` / `--recent` override the default batches; `--stable-threshold` / `--severe-threshold` override 0.10 / 0.25. Demo script: [`docs/guides/friday-demo.md`](docs/guides/friday-demo.md). Spec: [`docs/features/psi-data-drift.md`](docs/features/psi-data-drift.md).
+
 ## Delivery cuts
 
 | Cut | Scope |
@@ -163,7 +198,8 @@ docker run --rm -p 8000:8000 \
 | **EDA** | Notebook on mart output (balance, missingness, exploratory views) — [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) |
 | **PR2 / #145** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) + `pipeline.joblib` + MLflow + Docker batch score |
 | **Serving** | FastAPI `POST /score` + `POST /drivers` + `credit/Dockerfile.serve` |
-| Later | Local PSI data-drift CLI; chapter 6 scorecard / SHAP; Terraform stretch |
+| **PSI** | Local `credit-css psi` → Markdown + JSON threshold report (stable + `--synthetic-drift`) |
+| Later | Chapter 6 scorecard / SHAP; Terraform stretch; interactive drift UI |
 | Later | Approve/decline cutoff (profit/risk); `platform/` (AWS) |
 
 ## Packaging
