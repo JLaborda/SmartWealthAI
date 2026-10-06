@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145)** — `fit` → `pipeline.joblib` → `score` / Docker batch; FastAPI serving later. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib). Local PSI next; Terraform stretch. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -109,8 +109,51 @@ docker run --rm \
   --output /out/scores.parquet
 ```
 
-FastAPI serving of the same `pipeline.joblib` is a **later PR** (not this image).
+### FastAPI serving (same joblib)
 
+Operator path: **fit → set artifact env → serve → curl**. The API loads the WOE/IV + XGB `pipeline.joblib` from `credit-css fit` (not a separate model).
+
+```bash
+# 1) Fit (hermetic fixture shown; any application mart works)
+poetry run credit-css build-application-mart \
+  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --output-dir /tmp/credit_mart \
+  --application-id-column customer_ID \
+  --target-column target --bad-value 1 --good-value 0
+poetry run credit-css fit \
+  --mart /tmp/credit_mart/application_mart.parquet \
+  --output-dir /tmp/credit_artifact \
+  --application-id-column customer_ID --target-column target \
+  --skip-mlflow
+
+# 2) Point the service at that joblib (required; fails clearly if unset/missing)
+export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
+
+# 3) Serve
+poetry run credit-css-serve
+# or: poetry run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
+
+# 4) Curl (example payloads from the scoring fixture — not data/credit/)
+curl -s localhost:8000/health
+curl -s localhost:8000/score \
+  -H 'content-type: application/json' \
+  -d @tests/credit/fixtures/serving/score_request.json
+curl -s localhost:8000/drivers \
+  -H 'content-type: application/json' \
+  -d @tests/credit/fixtures/serving/drivers_request.json
+```
+
+Serving image (mount the fit output directory):
+
+```bash
+docker build -f credit/Dockerfile.serve -t credit-css-serve .
+docker run --rm -p 8000:8000 \
+  -e CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib \
+  -v /tmp/credit_artifact:/artifact:ro \
+  credit-css-serve
+```
+
+`POST /score` → `pd`, `credit_score`, `rank` (single app → rank 1). `POST /drivers` → top-k risk drivers by **gain × |WOE|** (SHAP later). Guide: [`docs/guides/serve-fastapi.md`](docs/guides/serve-fastapi.md).
 
 ## Delivery cuts
 
@@ -119,9 +162,9 @@ FastAPI serving of the same `pipeline.joblib` is a **later PR** (not this image)
 | **PR1** | Application mart (load / clean / validate) + CLI |
 | **EDA** | Notebook on mart output (balance, missingness, exploratory views) — [#147](https://github.com/JLaborda/SmartWealthAI/issues/147) |
 | **PR2 / #145** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) + `pipeline.joblib` + MLflow + Docker batch score |
-| Later | FastAPI serving of the same joblib |
-| Later | Chapter 6 scorecard / monitoring / explainability |
-| Later | Approve/decline cutoff (profit/risk); `platform/` (AWS / Terraform) |
+| **Serving** | FastAPI `POST /score` + `POST /drivers` + `credit/Dockerfile.serve` |
+| Later | Local PSI data-drift CLI; chapter 6 scorecard / SHAP; Terraform stretch |
+| Later | Approve/decline cutoff (profit/risk); `platform/` (AWS) |
 
 ## Packaging
 

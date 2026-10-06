@@ -1,0 +1,30 @@
+# Credit CSS FastAPI serving — loads pipeline.joblib and exposes /score + /drivers.
+# Build from repo root:
+#   docker build -f credit/Dockerfile.serve -t credit-css-serve .
+# Run (mount the joblib from credit-css fit):
+#   docker run --rm -p 8000:8000 \
+#     -e CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib \
+#     -v /tmp/credit_artifact:/artifact:ro \
+#     credit-css-serve
+
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml poetry.lock README.md ./
+COPY src ./src
+COPY credit ./credit
+
+RUN pip install --no-cache-dir poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --only main --no-ansi --no-interaction
+
+ENV CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
+EXPOSE 8000
+
+# Factory loads artifact from CREDIT_PIPELINE_ARTIFACT at startup.
+CMD ["uvicorn", "credit.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

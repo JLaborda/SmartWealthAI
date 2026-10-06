@@ -27,7 +27,9 @@ dependencies = [
     "kaggle (>=2.2.4,<3.0.0)",
     "xgboost (>=2.0.0,<3.0.0)",
     "scikit-learn (>=1.9.1,<2.0.0)",
-    "joblib (>=1.6.0,<2.0.0)"
+    "joblib (>=1.6.0,<2.0.0)",
+    "fastapi (>=0.115,<1)",
+    "uvicorn[standard] (>=0.30,<1)"
 ]
 
 [project.scripts]
@@ -42,6 +44,7 @@ score-universe = "smartwealthai.score_universe:main"
 run-dashboard = "smartwealthai.run_dashboard:main"
 generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
 credit-css = "credit.cli:main"
+credit-css-serve = "credit.api:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

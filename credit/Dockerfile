@@ -1,6 +1,6 @@
 # Credit CSS batch score — loads pipeline.joblib and scores a mounted mart.
 # Build from repo root: docker build -f credit/Dockerfile -t credit-css-score .
-# FastAPI serving of the same artifact is a later PR (not this image).
+# FastAPI serving of the same artifact: credit/Dockerfile.serve
 
 FROM python:3.11-slim-bookworm
 
