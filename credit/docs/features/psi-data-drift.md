@@ -44,13 +44,13 @@ Add a hermetic `credit-css psi` CLI that:
 
 ### PSI formula (v1)
 
-For each column, with reference proportions \(e_i\) and recent proportions \(a_i\) over the shared bin edges:
+For each column, with reference proportions $e_i$ and recent proportions $a_i$ over the shared bin edges:
 
-\[
+$$
 \mathrm{PSI} = \sum_i (a_i - e_i) \ln\frac{a_i}{e_i}
-\]
+$$
 
-Zero / empty bins use a small epsilon so \(\ln\) stays defined. Overall report label = worst label across columns (`severe` > `shift` > `stable`).
+Zero / empty bins use a small epsilon so $\ln$ stays defined. Overall report label = worst label across columns (`severe` > `shift` > `stable`).
 
 ## Acceptance Criteria
 
