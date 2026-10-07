@@ -12,6 +12,11 @@ from credit.amex_parquet import convert_amex_extract_to_parquet
 from credit.application_mart import build_application_mart
 from credit.competition_mart import SourceKind, build_competition_mart
 from credit.competition_raw import stage_competition_extract
+from credit.psi import (
+    DEFAULT_PSI_SEVERE,
+    DEFAULT_PSI_STABLE,
+    run_psi_check,
+)
 from credit.scoring_pipeline import (
     ARTIFACT_NAME,
     fit_scoring_pipeline,
@@ -25,7 +30,7 @@ from credit.scoring_pipeline import (
     help=(
         "Credit Scoring System (CSS) CLI. "
         "Stages: build-application-mart, build-competition-mart, "
-        "stage-competition-extract, convert-amex-extract, fit, score."
+        "stage-competition-extract, convert-amex-extract, fit, score, psi."
     ),
 )
 @click.version_option(__version__, prog_name="credit-css")
@@ -36,8 +41,9 @@ def main(ctx: click.Context) -> None:
         click.echo(
             "Credit Scoring System (CSS) CLI.\n"
             "Stages: build-application-mart, build-competition-mart, "
-            "stage-competition-extract, convert-amex-extract, fit, score\n"
-            "See credit/docs/features/css-chapter5-mart-and-scoring.md."
+            "stage-competition-extract, convert-amex-extract, fit, score, psi\n"
+            "See credit/docs/features/css-chapter5-mart-and-scoring.md "
+            "and credit/docs/features/psi-data-drift.md."
         )
 
 
@@ -340,4 +346,113 @@ def score_cmd(
     click.echo(
         f"Scores written: {result.scores_path} ({result.n_scored} applications). "
         "Columns: pd, credit_score, rank (1 = safest = highest score)."
+    )
+
+
+@main.command("psi")
+@click.option(
+    "--mart",
+    "mart_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Application mart; splits develop/holdout like fit (default demo path).",
+)
+@click.option(
+    "--artifact",
+    "artifact_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help=f"Path to {ARTIFACT_NAME} from credit-css fit (IV ranking + scoring).",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path, file_okay=False),
+    required=True,
+    help="Directory for psi_report.md and psi_report.json.",
+)
+@click.option(
+    "--reference",
+    "reference_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Optional reference batch override (use with --recent).",
+)
+@click.option(
+    "--recent",
+    "recent_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Optional recent batch override (use with --reference).",
+)
+@click.option(
+    "--synthetic-drift",
+    is_flag=True,
+    default=False,
+    help="Copy recent and shift/scale 1–2 top-IV features so PSI goes red.",
+)
+@click.option(
+    "--holdout-fraction",
+    default=0.3,
+    show_default=True,
+    type=float,
+    help="Stratified holdout fraction when using --mart (must match fit).",
+)
+@click.option(
+    "--random-state",
+    default=42,
+    show_default=True,
+    type=int,
+    help="RNG seed for develop/holdout split when using --mart (must match fit).",
+)
+@click.option(
+    "--stable-threshold",
+    default=DEFAULT_PSI_STABLE,
+    show_default=True,
+    type=float,
+    help="PSI below this → stable.",
+)
+@click.option(
+    "--severe-threshold",
+    default=DEFAULT_PSI_SEVERE,
+    show_default=True,
+    type=float,
+    help="PSI at or above this → severe (between thresholds → shift).",
+)
+@click.option(
+    "--no-pd",
+    is_flag=True,
+    default=False,
+    help="Omit pd from monitored columns (credit_score + top-IV features remain).",
+)
+def psi_cmd(
+    mart_path: Path | None,
+    artifact_path: Path,
+    output_dir: Path,
+    reference_path: Path | None,
+    recent_path: Path | None,
+    synthetic_drift: bool,
+    holdout_fraction: float,
+    random_state: int,
+    stable_threshold: float,
+    severe_threshold: float,
+    no_pd: bool,
+) -> None:
+    """PSI data-drift report: reference vs recent → Markdown + JSON."""
+    report = run_psi_check(
+        mart_path=mart_path,
+        artifact_path=artifact_path,
+        output_dir=output_dir,
+        reference_path=reference_path,
+        recent_path=recent_path,
+        synthetic_drift=synthetic_drift,
+        holdout_fraction=holdout_fraction,
+        random_state=random_state,
+        stable_threshold=stable_threshold,
+        severe_threshold=severe_threshold,
+        include_pd=not no_pd,
+    )
+    click.echo(
+        f"PSI report: {output_dir / 'psi_report.md'} "
+        f"(+ psi_report.json); overall={report.overall_label}; "
+        f"columns={len(report.columns)}; synthetic_drift={report.synthetic_drift}."
     )

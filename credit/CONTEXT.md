@@ -54,8 +54,8 @@ A check that the **distribution** of application-mart features (or scores) in a 
 _Avoid_: calling any metric drop “drift”; model decay / concept drift without saying so; implying live production alerting
 
 **PSI (Population Stability Index)**:
-The v1 **data drift** statistic comparing feature (or score) distributions between a reference batch and a recent batch; reported with a simple threshold for “stable / shift / severe”. Output is a local report artifact (file); cloud publish is later.
-_Avoid_: treating PSI as a substitute for AUC/KS; using PSI on the holdout label as a performance metric; KS as a synonym for PSI
+The v1 **data drift** statistic comparing feature (or score) distributions between a reference batch and a recent batch; reported with a simple threshold for “stable / shift / severe”. **v1 monitoring output is a local file report** (Markdown + JSON); interactive drift visualization is later. Cloud publish is later.
+_Avoid_: treating PSI as a substitute for AUC/KS; using PSI on the holdout label as a performance metric; KS as a synonym for PSI; implying v1 ships an interactive drift dashboard
 
 
 **Risk drivers (v1)**:
@@ -68,7 +68,7 @@ _Avoid_: calling v1 drivers SHAP; mixing approve/decline reasons with ranking dr
 - Exact **bad**/**good** mapping is dataset-specific: document target column and default value on the mart README.
 - **CSS v1 use of the score:** **rank applications by risk only** (no approve/decline). Optional later: fictional cutoff from a profit/risk trade-off. Out of scope: assignment/matching engines.
 - **Score scaling:** book notebook parameters preferred when available; **Friday demo may ship documented interim textbook defaults** (pdo/base_score/base_odds) until book values are pasted; optimizing pdo/base on a larger database is explicitly later.
-- **Monitoring v1:** **PSI** on batches is the demo drift check; SHAP/cloud alarms are optional/later.
+- **Monitoring v1:** **PSI** file report (Markdown + JSON) on batches is the demo drift check; interactive drift visualization and SHAP/cloud alarms are optional/later.
 - **Explainability v1:** score and **risk drivers** are separate API calls; SHAP is optional/later stretch.
 
 ## Sources

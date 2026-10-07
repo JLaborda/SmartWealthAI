@@ -10,7 +10,11 @@ Investing Magic Formula specs remain in [`docs/mvp/`](../docs/mvp/) until a migr
 credit/docs/
   README.md
   features/
-    css-chapter5-mart-and-scoring.md   # Chapter 5 parent spec (PR1 mart + PR2 scratch scoring)
+    css-chapter5-mart-and-scoring.md   # Chapter 5 parent spec (PR1 mart + PR2 scratch scoring + serving)
+    psi-data-drift.md                  # Local PSI data-drift CLI (Friday MUST)
+  guides/
+    serve-fastapi.md
+    friday-demo.md
 ```
 
 ## Before writing a feature

@@ -85,7 +85,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 ## Out of Scope
 
 - Chapter 6 OptBinning scorecard; Evidently; **SHAP/LIME** on the drivers endpoint (stretch)
-- Local **PSI** data-drift CLI (next Friday-demo slice — not this FastAPI PR)
+- Local **PSI** data-drift CLI — see [`psi-data-drift.md`](psi-data-drift.md) (separate Friday MUST slice)
 - Approve/decline cutoff or profit/risk optimization
 - Agent–client assignment / matching
 - Airflow, AWS, Terraform / `credit/infra/`, `platform/` / S3-backed credit raw store (local + Kaggle CLI for MVP; Terraform = stretch later)
