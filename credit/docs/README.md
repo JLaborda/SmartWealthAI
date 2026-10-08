@@ -13,8 +13,8 @@ credit/docs/
     css-chapter5-mart-and-scoring.md   # Chapter 5 parent spec (PR1 mart + PR2 scratch scoring + serving)
     psi-data-drift.md                  # Local PSI data-drift CLI (Friday MUST)
   guides/
-    serve-fastapi.md
-    friday-demo.md
+    serve-fastapi.md                   # Fit → joblib → FastAPI /score + /drivers
+    friday-demo.md                     # 10 min rehearsal (fit → serve → Docker → PSI)
 ```
 
 ## Before writing a feature
