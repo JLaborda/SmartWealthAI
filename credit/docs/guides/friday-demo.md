@@ -118,4 +118,4 @@ Copies the recent (holdout) batch, shift/scales 1–2 top-IV features (fixed see
 - Rank-only (no approve/decline cutoff).
 - Drivers = gain × |WOE|; SHAP = stretch.
 - PSI v1 = local Markdown + JSON file report — not an interactive drift dashboard.
-- AWS public URL / Terraform `apply` = stretch, not MUST.
+- AWS public URL / Terraform up-down = stretch, not MUST — see [`../features/aws-fargate-serve-demo.md`](../features/aws-fargate-serve-demo.md) (ADR-0004).
