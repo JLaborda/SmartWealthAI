@@ -9,6 +9,7 @@ platform/terraform/**/.terraform/
 platform/terraform/**/*.tfstate
 platform/terraform/**/*.tfstate.*
 platform/terraform/**/.terraform.lock.hcl
+platform/terraform/**/.last_demo_url
 __pycache__/
 .coverage
 coverage.xml
