@@ -58,7 +58,7 @@ curl -s localhost:8000/drivers \
   -d @tests/credit/fixtures/serving/drivers_request.json
 ```
 
-## Docker
+## Docker (volume mount)
 
 ```bash
 docker build -f credit/Dockerfile.serve -t credit-css-serve .
@@ -68,6 +68,18 @@ docker run --rm -p 8000:8000 \
   credit-css-serve
 ```
 
+## Docker (bake-image demo — no volume)
+
+Hermetic fit into gitignored `credit/demo_artifact/`, then an image that embeds `pipeline.joblib` (for local smoke and later Fargate). Spec: [`../features/aws-fargate-serve-demo.md`](../features/aws-fargate-serve-demo.md) (#173).
+
+```bash
+./platform/scripts/prepare-serve-demo-artifact.sh
+docker build -f credit/Dockerfile.serve.demo -t credit-css-serve-demo .
+docker run --rm -p 8000:8000 credit-css-serve-demo
+```
+
+Same curls as above (no `-v`). Volume-mount `Dockerfile.serve` remains the default local path.
+
 ## Out of this guide
 
-PSI CLI, Terraform/AWS, SHAP on drivers — later Friday-demo slices.
+PSI CLI, Terraform/AWS up-down (#174), SHAP on drivers — later slices.
