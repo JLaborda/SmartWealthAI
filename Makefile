@@ -1,4 +1,4 @@
-.PHONY: install lint test download-fundamentals
+.PHONY: install lint test download-fundamentals format platform-tf-check
 
 install:
 	poetry install --with dev
@@ -17,3 +17,7 @@ download-fundamentals:
 # formatting command
 format:
 	poetry run ruff format .
+
+# Terraform fmt + validate for credit CSS serve demo (no apply; no AWS creds required).
+platform-tf-check:
+	cd platform/terraform/credit-css-serve-demo && terraform fmt -check -recursive && terraform init -backend=false -input=false && terraform validate

@@ -80,6 +80,10 @@ docker run --rm -p 8000:8000 credit-css-serve-demo
 
 Same curls as above (no `-v`). Volume-mount `Dockerfile.serve` remains the default local path.
 
+## AWS ephemeral demo (stretch)
+
+Operator up/curl/down on Fargate: [`../../../platform/docs/ephemeral-css-serve-demo.md`](../../../platform/docs/ephemeral-css-serve-demo.md) (`./platform/scripts/demo-up.sh` / `demo-down.sh`). Friday MUST stays local ([`friday-demo.md`](friday-demo.md)).
+
 ## Out of this guide
 
-PSI CLI, Terraform/AWS up-down (#174), SHAP on drivers — later slices.
+PSI CLI, SHAP on drivers — other slices.
