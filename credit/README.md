@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib); **local PSI** — `credit-css psi` → `psi_report.md` / `.json`. Terraform stretch. Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib); **local PSI** — `credit-css psi` → `psi_report.md` / `.json`. Terraform stretch: [`docs/features/aws-fargate-serve-demo.md`](docs/features/aws-fargate-serve-demo.md). Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
 
 ## What it will do
 
@@ -199,8 +199,9 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 | **PR2 / #145** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) + `pipeline.joblib` + MLflow + Docker batch score |
 | **Serving** | FastAPI `POST /score` + `POST /drivers` + `credit/Dockerfile.serve` |
 | **PSI** | Local `credit-css psi` → Markdown + JSON threshold report (stable + `--synthetic-drift`) |
-| Later | Chapter 6 scorecard / SHAP; Terraform stretch; interactive drift UI |
-| Later | Approve/decline cutoff (profit/risk); `platform/` (AWS) |
+| Later | Chapter 6 scorecard / SHAP; interactive drift UI |
+| Stretch | Ephemeral Fargate CSS serve ([`docs/features/aws-fargate-serve-demo.md`](docs/features/aws-fargate-serve-demo.md), ADR-0004) |
+| Later | Approve/decline cutoff (profit/risk); broader `platform/` (CD/OIDC) |
 
 ## Packaging
 

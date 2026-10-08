@@ -2,6 +2,13 @@
 .env
 .env.local
 mlruns/
+# Ephemeral Fargate demo bake artifact (never commit joblib)
+credit/demo_artifact/
+# Local Terraform state for platform demo stacks
+platform/terraform/**/.terraform/
+platform/terraform/**/*.tfstate
+platform/terraform/**/*.tfstate.*
+platform/terraform/**/.terraform.lock.hcl
 __pycache__/
 .coverage
 coverage.xml
