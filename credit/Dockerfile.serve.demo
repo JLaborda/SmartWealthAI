@@ -1,0 +1,31 @@
+# Credit CSS FastAPI — demo bake image (joblib inside the image, no volume).
+# Build from repo root AFTER preparing the artifact:
+#   ./platform/scripts/prepare-serve-demo-artifact.sh
+#   docker build -f credit/Dockerfile.serve.demo -t credit-css-serve-demo .
+# Run (no -v mount):
+#   docker run --rm -p 8000:8000 credit-css-serve-demo
+#
+# Local volume-mount serving stays on credit/Dockerfile.serve.
+
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml poetry.lock README.md ./
+COPY src ./src
+COPY credit ./credit
+
+RUN pip install --no-cache-dir poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --only main --no-ansi --no-interaction
+
+# Baked hermetic fit output (gitignored under credit/demo_artifact/).
+COPY credit/demo_artifact/pipeline.joblib /artifact/pipeline.joblib
+ENV CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
+EXPOSE 8000
+
+CMD ["uvicorn", "credit.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
