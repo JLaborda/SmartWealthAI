@@ -32,7 +32,7 @@ resource "aws_cloudwatch_log_group" "demo" {
 
 resource "aws_security_group" "demo" {
   name        = "${local.name}-sg"
-  description = "Ephemeral CSS FastAPI demo — open ${var.container_port} for create→curl→destroy only"
+  description = "Ephemeral CSS FastAPI demo - open ${var.container_port} for create/curl/destroy only"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
