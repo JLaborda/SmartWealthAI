@@ -16,6 +16,9 @@ credit/docs/
   guides/
     serve-fastapi.md                   # Fit → joblib → FastAPI /score + /drivers
     friday-demo.md                     # 10 min rehearsal (fit → serve → Docker → PSI)
+
+platform/docs/
+  ephemeral-css-serve-demo.md          # Stretch: Fargate demo-up / demo-down (#174)
 ```
 
 ## Before writing a feature

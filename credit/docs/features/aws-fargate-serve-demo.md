@@ -1,11 +1,11 @@
 # Feature: Ephemeral CSS FastAPI serve on AWS (Fargate)
 
-**Status:** in progress — docs done (#172); **bake-image (#173) in this cut**; AWS HITL (#174) next  
+**Status:** in progress — docs (#172) + bake-image (#173) done; **#174 Terraform + demo-up/down in PR** (HITL apply/curl/destroy needs Jorge’s `AWS_PROFILE`)  
 **GitHub:** parent [#171](https://github.com/JLaborda/SmartWealthAI/issues/171) · [#172](https://github.com/JLaborda/SmartWealthAI/issues/172) docs · [#173](https://github.com/JLaborda/SmartWealthAI/issues/173) bake-image · [#174](https://github.com/JLaborda/SmartWealthAI/issues/174) AWS up/down  
 **Domain:** credit / CSS (demo surface) + shared `platform/` (IaC)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) (domain only — no AWS terms) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
-**Related:** chapter 5 [`css-chapter5-mart-and-scoring.md`](css-chapter5-mart-and-scoring.md) · PSI [`psi-data-drift.md`](psi-data-drift.md) · Friday MUST [`../guides/friday-demo.md`](../guides/friday-demo.md) · [ADR-0004](../../../docs/adr/0004-platform-ephemeral-fargate-serve.md) · bake guide [`../guides/serve-fastapi.md`](../guides/serve-fastapi.md)  
-**Code:** `credit/demo_serve_artifact.py`, `credit/Dockerfile.serve.demo`, `platform/scripts/prepare-serve-demo-artifact.sh` · Tests: `tests/credit/test_serve_demo_bake.py` · Later: `platform/terraform/credit-css-serve-demo/`, `demo-up.sh` / `demo-down.sh`
+**Related:** chapter 5 [`css-chapter5-mart-and-scoring.md`](css-chapter5-mart-and-scoring.md) · PSI [`psi-data-drift.md`](psi-data-drift.md) · Friday MUST [`../guides/friday-demo.md`](../guides/friday-demo.md) · [ADR-0004](../../../docs/adr/0004-platform-ephemeral-fargate-serve.md) · bake guide [`../guides/serve-fastapi.md`](../guides/serve-fastapi.md) · operator [`../../../platform/docs/ephemeral-css-serve-demo.md`](../../../platform/docs/ephemeral-css-serve-demo.md)  
+**Code:** `credit/demo_serve_artifact.py`, `credit/Dockerfile.serve.demo`, `platform/scripts/prepare-serve-demo-artifact.sh`, `platform/terraform/credit-css-serve-demo/`, `platform/scripts/demo-up.sh`, `platform/scripts/demo-down.sh` · Tests: `tests/credit/test_serve_demo_bake.py` (API seam); live up/curl/down = HITL
 
 ## Problem Statement
 
@@ -68,8 +68,9 @@ No S3 data lake, no auth, no GitHub CD in this cut.
 
 - [x] Feature spec + ADR-0004 + friday-demo stretch link exist in English (#172)
 - [x] Bake-image local path: `prepare-serve-demo-artifact` + `Dockerfile.serve.demo` + hermetic pytest + documented docker smoke without volume (#173)
-- [ ] With a valid `AWS_PROFILE`, `demo-up` yields reachable `/health` and successful `/score` + `/drivers` using existing serving fixtures (#174)
-- [ ] `demo-down` destroys the stack including ECR images (#174)
+- [x] Terraform under `platform/terraform/credit-css-serve-demo/` + `demo-up.sh` / `demo-down.sh` + operator docs (code path for #174; live apply deferred to HITL)
+- [ ] With a valid `AWS_PROFILE`, `demo-up` yields reachable `/health` and successful `/score` + `/drivers` using existing serving fixtures (#174 HITL)
+- [ ] `demo-down` destroys the stack including ECR images (#174 HITL)
 - [x] Local volume-mount serve Docker path remains documented and unchanged in behaviour
 - [x] No AWS vocabulary added to `credit/CONTEXT.md`
 
