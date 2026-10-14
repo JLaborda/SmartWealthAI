@@ -18,7 +18,7 @@ No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data
 
 ```bash
 git lfs pull --include="credit/data/*"
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/data/train_df_sample.pkl \
   --output-dir data/credit/application_mart \
   --application-id-column customer_ID \
@@ -34,11 +34,11 @@ poetry run credit-css build-application-mart \
 After staging raw extracts (see [`credit/data/README.md`](data/README.md)):
 
 ```bash
-poetry run credit-css build-competition-mart \
+uv run credit-css build-competition-mart \
   --source-kind amex \
   --raw-dir data/credit/raw/amex \
   --output-dir data/credit/application_mart/amex
-poetry run credit-css build-competition-mart \
+uv run credit-css build-competition-mart \
   --source-kind home_credit \
   --raw-dir data/credit/raw/home_credit \
   --output-dir data/credit/application_mart/home_credit
@@ -55,7 +55,7 @@ poetry run credit-css build-competition-mart \
 Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the hermetic CI default:
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
 ```
@@ -65,7 +65,7 @@ poetry run credit-css build-application-mart \
 Hermetic fixture (CI):
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
@@ -75,13 +75,13 @@ poetry run credit-css build-application-mart \
 
 export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
 export MLFLOW_ALLOW_FILE_STORE=true
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart/application_mart.parquet \
   --output-dir /tmp/credit_artifact \
   --application-id-column customer_ID \
   --target-column target
 
-poetry run credit-css score \
+uv run credit-css score \
   --artifact /tmp/credit_artifact/pipeline.joblib \
   --mart /tmp/credit_mart/application_mart.parquet \
   --output /tmp/credit_scores.parquet
@@ -115,12 +115,12 @@ Operator path: **fit → set artifact env → serve → curl**. The API loads th
 
 ```bash
 # 1) Fit (hermetic fixture shown; any application mart works)
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart/application_mart.parquet \
   --output-dir /tmp/credit_artifact \
   --application-id-column customer_ID --target-column target \
@@ -130,8 +130,8 @@ poetry run credit-css fit \
 export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
 
 # 3) Serve
-poetry run credit-css-serve
-# or: poetry run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
+uv run credit-css-serve
+# or: uv run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
 
 # 4) Curl (example payloads from the scoring fixture — not data/credit/)
 curl -s localhost:8000/health
@@ -162,17 +162,17 @@ Default path reproduces the same develop/holdout split as `fit`. Writes `psi_rep
 **Stable** (develop vs holdout):
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/psi_mart/applications.csv \
   --output-dir /tmp/credit_mart_psi \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --output-dir /tmp/credit_artifact_psi \
   --application-id-column customer_ID --target-column target \
   --skip-mlflow
-poetry run credit-css psi \
+uv run credit-css psi \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --artifact /tmp/credit_artifact_psi/pipeline.joblib \
   --output-dir /tmp/credit_psi_stable
@@ -181,7 +181,7 @@ poetry run credit-css psi \
 **Synthetic drift** (forced red on shifted top-IV features):
 
 ```bash
-poetry run credit-css psi \
+uv run credit-css psi \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --artifact /tmp/credit_artifact_psi/pipeline.joblib \
   --output-dir /tmp/credit_psi_drift \
@@ -205,19 +205,19 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 
 ## Packaging
 
-One Poetry project at repo root: `credit` is a second installable package
-(`credit/src/credit`) beside investing — `poetry install` is enough.
+One uv workspace at repo root: `credit` is a second installable package
+(`credit/src/credit`) beside investing — `uv sync` is enough.
 
 CLI (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/143); mart stage [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)):
 
 ```bash
-poetry run credit-css --help
-poetry run credit-css build-application-mart \
+uv run credit-css --help
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
-poetry run credit-css fit --help
-poetry run credit-css score --help
-poetry run python -m credit build-application-mart --help
+uv run credit-css fit --help
+uv run credit-css score --help
+uv run python -m credit build-application-mart --help
 ```
 
 Hermetic CI uses fixtures under `credit/tests/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.

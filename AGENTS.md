@@ -51,18 +51,17 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Runtime
 
-- **Python:** 3.11+ (`requires-python = "^3.11"` in `pyproject.toml`)
-- **Dependencies:** Poetry
+- **Python:** 3.11+ (`requires-python = ">=3.11,<4.0"` in root `pyproject.toml`)
+- **Dependencies:** uv workspace (`uv sync --group dev` / `make install`); members `credit` + `investing` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md))
 
 ```bash
-poetry env use python3.11
-poetry install
-poetry run pytest
+uv sync --group dev
+uv run pytest
 ```
 
 ### MLflow (demo pipeline runs)
 
-`mlflow-skinny` is a Poetry dependency (`poetry install` is enough for logging). No local MLflow UI server is required for #61.
+`mlflow-skinny` is a uv dependency (`uv sync` is enough for logging). No local MLflow UI server is required for #61.
 
 ```bash
 export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
@@ -83,7 +82,7 @@ Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never com
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run download-simfin
+uv run download-simfin
 ```
 
 Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-data-lake.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
@@ -92,7 +91,7 @@ Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-d
 
 ```bash
 export SEC_IDENTITY="Your Name your@email.com"
-poetry run download-fundamentals --universe dow30
+uv run download-fundamentals --universe dow30
 ```
 
 Guide: [`investing/docs/guides/download-fundamentals.md`](investing/docs/guides/download-fundamentals.md).

@@ -13,16 +13,16 @@ The portfolio needs a demonstrable **application credit scoring** slice with rea
 
 ## Solution
 
-Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local, no Airflow/AWS yet):
+Deliver chapter 5 of the book as a real `credit` Python package and CLIs (local, no Airflow/AWS yet):
 
-1. Register the `credit` package in the monorepo Poetry project.
+1. Register the `credit` package in the monorepo uv workspace.
 2. Build a validated **application mart** from public demo data: book sample (smoke/hermetic) plus official **AMEX** and **Home Credit** **raw competition extracts** (local Kaggle CLI; FICO HELOC later).
 3. Train a scratch pipeline (WOE/IV → XGBoost → probability → **credit score** with book scaling) and report **AUC** + **KS** on holdout; **rank-only** (no approve/decline cutoff). Serious training targets competition-backed marts; fixtures/book remain CI/smoke.
 
 ## User Stories
 
 1. As a hiring manager, I want a top-level `credit/` domain with a runnable CSS path, so that the portfolio shows credit risk work at a glance.
-2. As a developer, I want a single `poetry install` to include the `credit` package, so that I do not maintain a second environment.
+2. As a developer, I want a single `uv sync` to include the `credit` package, so that I do not maintain a second environment.
 3. As a developer, I want a credit CLI entry point, so that I can discover and run CSS stages like investing CLIs.
 4. As a credit analyst, I want an **application mart** with one row per application, so that modeling uses a stable table.
 5. As a credit analyst, I want the mart README to document which column is the **target** and which value means **bad**, so that default semantics are honest for public demo data.
@@ -48,7 +48,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 
 ## Implementation Decisions
 
-- **Packaging:** One Poetry project; add `credit` as a second package beside investing; credit CLIs via project scripts.
+- **Packaging:** One uv workspace; add `credit` as a second package beside investing; credit CLIs via project scripts.
 - **Primary test seam (PR1):** a single `build_application_mart(...)` (or equivalent) function that takes a local source path and returns a result with mart rows written, target→bad/good mapping metadata, and retained/rejected counts. CLI is a thin wrapper.
 - **Demo data:** book sample (LFS) = smoke/hermetic + notebook fidelity; **priority path** = official AMEX + Home Credit raw extracts under `data/credit/raw/{amex,home_credit}/` (gitignored); local AMEX CSV→parquet conversion under our control; **FICO HELOC later** (documented only). Never imply live BFSI. No Kaggle leaderboard submissions in this slice. No S3/DVC in MVP.
 - **Raw layout language:** operator docs may say “local raw”; domain speech is **raw competition extract** → **application mart** (do not copy the investing lake vocabulary into credit).
@@ -96,7 +96,7 @@ Deliver chapter 5 of the book as a real `credit` Poetry package and CLIs (local,
 - Feature store (Feast / Tecton / similar), DVC, and credit **model-registry / model-change demo** slices beyond thin MLflow fit logging (explicit later backlog — not chapter 5)
 - Fraud module
 - Migrating investing code into `investing/`
-- Poetry → uv migration
+- uv workspace (ADR-0005); lean deps #183
 - Closing or implementing Phase 2 QV (cancelled; `archive/phase2-qv`)
 - Notebook as source of truth for scoring (optional notebook may call the library only)
 - Changing WOE/IV/XGB defaults solely for serving (serving loads the existing artifact API)

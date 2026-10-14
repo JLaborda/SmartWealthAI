@@ -8,7 +8,7 @@
 
 ```bash
 # After score-universe (or full demo pipeline) for a run_date:
-poetry run run-dashboard --data-dir data --run-date 2026-06-18
+uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 Environment variables: `SMARTWEALTHAI_DATA_DIR` (lake root, default `data`), `SMARTWEALTHAI_RUN_DATE` (optional override).

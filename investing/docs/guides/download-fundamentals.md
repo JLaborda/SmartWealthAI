@@ -10,11 +10,11 @@ standardized annual statements from `edgartools` for a parameterized universe.
 
 ## Prerequisites
 
-1. Python 3.11+ and Poetry installed.
+1. Python 3.11+ and uv installed.
 2. Project dependencies installed:
 
    ```bash
-   poetry install
+   uv sync
    ```
 
 3. **SEC identity** (required by SEC EDGAR and `edgartools`):
@@ -31,13 +31,13 @@ standardized annual statements from `edgartools` for a parameterized universe.
 
 ```bash
 export SEC_IDENTITY="Your Name your@email.com"
-poetry run download-fundamentals --universe dow30
+uv run download-fundamentals --universe dow30
 ```
 
 Equivalent module invocation:
 
 ```bash
-poetry run python -m investing.download_fundamentals --universe dow30
+uv run python -m investing.download_fundamentals --universe dow30
 ```
 
 A full Dow 30 run downloads **120 artifacts** (4 per CIK: 1 JSON + 3 parquet files) and
@@ -61,16 +61,16 @@ auto-generated option docs.
 
 ```bash
 # Custom universe CSV
-poetry run download-fundamentals --universe-file data/reference/universes/dow30.csv
+uv run download-fundamentals --universe-file data/reference/universes/dow30.csv
 
 # Pin snapshot date (reproducible backfill slice)
-poetry run download-fundamentals --universe dow30 --as-of-date 2026-06-07
+uv run download-fundamentals --universe dow30 --as-of-date 2026-06-07
 
 # Force refresh after a failed partial run
-poetry run download-fundamentals --universe dow30 --force
+uv run download-fundamentals --universe dow30 --force
 
 # Write to a temp lake (CI / experiments)
-poetry run download-fundamentals --universe dow30 --data-dir /tmp/swai-lake
+uv run download-fundamentals --universe dow30 --data-dir /tmp/swai-lake
 ```
 
 ## Universe files
@@ -156,7 +156,7 @@ flowchart TD
 Hermetic unit tests (no network):
 
 ```bash
-poetry run pytest investing/tests/test_download_fundamentals.py -q
+uv run pytest investing/tests/test_download_fundamentals.py -q
 ```
 
 Integration smoke test (requires `SEC_IDENTITY` and network) is intentionally **not** part
@@ -166,7 +166,7 @@ of PR CI. Run locally on a small CSV when validating credentials.
 
 1. Add `data/reference/universes/<name>.csv` with `ticker,cik` rows.
 2. Register the preset in `UNIVERSE_PRESETS` inside `investing/src/investing/universe.py`.
-3. Run: `poetry run download-fundamentals --universe <name>`.
+3. Run: `uv run download-fundamentals --universe <name>`.
 
 Planned expansions: S&P 500, Russell 3000, Nasdaq — same CSV + preset pattern.
 

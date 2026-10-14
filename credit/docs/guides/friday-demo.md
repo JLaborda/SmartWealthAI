@@ -11,7 +11,7 @@ Glossary: [`../../CONTEXT.md`](../../CONTEXT.md) · Specs: [`../features/css-cha
 Hermetic fixture path (safe for git; do not commit `data/credit/` marts):
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
@@ -20,7 +20,7 @@ poetry run credit-css build-application-mart \
 export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
 export MLFLOW_ALLOW_FILE_STORE=true
 
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart/application_mart.parquet \
   --output-dir /tmp/credit_artifact \
   --application-id-column customer_ID \
@@ -32,13 +32,13 @@ Call out from the CLI: holdout **AUC** / **KS**, MLflow run id, and `pipeline.jo
 For a PSI-stable develop/holdout story with 10 quantile bins, prefer the larger hermetic mart and keep the same paths for sections 4–5:
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/psi_mart/applications.csv \
   --output-dir /tmp/credit_mart_psi \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
 
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --output-dir /tmp/credit_artifact_psi \
   --application-id-column customer_ID \
@@ -51,7 +51,7 @@ poetry run credit-css fit \
 export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
 # If you fitted the psi_mart path above, use:
 # export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact_psi/pipeline.joblib
-poetry run credit-css-serve
+uv run credit-css-serve
 ```
 
 Example payloads (fixture-derived):
@@ -88,7 +88,7 @@ If you used the psi_mart fit, mount `/tmp/credit_artifact_psi` instead of `/tmp/
 Same mart split as fit (`--holdout-fraction` / `--random-state` defaults match fit):
 
 ```bash
-poetry run credit-css psi \
+uv run credit-css psi \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --artifact /tmp/credit_artifact_psi/pipeline.joblib \
   --output-dir /tmp/credit_psi_stable
@@ -101,7 +101,7 @@ Monitors `credit_score`, `pd`, and top-IV features (up to 10). Thresholds defaul
 ## 5. PSI — synthetic drift (forced red)
 
 ```bash
-poetry run credit-css psi \
+uv run credit-css psi \
   --mart /tmp/credit_mart_psi/application_mart.parquet \
   --artifact /tmp/credit_artifact_psi/pipeline.joblib \
   --output-dir /tmp/credit_psi_drift \

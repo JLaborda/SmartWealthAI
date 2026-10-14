@@ -181,25 +181,25 @@ Phase 2 yfinance cache semantics:
   (`sec_client`, `edgartools_client`, `download_fundamentals`) — **frozen** for phase 2.
   SimFin connector + normalizer are the active demo path ([ADR-0001](../../../docs/adr/0001-simfin-fundamentals-mvp.md)).
 - SimFin shareprices snapshot in `price_ingest.py` and `download_prices.py` CLI
-  (`poetry run download-prices`). Requires `shareprices/latest` from `download-simfin`.
+  (`uv run download-prices`). Requires `shareprices/latest` from `download-simfin`.
   Writes `curated/prices/run_date=<date>/prices.parquet`. Hermetic tests in
   `investing/tests/test_download_prices.py`.
 
 **Operator sequence (demo pipeline):**
 
 ```bash
-poetry run run-demo-pipeline --run-date 2026-06-19
-poetry run run-dashboard --data-dir data --run-date 2026-06-19
+uv run run-demo-pipeline --run-date 2026-06-19
+uv run run-dashboard --data-dir data --run-date 2026-06-19
 ```
 
 Equivalent manual steps:
 
 ```bash
-poetry run download-simfin --as-of-date 2026-06-19
-poetry run build-universe --run-date 2026-06-19
-poetry run normalize-simfin --snapshot-date 2026-06-19 --universe-run-date 2026-06-19
-poetry run download-prices --run-date 2026-06-19 --snapshot-date 2026-06-19
-poetry run score-universe --run-date 2026-06-19
+uv run download-simfin --as-of-date 2026-06-19
+uv run build-universe --run-date 2026-06-19
+uv run normalize-simfin --snapshot-date 2026-06-19 --universe-run-date 2026-06-19
+uv run download-prices --run-date 2026-06-19 --snapshot-date 2026-06-19
+uv run score-universe --run-date 2026-06-19
 ```
 
 ## Decisions made (fundamentals)
@@ -224,8 +224,8 @@ Operator guide: [`investing/docs/guides/download-simfin.md`](../guides/download-
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run download-simfin
-poetry run download-simfin --refresh-days 7 --force
+uv run download-simfin
+uv run download-simfin --refresh-days 7 --force
 ```
 
 ### Module map
@@ -278,14 +278,14 @@ Transforms SimFin bulk statements into curated canonical parquet. Joins income T
 | Module | Role |
 | --- | --- |
 | `investing.simfin_normalizer` | Raw SimFin CSV join + PIT stamping + curated parquet writer. |
-| `investing.normalize_simfin` | CLI entry point (`poetry run normalize-simfin`). |
+| `investing.normalize_simfin` | CLI entry point (`uv run normalize-simfin`). |
 | `config/fundamentals/simfin_mapping_v1.yaml` | SimFin column → canonical field mapping. |
 | `investing.lake_paths` | `curated_fundamentals_path`, `curated_issues_path`, `fiscal_period_label`. |
 
 ```bash
-poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
-poetry run normalize-simfin --snapshot-date 2026-06-18 --ticker AAPL --ticker MSFT
-poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18 --quiet
+uv run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
+uv run normalize-simfin --snapshot-date 2026-06-18 --ticker AAPL --ticker MSFT
+uv run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18 --quiet
 ```
 
 ## SEC fundamentals normalizer (phase 2)

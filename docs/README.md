@@ -42,6 +42,7 @@ Short notes on hard-to-reverse choices. See [`docs/adr/`](adr/).
 | [0002](adr/0002-june-demo-scope-cut.md) | June 30 demo slice scope cut |
 | [0003](adr/0003-phase2-qv-cancelled.md) | Phase 2 Quantitative Value cancelled for active execution |
 | [0004](adr/0004-platform-ephemeral-fargate-serve.md) | Ephemeral Fargate CSS serve demo |
+| [0005](adr/0005-poetry-to-uv-workspace.md) | Primary tooling Poetry → uv workspace |
 
 ## Investing entry points
 

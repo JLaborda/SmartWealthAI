@@ -23,16 +23,16 @@ First public release: the **June 30 demo slice** — a runnable Greenblatt-style
 
 ### Requirements
 
-- Python 3.11+, Poetry.
+- Python 3.11+, uv.
 - `SIMFIN_API_KEY` for live data download (see [download-simfin guide](docs/mvp/guides/download-simfin.md)).
 
 ### Quickstart
 
 ```bash
-poetry install
+uv sync
 export SIMFIN_API_KEY="<your key>"
-poetry run run-demo-pipeline --run-date 2026-06-18
-poetry run run-dashboard --data-dir data --run-date 2026-06-18
+uv run run-demo-pipeline --run-date 2026-06-18
+uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 ### Known gaps (phase 2)

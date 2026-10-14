@@ -13,7 +13,7 @@ Top-level folders are **products/domains**, not technical layers:
 | `fraud/` | Fraud detection (future — create when that module starts) |
 | `platform/` | Shared infra (Terraform, AWS, shared API) — **only after** domain demos work locally |
 
-**Packaging:** one Poetry project / one `poetry install`. Register `investing` and `credit` as packages (`investing/src`, `credit/src`) with PEP 621 scripts. Poetry→uv is a later isolated tooling PR (#182). Do not put a second `pyproject.toml` under domain folders in this phase.
+**Packaging:** root uv workspace (`uv sync`); members `credit` + `investing` with PEP 621 scripts under `credit/src` and `investing/src` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md), #182). Lean per-domain deps: #183.
 
 Do **not** put shared `ingest/`, `benchmarks/`, or `serving/` at the repo root as peers of domains.
 
