@@ -9,28 +9,28 @@ SmartWealthAI is a **portfolio monorepo** for finance engineering: **investing**
 
 ## Current phase
 
-- **Investing:** June 30 demo slice **delivered** ([`demo-slice.md`](../../docs/mvp/demo-slice.md)). Specs remain under `docs/mvp/`; code under `src/smartwealthai` until a migrate-only PR.
-- **Credit:** **Active next** — specs and new code under `credit/` ([`credit/CONTEXT.md`](../../credit/CONTEXT.md), `credit/docs/`).
+- **Investing:** June 30 demo slice **delivered** ([`demo-slice.md`](../../investing/docs/demo-slice.md)). Code and specs under `investing/` (`investing/src/investing/`, `investing/docs/`, `investing/CONTEXT.md`).
+- **Credit:** **Active** — specs and new code under `credit/` ([`credit/CONTEXT.md`](../../credit/CONTEXT.md), `credit/docs/`).
 - **Phase 2 Quantitative Value:** **cancelled** for active execution ([ADR-0003](../../docs/adr/0003-phase2-qv-cancelled.md)). Prefer updating specs over writing investing QV code.
 
 ## Canonical documentation
 
 - Portfolio map: `CONTEXT-MAP.md`
-- Investing glossary: `CONTEXT.md`
+- Investing glossary: `investing/CONTEXT.md`
 - Credit glossary: `credit/CONTEXT.md`
 - Domain READMEs: `investing/README.md`, `credit/README.md`
 - ADRs: `docs/adr/`
-- Investing demo slice: `docs/mvp/demo-slice.md`
-- Investing architecture (frozen vision): `docs/mvp/architecture/architecture.md`
-- Investing features: `docs/mvp/features/*.md`
-- Credit features (when present): `credit/docs/`
-- Requirements (historical): `docs/mvp/requirements/requirements.md`
-- Backlog: `docs/mvp/backlog/backlog.md`
+- Investing demo slice: `investing/docs/demo-slice.md`
+- Investing architecture (frozen vision): `investing/docs/architecture/architecture.md`
+- Investing features: `investing/docs/features/*.md`
+- Credit features: `credit/docs/`
+- Requirements (historical): `investing/docs/requirements/requirements.md`
+- Backlog: `investing/docs/backlog/backlog.md`
 
 ## Not canonical
 
-Do not use `notebooks/` as reference architecture. Do not treat investing `src/` layout as the template for credit — new credit code lands under `credit/`.
+Do not use root `notebooks/` as reference architecture. Domain packages live under `investing/src/investing/` and `credit/src/credit/`.
 
 ## Code changes
 
-Investing implementation changes must trace to a feature spec under `docs/mvp/features/` or the demo slice. Credit changes must trace to specs under `credit/docs/` (create the spec first). Read `CONTEXT-MAP.md` and the matching domain CONTEXT before proposing design or code.
+Investing implementation changes must trace to a feature spec under `investing/docs/features/` or the demo slice. Credit changes must trace to specs under `credit/docs/` (create the spec first). Read `CONTEXT-MAP.md` and the matching domain CONTEXT before proposing design or code.

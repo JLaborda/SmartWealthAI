@@ -8,10 +8,10 @@ alwaysApply: true
 ## Before coding
 
 1. Name the feature spec file:
-   - Investing: `docs/mvp/features/<feature>.md` (e.g. `cheap-stocks.md`)
+   - Investing: `investing/docs/features/<feature>.md` (e.g. `cheap-stocks.md`)
    - Credit: under `credit/docs/` (e.g. `credit/docs/features/css-chapter5-mart-and-scoring.md`)
 2. Read domain constraints:
-   - Investing: `docs/mvp/architecture/architecture.md` (frozen historical vision; point-in-time data, exclusions, MLflow, paper trading, universe rules)
+   - Investing: `investing/docs/architecture/architecture.md` (frozen historical vision; point-in-time data, exclusions, MLflow, paper trading, universe rules)
    - Credit: `credit/CONTEXT.md` + `CONTEXT-MAP.md` (+ the feature spec)
 3. If scope is unclear, ask the user and record the answer in the spec (open questions or decisions tables).
 

@@ -8,9 +8,9 @@ lint:
 	poetry run ruff format --check .
 
 test:
-	poetry run pytest --cov=smartwealthai --cov=credit --cov-branch --cov-report=term-missing
+	poetry run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
 
-# Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
+# Requires SEC_IDENTITY in the environment. See investing/docs/guides/download-fundamentals.md
 download-fundamentals:
 	poetry run download-fundamentals --universe dow30
 

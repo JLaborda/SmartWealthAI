@@ -39,10 +39,10 @@ Example (after up prints `http://A.B.C.D:8000`):
 curl -s http://A.B.C.D:8000/health
 curl -s http://A.B.C.D:8000/score \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/score_request.json
+  -d @credit/tests/fixtures/serving/score_request.json
 curl -s http://A.B.C.D:8000/drivers \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/drivers_request.json
+  -d @credit/tests/fixtures/serving/drivers_request.json
 ```
 
 ## Down

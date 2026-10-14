@@ -11,7 +11,7 @@ Loads the same `pipeline.joblib` produced by `credit-css fit` (WOE/IV binner + X
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
@@ -45,17 +45,17 @@ If `CREDIT_PIPELINE_ARTIFACT` is unset or the file is missing, `credit-css-serve
 
 Example payloads (fixture-derived, safe for git):
 
-- `tests/credit/fixtures/serving/score_request.json`
-- `tests/credit/fixtures/serving/drivers_request.json`
+- `credit/tests/fixtures/serving/score_request.json`
+- `credit/tests/fixtures/serving/drivers_request.json`
 
 ```bash
 curl -s localhost:8000/score \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/score_request.json
+  -d @credit/tests/fixtures/serving/score_request.json
 
 curl -s localhost:8000/drivers \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/drivers_request.json
+  -d @credit/tests/fixtures/serving/drivers_request.json
 ```
 
 ## Docker (volume mount)

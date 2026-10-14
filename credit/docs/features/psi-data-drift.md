@@ -2,7 +2,7 @@
 
 **Status:** done — Friday MUST (local green demo); hermetic tests green  
 **GitHub:** Friday demo week (monitoring grill 2026-10-06) · parent CSS [#142](https://github.com/JLaborda/SmartWealthAI/issues/142)  
-**Code:** `credit/src/credit/psi.py`, `credit/src/credit/cli.py` (`psi` command) · Tests: `tests/credit/test_psi.py` · Artifacts: `psi_report.md`, `psi_report.json`  
+**Code:** `credit/src/credit/psi.py`, `credit/src/credit/cli.py` (`psi` command) · Tests: `credit/tests/test_psi.py` · Artifacts: `psi_report.md`, `psi_report.json`  
 **Domain:** credit / CSS (Credit Scoring System)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Related:** chapter 5 scoring [`css-chapter5-mart-and-scoring.md`](css-chapter5-mart-and-scoring.md) · operator guide [`../guides/friday-demo.md`](../guides/friday-demo.md)
@@ -58,14 +58,14 @@ Zero / empty bins use a small epsilon so $\ln$ stays defined. Overall report lab
 - [x] `credit-css psi --mart … --artifact … --output-dir …` writes both report files.
 - [x] Stable scenario (hermetic `psi_mart` fixture, no synthetic drift): monitored columns labeled `stable`.
 - [x] `--synthetic-drift`: shifted feature columns have PSI ≥ severe threshold (and higher than the same column in the stable run).
-- [x] Hermetic tests under `tests/credit/`; no secrets; no committed `data/credit/` marts.
+- [x] Hermetic tests under `credit/tests/`; no secrets; no committed `data/credit/` marts.
 - [x] Operator notes in `credit/README.md` and `credit/docs/guides/friday-demo.md`.
 - [x] Glossary: monitoring v1 = PSI file report; interactive visualization later (no library names).
 
 ## Testing Decisions
 
 - Public seam: `run_psi_check(...)` (or equivalent) + thin CLI wrapper.
-- Fixture: `tests/credit/fixtures/scoring_mart/applications.csv` → build mart → fit → psi.
+- Fixture: `credit/tests/fixtures/scoring_mart/applications.csv` → build mart → fit → psi.
 - Assert report JSON schema keys, per-column labels for stable path, and elevated PSI under `--synthetic-drift`.
 
 ## Out of Scope

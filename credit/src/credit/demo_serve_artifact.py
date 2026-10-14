@@ -10,8 +10,8 @@ from credit.scoring_pipeline import ARTIFACT_NAME, fit_scoring_pipeline
 # Default relative to repo root when callers pass only output_dir via the script.
 DEFAULT_SCORING_FIXTURE = (
     Path(__file__).resolve().parents[3]
-    / "tests"
     / "credit"
+    / "tests"
     / "fixtures"
     / "scoring_mart"
     / "applications.csv"
