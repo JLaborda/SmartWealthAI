@@ -8,3 +8,39 @@ reviews:
     base_branches:
       - "main"
       - "develop"
+
+  # Include patterns restrict review scope; ! patterns always exclude.
+  # Focus: bounded contexts + CI/config so maintenance PRs still get reviewed.
+  # Bulk root data/ is out of scope via includes (not listed); data/reference/ is included.
+  path_filters:
+    # --- include (review focus) ---
+    - "credit/**"
+    - "investing/**"
+    - "platform/**"
+    - ".github/**"
+    - "data/reference/**"
+    - ".coderabbit.yaml"
+    - "pyproject.toml"
+    - "CONTEXT-MAP.md"
+    - "AGENTS.md"
+    # --- exclude (generated / local artifacts; from .gitignore + common noise) ---
+    - "!mlruns/**"
+    - "!**/__pycache__/**"
+    - "!**/.venv/**"
+    - "!**/.env"
+    - "!**/.env.*"
+    - "!htmlcov/**"
+    - "!**/.coverage"
+    - "!**/coverage.xml"
+    - "!**/dist/**"
+    - "!**/*.egg-info/**"
+    - "!credit/demo_artifact/**"
+    - "!platform/terraform/**/.terraform/**"
+    - "!platform/terraform/**/*.tfstate"
+    - "!platform/terraform/**/*.tfstate.*"
+    - "!platform/terraform/**/.terraform.lock.hcl"
+    # Root exploration notebooks only; credit/notebooks/ stays reviewable
+    - "!notebooks/**"
+    - "!sw_requirements/**"
+    - "!learning/**"
+    - "!**/*.{png,jpg,jpeg,gif,webp,pdf,joblib,pkl,parquet,feather,h5,hdf5}"
