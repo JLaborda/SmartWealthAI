@@ -3,8 +3,8 @@
 # (develop is the active integration branch for the June 30 demo slice).
 reviews:
   auto_review:
-    # Review draft PRs as well as ready ones
-    drafts: true
+    # Do not auto-review draft PRs; only ready-for-review PRs
+    drafts: false
     base_branches:
       - "main"
       - "develop"
