@@ -5,7 +5,7 @@
 **Domain:** credit / CSS (demo surface) + shared `platform/` (IaC)  
 **Glossary:** [`../../CONTEXT.md`](../../CONTEXT.md) (domain only — no AWS terms) · Map: [`../../../CONTEXT-MAP.md`](../../../CONTEXT-MAP.md)  
 **Related:** chapter 5 [`css-chapter5-mart-and-scoring.md`](css-chapter5-mart-and-scoring.md) · PSI [`psi-data-drift.md`](psi-data-drift.md) · Friday MUST [`../guides/friday-demo.md`](../guides/friday-demo.md) · [ADR-0004](../../../docs/adr/0004-platform-ephemeral-fargate-serve.md) · bake guide [`../guides/serve-fastapi.md`](../guides/serve-fastapi.md) · operator [`../../../platform/docs/ephemeral-css-serve-demo.md`](../../../platform/docs/ephemeral-css-serve-demo.md)  
-**Code:** `credit/demo_serve_artifact.py`, `credit/Dockerfile.serve.demo`, `platform/scripts/prepare-serve-demo-artifact.sh`, `platform/terraform/credit-css-serve-demo/`, `platform/scripts/demo-up.sh`, `platform/scripts/demo-down.sh` · Tests: `tests/credit/test_serve_demo_bake.py` (API seam); live up/curl/down = HITL
+**Code:** `credit/demo_serve_artifact.py`, `credit/Dockerfile.serve.demo`, `platform/scripts/prepare-serve-demo-artifact.sh`, `platform/terraform/credit-css-serve-demo/`, `platform/scripts/demo-up.sh`, `platform/scripts/demo-down.sh` · Tests: `credit/tests/test_serve_demo_bake.py` (API seam); live up/curl/down = HITL
 
 ## Problem Statement
 
@@ -60,7 +60,7 @@ No S3 data lake, no auth, no GitHub CD in this cut.
 
 **Primary seam (one):** operator `demo-up` → HTTP `/health` + `/score` + `/drivers` with existing serving fixture JSON → `demo-down`. Assert external behaviour only (reachable URL, successful JSON responses, stack gone after destroy).
 
-**Prior art:** `tests/credit/test_api_serving.py` and friday-demo / serve-fastapi guides cover the API contract hermetically. Do **not** re-test WOE/XGB in this feature.
+**Prior art:** `credit/tests/test_api_serving.py` and friday-demo / serve-fastapi guides cover the API contract hermetically. Do **not** re-test WOE/XGB in this feature.
 
 **CI:** no live `terraform apply` on PR (credentials + cost). Optional later: `terraform fmt` / `validate` only if cheap to add; not required to call this slice done.
 

@@ -5,14 +5,14 @@ alwaysApply: true
 
 # Notion task tracking
 
-**Git specs are canonical** (`docs/mvp/` for investing; `credit/docs/` for credit). Notion is for tasks and status only. Portfolio map: [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md).
+**Git specs are canonical** (`investing/docs/` for investing; `credit/docs/` for credit). Notion is for tasks and status only. Portfolio map: [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md).
 
 ## Task fields
 
 Each Notion task should include:
 
 - **Title:** e.g. `Feature: Cheap Stocks — implement EY rank` or `Credit: Application mart — EY-style WOE shortlist`
-- **Spec path:** investing → `docs/mvp/features/<feature>.md`; credit → `credit/docs/…` (e.g. `credit/docs/features/css-chapter5-mart-and-scoring.md`)
+- **Spec path:** investing → `investing/docs/features/<feature>.md`; credit → `credit/docs/…` (e.g. `credit/docs/features/css-chapter5-mart-and-scoring.md`)
 - **Notes:** copy acceptance criteria from the spec
 
 ## Sync discipline

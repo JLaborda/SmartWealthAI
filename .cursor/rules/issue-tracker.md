@@ -22,12 +22,12 @@ Infer the repo from `git remote -v` — `gh` does this automatically when run in
 
 | Layer | Where | Role |
 | --- | --- | --- |
-| **Investing specs (canonical)** | `docs/mvp/features/*.md`, `docs/mvp/architecture/architecture.md` | Investing product/engineering truth; update before closing investing work |
+| **Investing specs (canonical)** | `investing/docs/features/*.md`, `investing/docs/architecture/architecture.md` | Investing product/engineering truth; update before closing investing work |
 | **Credit specs (canonical)** | `credit/docs/` (see `CONTEXT-MAP.md`) | Credit / CSS product/engineering truth; update before closing credit work |
 | **GitHub issues** | This repo's GitHub Issues | PRDs, vertical slices, and triage for Matt Pocock engineering skills (`to-issues`, `to-prd`, `triage`) |
-| **Notion tasks** | Board `Cursor Agent Tasks` | Optional execution tracking via Notion MCP; see `AGENTS.md` and `docs/mvp/NOTION_SETUP.md` |
+| **Notion tasks** | Board `Cursor Agent Tasks` | Optional execution tracking via Notion MCP; see `AGENTS.md` and `investing/docs/NOTION_SETUP.md` |
 
-When a skill publishes to the issue tracker, create or update a **GitHub issue**. Link the relevant spec path (`docs/mvp/features/...` or `credit/docs/...`) in the issue body. Do not treat Notion as the issue tracker for those skills unless the user explicitly asks to sync there.
+When a skill publishes to the issue tracker, create or update a **GitHub issue**. Link the relevant spec path (`investing/docs/features/...` or `credit/docs/...`) in the issue body. Do not treat Notion as the issue tracker for those skills unless the user explicitly asks to sync there.
 
 ## When a skill says "publish to the issue tracker"
 

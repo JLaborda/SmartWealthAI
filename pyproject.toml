@@ -1,7 +1,7 @@
 [tool.poetry]
 package-mode = true
 packages = [
-    { include = "smartwealthai", from = "src" },
+    { include = "investing", from = "investing/src" },
     { include = "credit", from = "credit/src" },
 ]
 
@@ -33,16 +33,16 @@ dependencies = [
 ]
 
 [project.scripts]
-download-fundamentals = "smartwealthai.download_fundamentals:main"
-download-simfin = "smartwealthai.download_simfin:main"
-normalize-simfin = "smartwealthai.normalize_simfin:main"
-build-universe = "smartwealthai.build_universe:main"
-download-prices = "smartwealthai.download_prices:main"
-compute-metrics = "smartwealthai.compute_metrics:main"
-run-demo-pipeline = "smartwealthai.run_demo_pipeline:main"
-score-universe = "smartwealthai.score_universe:main"
-run-dashboard = "smartwealthai.run_dashboard:main"
-generate-simfin-industry-exclusions = "smartwealthai.generate_simfin_industry_exclusions:main"
+download-fundamentals = "investing.download_fundamentals:main"
+download-simfin = "investing.download_simfin:main"
+normalize-simfin = "investing.normalize_simfin:main"
+build-universe = "investing.build_universe:main"
+download-prices = "investing.download_prices:main"
+compute-metrics = "investing.compute_metrics:main"
+run-demo-pipeline = "investing.run_demo_pipeline:main"
+score-universe = "investing.score_universe:main"
+run-dashboard = "investing.run_dashboard:main"
+generate-simfin-industry-exclusions = "investing.generate_simfin_industry_exclusions:main"
 credit-css = "credit.cli:main"
 credit-css-serve = "credit.api:main"
 
@@ -58,8 +58,8 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src", "credit/src"]
+testpaths = ["investing/tests", "credit/tests"]
+pythonpath = ["investing/src", "credit/src"]
 markers = [
     "integration: requires network or AWS (excluded from PR CI)",
 ]
@@ -67,19 +67,19 @@ markers = [
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "credit/src", "tests"]
+src = ["investing/src", "credit/src", "investing/tests", "credit/tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.coverage.run]
-source = ["smartwealthai", "credit"]
+source = ["investing", "credit"]
 branch = true
 # Frozen SEC ETL spike (phase 2) — excluded from demo coverage metrics.
 omit = [
-    "src/smartwealthai/sec_client.py",
-    "src/smartwealthai/edgartools_client.py",
-    "src/smartwealthai/download_fundamentals.py",
+    "investing/src/investing/sec_client.py",
+    "investing/src/investing/edgartools_client.py",
+    "investing/src/investing/download_fundamentals.py",
 ]
 
 [tool.coverage.report]

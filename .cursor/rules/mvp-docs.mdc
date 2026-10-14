@@ -1,16 +1,16 @@
 ---
-description: MVP Markdown spec structure and editing conventions
-globs: docs/**
+description: Investing Markdown spec structure and editing conventions
+globs: investing/docs/**
 alwaysApply: false
 ---
 
-# MVP documentation conventions
+# Investing documentation conventions
 
-When creating or editing specs under `docs/mvp/`:
+When creating or editing specs under `investing/docs/`:
 
 ## Feature specs
 
-Follow the structure used in existing features (e.g. `docs/mvp/features/cheap-stocks.md`):
+Follow the structure used in existing features (e.g. `investing/docs/features/cheap-stocks.md`):
 
 - Objective
 - MVP scope / Out of MVP scope
@@ -23,7 +23,7 @@ Add **Implementation status** when coding starts: `planned` | `in_progress` | `d
 
 ## Architecture spec
 
-- Record closed decisions in tables (see "Decisions made so far" in `docs/mvp/architecture/architecture.md`).
+- Record closed decisions in tables (see "Decisions made so far" in `investing/docs/architecture/architecture.md`).
 - Cross-link feature files from the module table.
 - Do not contradict a closed architecture decision without updating the architecture doc first.
 

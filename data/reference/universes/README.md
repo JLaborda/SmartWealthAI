@@ -38,7 +38,7 @@ curl -H "User-Agent: $SEC_IDENTITY" https://www.sec.gov/files/company_tickers.js
 | --- | --- | --- | --- |
 | `dow30` | `dow30.csv` | 30 | Current Dow Jones Industrial Average components. |
 
-Register new presets in `UNIVERSE_PRESETS` (`src/smartwealthai/universe.py`).
+Register new presets in `UNIVERSE_PRESETS` (`investing/src/investing/universe.py`).
 
 ## Maintenance
 

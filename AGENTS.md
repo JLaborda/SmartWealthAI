@@ -8,31 +8,31 @@ SmartWealthAI is a **portfolio monorepo** (investing + credit; fraud later). See
 
 | Domain | Status |
 | --- | --- |
-| **Investing** (Magic Formula demo) | **Delivered** (v0.1.0). Specs under `docs/mvp/`; code still under `src/smartwealthai` until a migrate-only PR. |
+| **Investing** (Magic Formula demo) | **Delivered** (v0.1.0). Code and specs under `investing/` (`investing/src/investing/`, `investing/docs/`, `investing/CONTEXT.md`). |
 | **Credit** (CSS) | **Active next.** Specs and new code under `credit/` (`credit/docs/`, `credit/CONTEXT.md`). |
 | **Phase 2 Quantitative Value** | **Cancelled** for active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). |
 
-Investing changes must align with a feature spec in `docs/mvp/features/` and [`docs/mvp/architecture/architecture.md`](docs/mvp/architecture/architecture.md) (frozen historical vision — not a live QV north star). Credit changes align with specs under `credit/docs/`.
+Investing changes must align with a feature spec in `investing/docs/features/` and [`investing/docs/architecture/architecture.md`](investing/docs/architecture/architecture.md) (frozen historical vision — not a live QV north star). Credit changes align with specs under `credit/docs/`.
 
-Do not treat `src/` or `notebooks/` as canonical architecture for new domains; investing code there is the demo delivery, not a template to copy for credit.
+Do not treat root `notebooks/` as canonical architecture. Domain code lives under `investing/src/investing/` and `credit/src/credit/`.
 
 ## Documentation map (source of truth)
 
 | Path | Purpose |
 | --- | --- |
 | `CONTEXT-MAP.md` | Portfolio domain map, relationships, delivery sequencing |
-| `CONTEXT.md` | Investing ubiquitous language (until moved to `investing/CONTEXT.md`) |
+| `investing/CONTEXT.md` | Investing ubiquitous language |
 | `credit/CONTEXT.md` | Credit / CSS ubiquitous language |
 | `investing/README.md` | Investing domain entry (manager-facing) |
 | `credit/README.md` | Credit domain entry (manager-facing) |
 | `credit/docs/` | Credit feature specs (when present) |
 | `docs/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
-| `docs/mvp/demo-slice.md` | Investing June 30 demo slice (delivered) |
-| `docs/mvp/architecture/architecture.md` | Investing MVP vision (frozen; see ADR-0003) |
-| `docs/mvp/features/*.md` | Investing per-module specs |
-| `docs/mvp/requirements/requirements.md` | Sprint 0 spike (historical) |
-| `docs/mvp/backlog/backlog.md` | Informal ideas mapped to investing features |
-| `docs/README.md` | Index of the `docs/` tree |
+| `investing/docs/demo-slice.md` | Investing June 30 demo slice (delivered) |
+| `investing/docs/architecture/architecture.md` | Investing MVP vision (frozen; see ADR-0003) |
+| `investing/docs/features/*.md` | Investing per-module specs |
+| `investing/docs/requirements/requirements.md` | Sprint 0 spike (historical) |
+| `investing/docs/backlog/backlog.md` | Informal ideas mapped to investing features |
+| `docs/README.md` | Index of root `docs/` (ADRs) and pointers to domain docs |
 
 See also `.cursor/rules/*.mdc` for persistent agent guidance.
 
@@ -42,8 +42,8 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Spec-driven workflow
 
-1. Identify the feature spec: investing → `docs/mvp/features/<feature>.md`; credit → `credit/docs/` (when present).
-2. Read the matching architecture/context: investing → `docs/mvp/architecture/architecture.md` + `CONTEXT.md`; credit → `credit/CONTEXT.md` + `CONTEXT-MAP.md`.
+1. Identify the feature spec: investing → `investing/docs/features/<feature>.md`; credit → `credit/docs/` (when present).
+2. Read the matching architecture/context: investing → `investing/docs/architecture/architecture.md` + `investing/CONTEXT.md`; credit → `credit/CONTEXT.md` + `CONTEXT-MAP.md`.
 3. Resolve open questions in the spec; record decisions in the spec or ADR.
 4. Implement only what the spec allows for the current phase.
 5. After implementation, update the feature spec (implementation status, acceptance criteria, links to code when it exists).
@@ -86,7 +86,7 @@ export SIMFIN_API_KEY="<from user secrets>"
 poetry run download-simfin
 ```
 
-Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Operator guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
+Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-data-lake.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
 
 ### Fundamentals — SEC spike (frozen)
 
@@ -95,7 +95,7 @@ export SEC_IDENTITY="Your Name your@email.com"
 poetry run download-fundamentals --universe dow30
 ```
 
-Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+Guide: [`investing/docs/guides/download-fundamentals.md`](investing/docs/guides/download-fundamentals.md).
 
 ## Gotchas
 
@@ -107,7 +107,7 @@ Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fun
 
 ## Notion (task tracking)
 
-Git specs are canonical (`docs/mvp/` for investing; `credit/docs/` for credit). Notion tracks execution tasks only. Setup: [`docs/mvp/NOTION_SETUP.md`](docs/mvp/NOTION_SETUP.md).
+Git specs are canonical (`investing/docs/` for investing; `credit/docs/` for credit). Notion tracks execution tasks only. Setup: [`investing/docs/NOTION_SETUP.md`](investing/docs/NOTION_SETUP.md).
 
 ### Default task board
 
@@ -119,7 +119,7 @@ Git specs are canonical (`docs/mvp/` for investing; `credit/docs/` for credit). 
 
 Agents must use the Notion MCP server (authenticated in **Cursor → Settings → MCP**) to find and update this board. Search the workspace for `Cursor Agent Tasks` before creating or editing tasks. Do not ask the user to commit a Notion URL to the repository.
 
-Each task should reference a spec path (e.g. `docs/mvp/features/universe-construction.md` or `credit/docs/…`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
+Each task should reference a spec path (e.g. `investing/docs/features/universe-construction.md` or `credit/docs/…`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
 
 **Skills (after MCP auth):** `spec-to-implementation`, `create-task`, `tasks-build`, `tasks-explain-diff`. For `tasks-build`, the user supplies a single task URL in chat (not in this file).
 
@@ -139,4 +139,4 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 ### Domain docs
 
-Portfolio map: `CONTEXT-MAP.md`. Investing glossary: `CONTEXT.md`. Credit glossary: `credit/CONTEXT.md`. ADRs in `docs/adr/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).
+Portfolio map: `CONTEXT-MAP.md`. Investing glossary: `investing/CONTEXT.md`. Credit glossary: `credit/CONTEXT.md`. ADRs in `docs/adr/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).

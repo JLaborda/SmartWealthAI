@@ -12,7 +12,7 @@ This is **not** fraud detection and **not** the investing screener.
 
 ## Data (demo only)
 
-No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. **Priority:** official Kaggle **raw competition extracts** (AMEX + Home Credit) under gitignored `data/credit/raw/` (#151) — not committed; access-only (no submissions). FICO HELOC documented for later. Hermetic CI uses `tests/credit/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
+No live bank BFSI data. Book sample (AMEX-shaped) is in Git LFS at [`credit/data/train_df_sample.pkl`](data/train_df_sample.pkl) — see [`credit/data/README.md`](data/README.md) for schema, **target** → **bad**/**good**, and `git lfs pull`. **Priority:** official Kaggle **raw competition extracts** (AMEX + Home Credit) under gitignored `data/credit/raw/` (#151) — not committed; access-only (no submissions). FICO HELOC documented for later. Hermetic CI uses `credit/tests/fixtures/`. Always document the **target** → **bad**/**good** mapping on the mart README sidecar.
 
 ### Local mart + EDA (book sample)
 
@@ -56,7 +56,7 @@ Mart parquet under `data/credit/` is gitignored. Fixture CSV path remains the he
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/application_source/applications.csv \
+  --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
 ```
 
@@ -66,7 +66,7 @@ Hermetic fixture (CI):
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target \
@@ -116,7 +116,7 @@ Operator path: **fit → set artifact env → serve → curl**. The API loads th
 ```bash
 # 1) Fit (hermetic fixture shown; any application mart works)
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
@@ -137,10 +137,10 @@ poetry run credit-css-serve
 curl -s localhost:8000/health
 curl -s localhost:8000/score \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/score_request.json
+  -d @credit/tests/fixtures/serving/score_request.json
 curl -s localhost:8000/drivers \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/drivers_request.json
+  -d @credit/tests/fixtures/serving/drivers_request.json
 ```
 
 Serving image (mount the fit output directory):
@@ -163,7 +163,7 @@ Default path reproduces the same develop/holdout split as `fit`. Writes `psi_rep
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/psi_mart/applications.csv \
+  --source credit/tests/fixtures/psi_mart/applications.csv \
   --output-dir /tmp/credit_mart_psi \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
@@ -213,14 +213,14 @@ CLI (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/14
 ```bash
 poetry run credit-css --help
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/application_source/applications.csv \
+  --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
 poetry run credit-css fit --help
 poetry run credit-css score --help
 poetry run python -m credit build-application-mart --help
 ```
 
-Hermetic CI uses fixtures under `tests/credit/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.
+Hermetic CI uses fixtures under `credit/tests/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.
 
 Feature spec: [`docs/features/css-chapter5-mart-and-scoring.md`](docs/features/css-chapter5-mart-and-scoring.md)
 (parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142)).

@@ -110,8 +110,8 @@ echo
 echo "Ephemeral demo URL (not production): $BASE"
 echo "Try:"
 echo "  curl -s $BASE/health"
-echo "  curl -s $BASE/score -H 'content-type: application/json' -d @$ROOT/tests/credit/fixtures/serving/score_request.json"
-echo "  curl -s $BASE/drivers -H 'content-type: application/json' -d @$ROOT/tests/credit/fixtures/serving/drivers_request.json"
+echo "  curl -s $BASE/score -H 'content-type: application/json' -d @$ROOT/credit/tests/fixtures/serving/score_request.json"
+echo "  curl -s $BASE/drivers -H 'content-type: application/json' -d @$ROOT/credit/tests/fixtures/serving/drivers_request.json"
 echo
 echo "Tear down when done: AWS_PROFILE=$AWS_PROFILE AWS_REGION=$AWS_REGION ./platform/scripts/demo-down.sh"
 echo "$BASE" >"$TF_DIR/.last_demo_url"

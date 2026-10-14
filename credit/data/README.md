@@ -81,7 +81,7 @@ poetry run credit-css build-competition-mart \
 
 Downstream: competition EDA (#153 / guided #159), then scratch scoring (#145).
 
-Hermetic CI uses `tests/credit/fixtures/` (tiny AMEX statements + Home Credit application rows).
+Hermetic CI uses `credit/tests/fixtures/` (tiny AMEX statements + Home Credit application rows).
 
 ## Mart regeneration (book sample)
 

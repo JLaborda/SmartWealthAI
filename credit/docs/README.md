@@ -1,8 +1,8 @@
 # Credit documentation
 
-Feature specs for the credit / CSS domain live **here** (`credit/docs/`), not under `docs/mvp/features/`.
+Feature specs for the credit / CSS domain live **here** (`credit/docs/`), not under `investing/docs/features/`.
 
-Investing Magic Formula specs remain in [`docs/mvp/`](../docs/mvp/) until a migrate-only PR.
+Investing Magic Formula specs remain in [`investing/docs/`](../investing/docs/) until a migrate-only PR.
 
 ## Layout
 

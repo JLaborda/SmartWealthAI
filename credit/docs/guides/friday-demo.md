@@ -12,7 +12,7 @@ Hermetic fixture path (safe for git; do not commit `data/credit/` marts):
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/scoring_mart/applications.csv \
+  --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
@@ -33,7 +33,7 @@ For a PSI-stable develop/holdout story with 10 quantile bins, prefer the larger 
 
 ```bash
 poetry run credit-css build-application-mart \
-  --source tests/credit/fixtures/psi_mart/applications.csv \
+  --source credit/tests/fixtures/psi_mart/applications.csv \
   --output-dir /tmp/credit_mart_psi \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
@@ -56,17 +56,17 @@ poetry run credit-css-serve
 
 Example payloads (fixture-derived):
 
-- `tests/credit/fixtures/serving/score_request.json`
-- `tests/credit/fixtures/serving/drivers_request.json`
+- `credit/tests/fixtures/serving/score_request.json`
+- `credit/tests/fixtures/serving/drivers_request.json`
 
 ```bash
 curl -s localhost:8000/health
 curl -s localhost:8000/score \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/score_request.json
+  -d @credit/tests/fixtures/serving/score_request.json
 curl -s localhost:8000/drivers \
   -H 'content-type: application/json' \
-  -d @tests/credit/fixtures/serving/drivers_request.json
+  -d @credit/tests/fixtures/serving/drivers_request.json
 ```
 
 Show: `pd`, `credit_score`, `rank` (rank-only, no cutoff); then top-k drivers by **gain × |WOE|** (not SHAP unless stretch landed).

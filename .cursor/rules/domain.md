@@ -14,30 +14,35 @@ How the engineering skills should consume this repo's domain documentation when 
 ## Before exploring, read these
 
 - **`CONTEXT-MAP.md`** — domains, relationships, delivery sequencing, Sources.
-- **Domain glossary** — investing: `CONTEXT.md`; credit: `credit/CONTEXT.md`.
+- **Domain glossary** — investing: `investing/CONTEXT.md`; credit: `credit/CONTEXT.md`.
 - **`docs/adr/`** — architectural decision records for cross-cutting choices (including ADR-0003 Phase 2 QV cancelled).
-- **Investing:** `docs/mvp/architecture/architecture.md` (frozen historical vision) and `docs/mvp/features/<feature>.md` when changing investing.
+- **Investing:** `investing/docs/architecture/architecture.md` (frozen historical vision) and `investing/docs/features/<feature>.md` when changing investing.
 - **Credit:** `credit/docs/` feature specs when present; `credit/README.md` for domain entry.
 
 If a CONTEXT file or `docs/adr/` does not exist yet, **proceed silently**. Do not flag their absence or suggest creating them upfront.
 
-Do not treat `src/` or `notebooks/` as canonical architecture for new domains; see `AGENTS.md`.
+Do not treat root `notebooks/` as canonical architecture for new domains; see `AGENTS.md`.
 
 ## File structure
 
 ```
 /
 ├── CONTEXT-MAP.md             ← portfolio domains + relationships
-├── CONTEXT.md                 ← investing ubiquitous language
-├── investing/README.md
+├── investing/
+│   ├── CONTEXT.md             ← investing ubiquitous language
+│   ├── README.md
+│   ├── docs/                  ← investing demo specs
+│   ├── src/investing/         ← investing package
+│   ├── apps/dashboard/
+│   └── tests/
 ├── credit/
 │   ├── CONTEXT.md             ← credit / CSS ubiquitous language
 │   ├── README.md
-│   └── docs/                  ← credit feature specs
-├── docs/
-│   ├── adr/                   ← system-wide ADRs
-│   └── mvp/                   ← investing demo specs (delivered / frozen vision)
-└── src/                       ← investing demo implementation (migrate later)
+│   ├── docs/                  ← credit feature specs
+│   ├── src/credit/
+│   └── tests/
+└── docs/
+    └── adr/                   ← system-wide ADRs
 ```
 
 ## Use CONTEXT vocabulary
