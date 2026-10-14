@@ -1,22 +1,22 @@
 .PHONY: install lint test download-fundamentals format platform-tf-check
 
 install:
-	poetry install --with dev
+	uv sync --group dev
 
 lint:
-	poetry run ruff check .
-	poetry run ruff format --check .
+	uv run ruff check .
+	uv run ruff format --check .
 
 test:
-	poetry run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
+	uv run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
 
 # Requires SEC_IDENTITY in the environment. See investing/docs/guides/download-fundamentals.md
 download-fundamentals:
-	poetry run download-fundamentals --universe dow30
+	uv run download-fundamentals --universe dow30
 
 # formatting command
 format:
-	poetry run ruff format .
+	uv run ruff format .
 
 # Terraform fmt + validate for credit CSS serve demo (no apply; no AWS creds required).
 platform-tf-check:

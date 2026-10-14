@@ -25,7 +25,7 @@
       }
     }
   },
-  "postCreateCommand": "pipx install poetry && poetry config virtualenvs.in-project true && poetry install && bash .devcontainer/install-env-hook.sh",
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\" && uv sync --group dev && bash .devcontainer/install-env-hook.sh",
   "remoteEnv": {
     "SIMFIN_API_KEY": "${localEnv:SIMFIN_API_KEY}"
   }

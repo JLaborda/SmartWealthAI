@@ -1,0 +1,34 @@
+[project]
+name = "credit"
+version = "0.1.0"
+description = "Credit Scoring System (CSS) — application default-risk ranking"
+requires-python = ">=3.11,<4.0"
+# ponytail: full monorepo dep set until #183 lean per-domain split
+dependencies = [
+    "yfinance>=1.2.0,<2.0.0",
+    "pandas>=3.0.1,<4.0.0",
+    "edgartools>=5.35.1,<6.0.0",
+    "pyarrow>=17.0.0,<25.0.0",
+    "requests>=2.34.0,<3.0.0",
+    "click>=8.1.0,<9.0.0",
+    "simfin>=1.0.2,<2.0.0",
+    "mlflow-skinny==3.14.0",
+    "streamlit>=1.58.0,<2.0.0",
+    "kaggle>=2.2.4,<3.0.0",
+    "xgboost>=2.0.0,<3.0.0",
+    "scikit-learn>=1.9.1,<2.0.0",
+    "joblib>=1.6.0,<2.0.0",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+]
+
+[project.scripts]
+credit-css = "credit.cli:main"
+credit-css-serve = "credit.api:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/credit"]

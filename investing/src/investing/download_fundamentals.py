@@ -9,7 +9,7 @@ Orchestrates the fundamentals download spike documented in
 Usage::
 
     export SEC_IDENTITY="Your Name your@email.com"
-    poetry run download-fundamentals --universe dow30
+    uv run download-fundamentals --universe dow30
 
 See ``investing/docs/guides/download-fundamentals.md`` for the full operator guide.
 """

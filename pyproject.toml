@@ -1,60 +1,32 @@
-[tool.poetry]
-package-mode = true
-packages = [
-    { include = "investing", from = "investing/src" },
-    { include = "credit", from = "credit/src" },
-]
-
 [project]
 name = "smartwealthai"
 version = "0.1.0"
 description = "AI-driven financial screener and portfolio manager"
 authors = [
-    {name = "Jorge Laborda",email = "jdlsicilia@gmail.com"}
+    { name = "Jorge Laborda", email = "jdlsicilia@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "yfinance (>=1.2.0,<2.0.0)",
-    "pandas (>=3.0.1,<4.0.0)",
-    "edgartools (>=5.35.1,<6.0.0)",
-    "pyarrow (>=17.0.0,<25.0.0)",
-    "requests (>=2.34.0,<3.0.0)",
-    "click (>=8.1.0,<9.0.0)",
-    "simfin (>=1.0.2,<2.0.0)",
-    "mlflow-skinny (==3.14.0)",
-    "streamlit (>=1.58.0,<2.0.0)",
-    "kaggle (>=2.2.4,<3.0.0)",
-    "xgboost (>=2.0.0,<3.0.0)",
-    "scikit-learn (>=1.9.1,<2.0.0)",
-    "joblib (>=1.6.0,<2.0.0)",
-    "fastapi (>=0.115,<1)",
-    "uvicorn[standard] (>=0.30,<1)"
+    "credit",
+    "investing",
 ]
 
-[project.scripts]
-download-fundamentals = "investing.download_fundamentals:main"
-download-simfin = "investing.download_simfin:main"
-normalize-simfin = "investing.normalize_simfin:main"
-build-universe = "investing.build_universe:main"
-download-prices = "investing.download_prices:main"
-compute-metrics = "investing.compute_metrics:main"
-run-demo-pipeline = "investing.run_demo_pipeline:main"
-score-universe = "investing.score_universe:main"
-run-dashboard = "investing.run_dashboard:main"
-generate-simfin-industry-exclusions = "investing.generate_simfin_industry_exclusions:main"
-credit-css = "credit.cli:main"
-credit-css-serve = "credit.api:main"
+[tool.uv]
+package = false
 
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.workspace]
+members = ["credit", "investing"]
+
+[tool.uv.sources]
+credit = { workspace = true }
+investing = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest (>=9.0.3,<10.0.0)",
-    "pytest-cov (>=6.0.0,<7.0.0)",
-    "ruff (>=0.15.14,<0.16.0)"
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "ruff>=0.15.14,<0.16.0",
 ]
 
 [tool.pytest.ini_options]
