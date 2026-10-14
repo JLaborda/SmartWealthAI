@@ -1,0 +1,10 @@
+# CodeRabbit configuration for SmartWealthAI.
+# Enables automatic PR reviews for PRs targeting main or develop
+# (develop is the active integration branch for the June 30 demo slice).
+reviews:
+  auto_review:
+    # Review draft PRs as well as ready ones
+    drafts: true
+    base_branches:
+      - "main"
+      - "develop"
