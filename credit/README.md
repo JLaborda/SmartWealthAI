@@ -206,7 +206,16 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 ## Packaging
 
 One uv workspace at repo root: `credit` is a second installable package
-(`credit/src/credit`) beside investing — `uv sync` is enough.
+(`credit/src/credit`) beside investing. Full monorepo: `uv sync --frozen --group dev`
+(or `make install`). **Credit-only** (no investing deps such as yfinance):
+
+```bash
+uv sync --frozen --package credit --group dev   # or: make install-credit
+make test-credit
+```
+
+Docker images still `COPY investing/pyproject.toml` for workspace lock resolution
+([#188](https://github.com/JLaborda/SmartWealthAI/issues/188)); that does not install investing packages.
 
 CLI (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/143); mart stage [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)):
 
