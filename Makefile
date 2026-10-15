@@ -1,7 +1,13 @@
-.PHONY: install lint test download-fundamentals format platform-tf-check
+.PHONY: install install-credit install-investing lint test test-credit test-investing download-fundamentals format platform-tf-check
 
 install:
 	uv sync --frozen --group dev
+
+install-credit:
+	uv sync --frozen --package credit --group dev
+
+install-investing:
+	uv sync --frozen --package investing --group dev
 
 lint:
 	uv run ruff check .
@@ -9,6 +15,13 @@ lint:
 
 test:
 	uv run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
+
+# Optional: make test-credit COV_ARGS='--cov-report=xml' (CI)
+test-credit:
+	uv run pytest credit/tests --cov=credit --cov-branch --cov-report=term-missing $(COV_ARGS)
+
+test-investing:
+	uv run pytest investing/tests --cov=investing --cov-branch --cov-report=term-missing $(COV_ARGS)
 
 # Requires SEC_IDENTITY in the environment. See investing/docs/guides/download-fundamentals.md
 download-fundamentals:
