@@ -21,6 +21,15 @@ dependencies = [
 credit-css = "credit.cli:main"
 credit-css-serve = "credit.api:main"
 
+[dependency-groups]
+# Required for `uv sync --package credit --group dev` (uv does not inherit root groups).
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "ruff>=0.15.14,<0.16.0",
+    "httpx>=0.28.0,<1.0.0",  # FastAPI/Starlette TestClient
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

@@ -23,12 +23,13 @@ credit = { workspace = true }
 investing = { workspace = true }
 
 [dependency-groups]
+# Full-workspace `make install`. Member packages declare their own `dev` groups for
+# `uv sync --package {credit|investing} --group dev` (uv does not inherit root groups).
 dev = [
     "pytest>=9.0.3,<10.0.0",
     "pytest-cov>=6.0.0,<7.0.0",
     "ruff>=0.15.14,<0.16.0",
-    # FastAPI/Starlette TestClient (credit serving tests); was transitive via investing before #183
-    "httpx>=0.28.0,<1.0.0",
+    "httpx>=0.28.0,<1.0.0",  # credit FastAPI TestClient (also on credit/dev)
 ]
 
 [tool.pytest.ini_options]

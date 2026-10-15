@@ -27,6 +27,14 @@ score-universe = "investing.score_universe:main"
 run-dashboard = "investing.run_dashboard:main"
 generate-simfin-industry-exclusions = "investing.generate_simfin_industry_exclusions:main"
 
+[dependency-groups]
+# Required for `uv sync --package investing --group dev` (uv does not inherit root groups).
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "ruff>=0.15.14,<0.16.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
