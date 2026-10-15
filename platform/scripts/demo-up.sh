@@ -16,7 +16,7 @@ die() { echo "error: $*" >&2; exit 1; }
 command -v terraform >/dev/null || die "terraform not found"
 command -v aws >/dev/null || die "aws CLI not found"
 command -v docker >/dev/null || die "docker not found"
-command -v poetry >/dev/null || die "poetry not found"
+command -v uv >/dev/null || die "uv not found"
 
 echo "==> AWS identity (profile=$AWS_PROFILE region=$AWS_REGION)"
 aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null

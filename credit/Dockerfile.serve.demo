@@ -9,23 +9,28 @@
 
 FROM python:3.11-slim-bookworm
 
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /bin/
+
 WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml poetry.lock README.md ./
-COPY src ./src
-COPY credit ./credit
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_DEV=1
 
-RUN pip install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --only main --no-ansi --no-interaction
+COPY pyproject.toml uv.lock README.md ./
+COPY credit ./credit
+COPY investing/pyproject.toml investing/pyproject.toml
+
+RUN uv sync --frozen --no-dev --package credit --no-editable
 
 # Baked hermetic fit output (gitignored under credit/demo_artifact/).
 COPY credit/demo_artifact/pipeline.joblib /artifact/pipeline.joblib
-ENV CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
+ENV PATH="/app/.venv/bin:$PATH" \
+    CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
 EXPOSE 8000
 
 CMD ["uvicorn", "credit.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

@@ -8,7 +8,7 @@ Orchestrates the demo SimFin connector documented in
 Usage::
 
     export SIMFIN_API_KEY="<from secrets>"
-    poetry run download-simfin
+    uv run download-simfin
 
 See ``investing/docs/guides/download-simfin.md`` for the operator guide.
 """

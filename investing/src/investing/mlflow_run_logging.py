@@ -30,7 +30,11 @@ def resolve_git_sha() -> str:
 
 
 def resolve_tracking_uri(tracking_uri: str | None = None) -> str:
-    """Resolve MLflow tracking URI from argument, env, or local default."""
+    """Resolve MLflow tracking URI from argument, env, or local default.
+
+    Default is always CWD-relative ``file://{cwd}/mlruns`` (never a hardcoded
+    container path like ``/workspaces/...``).
+    """
     if tracking_uri is not None:
         return tracking_uri
     env_uri = os.environ.get("MLFLOW_TRACKING_URI")

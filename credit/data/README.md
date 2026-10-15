@@ -29,27 +29,27 @@ data/credit/raw/home_credit/
 
 ### Operator steps (local)
 
-Prereq: Poetry installs the `kaggle` CLI (`poetry run kaggle`). Credentials: `~/.kaggle/kaggle.json` or `KAGGLE_USERNAME` / `KAGGLE_KEY`. Accept each competition’s Rules on the website first. Disk: AMEX raw zip is ~20 GB before unzip/parquet.
+Prereq: uv installs the `kaggle` CLI (`uv run kaggle`). Credentials: `~/.kaggle/kaggle.json` or `KAGGLE_USERNAME` / `KAGGLE_KEY`. Accept each competition’s Rules on the website first. Disk: AMEX raw zip is ~20 GB before unzip/parquet.
 
 ```bash
 # Home Credit
 mkdir -p data/credit/raw/home_credit
-poetry run kaggle competitions download -c home-credit-default-risk -p data/credit/raw/home_credit
-poetry run credit-css stage-competition-extract \
+uv run kaggle competitions download -c home-credit-default-risk -p data/credit/raw/home_credit
+uv run credit-css stage-competition-extract \
   --source data/credit/raw/home_credit/home-credit-default-risk.zip \
   --dest-dir data/credit/raw/home_credit
 
 # AMEX (Competition Use Only — local private use; do not redistribute)
 mkdir -p data/credit/raw/amex
-poetry run kaggle competitions download -c amex-default-prediction -p data/credit/raw/amex
-poetry run credit-css stage-competition-extract \
+uv run kaggle competitions download -c amex-default-prediction -p data/credit/raw/amex
+uv run credit-css stage-competition-extract \
   --source data/credit/raw/amex/amex-default-prediction.zip \
   --dest-dir data/credit/raw/amex
 # After unzip, convert large CSVs (paths may vary if nested):
-poetry run credit-css convert-amex-extract \
+uv run credit-css convert-amex-extract \
   --source data/credit/raw/amex/train_data.csv \
   --output data/credit/raw/amex/train_data.parquet
-poetry run credit-css convert-amex-extract \
+uv run credit-css convert-amex-extract \
   --source data/credit/raw/amex/test_data.csv \
   --output data/credit/raw/amex/test_data.parquet
 ```
@@ -62,13 +62,13 @@ Given raw extracts above, build validated application marts (one row per applica
 
 ```bash
 # AMEX: statement parquet + train_labels → customer-level mart
-poetry run credit-css build-competition-mart \
+uv run credit-css build-competition-mart \
   --source-kind amex \
   --raw-dir data/credit/raw/amex \
   --output-dir data/credit/application_mart/amex
 
 # Home Credit: application_train pass-through (bureau joins later)
-poetry run credit-css build-competition-mart \
+uv run credit-css build-competition-mart \
   --source-kind home_credit \
   --raw-dir data/credit/raw/home_credit \
   --output-dir data/credit/application_mart/home_credit
@@ -87,7 +87,7 @@ Hermetic CI uses `credit/tests/fixtures/` (tiny AMEX statements + Home Credit ap
 
 ```bash
 git lfs pull --include="credit/data/*"
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/data/train_df_sample.pkl \
   --output-dir data/credit/application_mart \
   --application-id-column customer_ID \

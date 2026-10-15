@@ -7,7 +7,7 @@ cd "$ROOT"
 
 OUT="${CREDIT_DEMO_ARTIFACT_DIR:-$ROOT/credit/demo_artifact}"
 
-poetry run python -c "
+uv run python -c "
 from pathlib import Path
 from credit.demo_serve_artifact import prepare_serve_demo_artifact
 path = prepare_serve_demo_artifact(Path(r'''$OUT'''))

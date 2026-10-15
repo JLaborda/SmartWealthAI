@@ -4,7 +4,7 @@ Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canon
 
 ## Prerequisites
 
-- Poetry environment installed (`poetry install`)
+- uv environment installed (`uv sync`)
 - `SIMFIN_API_KEY` in the environment (free tier from [simfin.com](https://simfin.com); never commit)
 
 ```bash
@@ -27,27 +27,27 @@ Downloads six demo datasets into the raw lake under `data/raw/simfin/`:
 Each partition also includes `as_of_date=<YYYY-MM-DD>/` and the verbatim SimFin CSV filename (e.g. `us-income-ttm.csv`).
 
 ```bash
-poetry run download-simfin
-poetry run download-simfin --data-dir data --refresh-days 7
-poetry run download-simfin --as-of-date 2026-06-18 --force
+uv run download-simfin
+uv run download-simfin --data-dir data --refresh-days 7
+uv run download-simfin --as-of-date 2026-06-18 --force
 ```
 
 This command writes raw snapshots only. Run the full demo pipeline in order:
 
 ```bash
-poetry run download-simfin --as-of-date 2026-06-18
-poetry run build-universe --run-date 2026-06-18
-poetry run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
-poetry run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
-poetry run compute-metrics --ticker AAPL --as-of-date 2026-06-18
+uv run download-simfin --as-of-date 2026-06-18
+uv run build-universe --run-date 2026-06-18
+uv run normalize-simfin --snapshot-date 2026-06-18 --universe-run-date 2026-06-18
+uv run download-prices --run-date 2026-06-18 --snapshot-date 2026-06-18
+uv run compute-metrics --ticker AAPL --as-of-date 2026-06-18
 ```
 
 Or run ingest → score in one command (then launch the dashboard):
 
 ```bash
-poetry run run-demo-pipeline --run-date 2026-06-18
-poetry run run-demo-pipeline --run-date 2026-06-18 --skip-download
-poetry run run-dashboard --data-dir data --run-date 2026-06-18
+uv run run-demo-pipeline --run-date 2026-06-18
+uv run run-demo-pipeline --run-date 2026-06-18 --skip-download
+uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 Pass `--ticker` to limit the normalize step to specific names (intersect universe). Use `compute-metrics` for single-ticker ROC/EY smoke tests without a full scoring run.

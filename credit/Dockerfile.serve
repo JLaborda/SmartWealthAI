@@ -9,21 +9,26 @@
 
 FROM python:3.11-slim-bookworm
 
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /bin/
+
 WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml poetry.lock README.md ./
-COPY src ./src
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_DEV=1
+
+COPY pyproject.toml uv.lock README.md ./
 COPY credit ./credit
+COPY investing/pyproject.toml investing/pyproject.toml
 
-RUN pip install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --only main --no-ansi --no-interaction
+RUN uv sync --frozen --no-dev --package credit --no-editable
 
-ENV CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
+ENV PATH="/app/.venv/bin:$PATH" \
+    CREDIT_PIPELINE_ARTIFACT=/artifact/pipeline.joblib
 EXPOSE 8000
 
 # Factory loads artifact from CREDIT_PIPELINE_ARTIFACT at startup.

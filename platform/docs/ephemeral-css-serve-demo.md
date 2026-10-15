@@ -6,7 +6,7 @@ Spec: [`../../credit/docs/features/aws-fargate-serve-demo.md`](../../credit/docs
 
 ## Prerequisites
 
-- Poetry env at repo root (`poetry install`)
+- uv env at repo root (`uv sync`)
 - Docker (build + push)
 - Terraform ≥ 1.5
 - AWS CLI v2 with a profile that can manage ECR, ECS, IAM roles, EC2 SG/ENI, CloudWatch Logs in the target account

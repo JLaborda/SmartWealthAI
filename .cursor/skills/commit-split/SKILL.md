@@ -110,13 +110,13 @@ make lint     # ruff check + format --check (must exit 0)
 make test     # pytest with coverage (must exit 0)
 ```
 
-If `make` is unavailable, use the equivalent Poetry targets from the repo `Makefile`:
+If `make` is unavailable, use the equivalent uv targets from the repo `Makefile`:
 
 ```bash
-poetry run ruff format .
-poetry run ruff check .
-poetry run ruff format --check .
-poetry run pytest --cov=smartwealthai --cov-report=term-missing
+uv run ruff format .
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest --cov=investing --cov=credit --cov-report=term-missing
 ```
 
 ### When format changes the working tree
@@ -165,7 +165,7 @@ git status
 
 ## Dependency files
 
-`pyproject.toml` and `poetry.lock` are **tracked** (not in `.gitignore`). When they change, prefer a dedicated `build:` or `chore:` commit unless the user folds them into another approved row.
+`pyproject.toml` and `uv.lock` are **tracked** (not in `.gitignore`). When they change, prefer a dedicated `build:` or `chore:` commit unless the user folds them into another approved row.
 
 ## Safety
 

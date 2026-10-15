@@ -10,19 +10,19 @@ Ingest SimFin fundamentals → point-in-time curated lake → universe (US minus
 
 ## How to run
 
-From the repo root (Poetry):
+From the repo root (uv):
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run run-demo-pipeline --run-date 2026-06-18
-poetry run run-dashboard --data-dir data --run-date 2026-06-18
+uv run run-demo-pipeline --run-date 2026-06-18
+uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 ### Operator notes
 
 ```bash
 make test
-# or: poetry run pytest
+# or: uv run pytest
 ```
 
 - **Active fundamentals path:** [`docs/guides/download-simfin.md`](docs/guides/download-simfin.md)

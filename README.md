@@ -25,17 +25,17 @@ Greenblatt-style ranking on US equities: SimFin → PIT lake → ROC + EY → to
 ### Quickstart (investing demo)
 
 ```bash
-poetry install
+uv sync
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run run-demo-pipeline --run-date 2026-06-18
-poetry run run-dashboard --data-dir data --run-date 2026-06-18
+uv run run-demo-pipeline --run-date 2026-06-18
+uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 See [`investing/README.md`](investing/) and [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
 
 ### Tech stack (investing)
 
-* **Language:** Python 3.11+ · **Deps:** Poetry (uv migration — #182)
+* **Language:** Python 3.11+ · **Deps:** uv workspace ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md))
 * **Data:** SimFin bulk · **Libs:** pandas, simfin, yfinance, streamlit, mlflow-skinny
 
 ---
@@ -49,7 +49,7 @@ Application **CSS**: public demo data → application mart → scoring → rank 
 ## Roadmap (portfolio)
 
 1. **Credit** — chapter 6 OptBinning scorecard, monitoring, explainability (as scheduled).
-2. **Tooling** — Poetry → uv workspace (#182) + domain deps / CI matrix (#183).
+2. **Tooling** — Domain deps / CI matrix (#183) after uv workspace ([#182](https://github.com/JLaborda/SmartWealthAI/issues/182), [ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)).
 3. **`platform/`** — Terraform / AWS; orchestrator choice open (Airflow vs EventBridge/ECS vs Prefect).
 4. Optional: Spec Kit (#178); fraud module.
 

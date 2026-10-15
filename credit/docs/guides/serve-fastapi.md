@@ -4,33 +4,33 @@ Loads the same `pipeline.joblib` produced by `credit-css fit` (WOE/IV binner + X
 
 ## Prerequisites
 
-- `poetry install` at repo root
+- `uv sync` at repo root
 - A fitted artifact from `credit-css fit` (file named `pipeline.joblib`)
 
 ## Fit → serve
 
 ```bash
-poetry run credit-css build-application-mart \
+uv run credit-css build-application-mart \
   --source credit/tests/fixtures/scoring_mart/applications.csv \
   --output-dir /tmp/credit_mart \
   --application-id-column customer_ID \
   --target-column target --bad-value 1 --good-value 0
 
-poetry run credit-css fit \
+uv run credit-css fit \
   --mart /tmp/credit_mart/application_mart.parquet \
   --output-dir /tmp/credit_artifact \
   --application-id-column customer_ID --target-column target \
   --skip-mlflow
 
 export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
-poetry run credit-css-serve
+uv run credit-css-serve
 ```
 
 Equivalent uvicorn:
 
 ```bash
 export CREDIT_PIPELINE_ARTIFACT=/tmp/credit_artifact/pipeline.joblib
-poetry run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
+uv run uvicorn credit.api:create_app --factory --host 0.0.0.0 --port 8000
 ```
 
 If `CREDIT_PIPELINE_ARTIFACT` is unset or the file is missing, `credit-css-serve` exits with a clear error (exit code 2) and does not start uvicorn.

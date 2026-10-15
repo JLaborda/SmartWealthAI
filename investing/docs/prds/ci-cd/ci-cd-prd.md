@@ -8,7 +8,7 @@
 
 ## Problem Statement
 
-SmartWealthAI is a portfolio-grade quantitative value-investing MVP that must demonstrate MLOps competence on AWS: reproducible builds, automated quality gates, containerized pipeline execution, and a clear path from development to production. Today the repository has Poetry dependencies and a development container, but no Makefile, no production Dockerfile, no GitHub Actions workflows, and no defined contract for how local development, CI tests, AWS data lake access, and deployment relate to each other.
+SmartWealthAI is a portfolio-grade quantitative value-investing MVP that must demonstrate MLOps competence on AWS: reproducible builds, automated quality gates, containerized pipeline execution, and a clear path from development to production. Today the repository has uv workspace dependencies and a development container, but historically lacked Makefile/CI contracts for how local development, CI tests, AWS data lake access, and deployment relate to each other (much of that gap is closed; this PRD remains a historical phase-0 plan).
 
 The developer also needs a phased approach that does not over-build infrastructure before the core investment pipeline exists (data ingestion → permanent loss filter → quality and cheapness scoring → ranking → model portfolio → backtest → sell-watch). Without an explicit CI/CD plan, work on the data lake and AWS risks becoming confusing: it is unclear what runs locally, what runs in CI, what touches S3, and when full continuous deployment should begin.
 
@@ -27,7 +27,7 @@ GitFlow maps environments: pull requests run CI on all branches; merge to `devel
 ## User Stories
 
 1. As a developer, I want a single Makefile with standard targets for install, lint, test, and local ingestion, so that dev, CI, and documentation all reference the same commands.
-2. As a developer, I want Poetry to manage Python 3.11 dependencies and an in-project virtualenv, so that the environment matches the devcontainer and CI runners.
+2. As a developer, I want uv to manage Python 3.11 dependencies and an in-project virtualenv, so that the environment matches the devcontainer and CI runners.
 3. As a developer, I want PR CI to run automatically on every pull request, so that broken changes are caught before merge.
 4. As a developer, I want PR CI to complete quickly without external network calls, so that feedback is reliable and merges are not blocked by SEC or yfinance outages.
 5. As a developer, I want unit and smoke tests to use pinned fixtures representing universe, fundamentals, and prices, so that scoring and filtering logic is testable without a live data lake.
@@ -66,7 +66,7 @@ GitFlow maps environments: pull requests run CI on all branches; merge to `devel
 
 ### Scope and phasing
 
-- **Phase 0 (now):** Makefile, Poetry groups, PR CI workflow, fixture layout, pipeline package skeleton, ingest-smoke workflow to dev S3, OIDC + bucket provisioning. No full deploy on every merge yet.
+- **Phase 0 (now):** Makefile, uv dependency groups, PR CI workflow, fixture layout, pipeline package skeleton, ingest-smoke workflow to dev S3, OIDC + bucket provisioning. No full deploy on every merge yet.
 - **Phase 1:** Pipeline Dockerfile, ECR push on merge to `develop`, ECS Fargate task definition update for dev.
 - **Phase 2:** Prod deploy on merge to `main` with GitHub Environment approval; prod OIDC role and prod bucket writes restricted to promoted tasks.
 - **Phase 3+:** Prefect orchestration, dashboard image, MLflow server, EventBridge daily schedule — explicitly later.
@@ -90,7 +90,7 @@ GitFlow maps environments: pull requests run CI on all branches; merge to `devel
 ### CI workflow (every pull request)
 
 - Triggers on pull requests targeting `develop` or `main` (and optionally other long-lived branches if added).
-- Steps: checkout → Python 3.11 + Poetry install → `make lint` → `make test` → `make test-smoke`.
+- Steps: checkout → Python 3.11 + uv sync → `make lint` → `make test` → `make test-smoke`.
 - **Lint:** Ruff check and format check on application and test packages.
 - **Unit tests:** pytest with markers excluding integration tests; all data from committed fixtures.
 - **Smoke test:** end-to-end pipeline on a tiny fixture universe proving the vertical slice wiring (may initially stub modules until implemented).
@@ -146,26 +146,26 @@ Deep modules (simple interfaces, testable in isolation):
 | **Sell-watch** | Daily signals on model holdings | M2+ |
 | **Pipeline CLI** | Subcommands invoked locally, in CI smoke, and in container | M1 |
 
-Makefile targets wrap Poetry commands so CI and humans share entrypoints: install, lint, test, test-smoke, local ingest, docker build (pipeline), and later deploy helpers.
+Makefile targets wrap uv commands so CI and humans share entrypoints: install, lint, test, test-smoke, local ingest, docker build (pipeline), and later deploy helpers.
 
-### Poetry dependency strategy
+### uv dependency strategy
 
-- Single Poetry project for the repository.
+- Single uv workspace for the repository.
 - **Dev group:** pytest, ruff; optional moto for S3 mock unit tests if needed.
 - **Pipeline optional/extras group:** duckdb, boto3, pyarrow, sec-edgar-downloader, and other pipeline dependencies as modules land — avoid bloating dev-only installs.
 - Enable package mode once the application package under `src/` exists.
 
 ### Relationship to devcontainer
 
-- The existing devcontainer remains **development-only** (Docker-in-Docker, AWS CLI, Poetry, Jupyter, forwarded ports for future Streamlit/MLflow).
-- CI uses GitHub-hosted runners with Makefile + Poetry; it does not build or run the devcontainer image.
+- The existing devcontainer remains **development-only** (Docker-in-Docker, AWS CLI, uv, Jupyter, forwarded ports for future Streamlit/MLflow).
+- CI uses GitHub-hosted runners with Makefile + uv; it does not build or run the devcontainer image.
 - Production pipeline Dockerfile is slim and separate from the devcontainer Dockerfile.
 
 ### Milestone sequence
 
 | Milestone | Deliverable |
 | --- | --- |
-| **M0** | Makefile, Poetry dev groups, PR CI workflow, empty package + passing smoke stub, fixture directory |
+| **M0** | Makefile, uv dependency groups, PR CI workflow, empty package + passing smoke stub, fixture directory |
 | **M1** | Core modules on fixtures; permanent loss + scoring + rank smoke green; package mode on |
 | **M2** | Dev/prod buckets, OIDC roles, ingest-smoke workflow green against dev S3 |
 | **M3** | Pipeline Dockerfile, ECR push on merge to `develop` |
@@ -203,7 +203,7 @@ Makefile targets wrap Poetry commands so CI and humans share entrypoints: instal
 
 ### Prior art
 
-- Devcontainer PRD validated tooling via manual smoke checks (Python, Poetry, AWS CLI, Ruff, pytest).
+- Devcontainer PRD validated tooling via manual smoke checks (Python, uv, AWS CLI, Ruff, pytest).
 - Architecture doc specifies Enron / Lehman / WorldCom regression in CI for the permanent loss filter — adopt when that module is implemented.
 - Legacy notebooks and `src/` exploration are not test prior art; new tests live under the package test tree with fixtures.
 

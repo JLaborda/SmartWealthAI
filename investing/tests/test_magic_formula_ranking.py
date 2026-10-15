@@ -376,7 +376,15 @@ def test_score_universe_fixture_metric_values_match_synthetic_inputs(lake: Path)
     assert foo_cheap["market_cap"] == pytest.approx(FOO_MARKET_CAP)
 
 
-def test_cli_score_universe_succeeds_on_fixture_lake(lake: Path) -> None:
+def test_cli_score_universe_succeeds_on_fixture_lake(
+    lake: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Isolate tracking so a host/Dev Container leftover ./mlruns with absolute
+    # /workspaces artifact_location cannot break Darwin (EROFS errno 30).
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
+    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "true")
     exit_code = score_cli_run(
         [
             "--data-dir",

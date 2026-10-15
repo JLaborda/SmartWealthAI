@@ -2,14 +2,14 @@
 
 ## Problem Statement
 
-SmartWealthAI development currently depends on the developer's local machine configuration (macOS, Homebrew packages, Python version, Poetry, AWS CLI, etc.). This creates two problems:
+SmartWealthAI development currently depends on the developer's local machine configuration (macOS, Homebrew packages, Python version, uv, AWS CLI, etc.). This creates two problems:
 
 1. **Environment drift**: there is no guarantee that a fresh clone produces a working dev environment without manual setup steps.
 2. **Cloud portability**: the architecture targets AWS (S3, ECS Fargate, ECR, Secrets Manager). The developer wants to be able to spin up an EC2 instance, clone the repo, open it in Cursor via SSH, and land in a fully functional dev environment identical to the local one -- with zero manual tool installation.
 
 ## Solution
 
-Create a `.devcontainer/` configuration that packages the entire development toolchain (Python 3.11, Poetry, Docker, AWS CLI, GitHub CLI, system utilities, Cursor extensions) into a reproducible container. The developer opens the repo in Cursor (locally or via SSH to EC2), the container builds automatically, and all dependencies are ready.
+Create a `.devcontainer/` configuration that packages the entire development toolchain (Python 3.11, uv, Docker, AWS CLI, GitHub CLI, system utilities, Cursor extensions) into a reproducible container. The developer opens the repo in Cursor (locally or via SSH to EC2), the container builds automatically, and all dependencies are ready.
 
 This is a **development-only** image. A separate, minimal production Dockerfile will be created later for ECS Fargate tasks.
 
@@ -21,7 +21,7 @@ This is a **development-only** image. A separate, minimal production Dockerfile 
 4. As a developer, I want the AWS CLI pre-installed, so that I can interact with S3, ECR, Secrets Manager, and other AWS services during development.
 5. As a developer, I want the GitHub CLI pre-installed, so that I can create PRs, manage issues, and check CI status from the terminal.
 6. As a developer, I want `make`, `jq`, and `ripgrep` available, so that I have standard dev utilities for task automation, JSON inspection, and fast code search.
-7. As a developer, I want Cursor to auto-detect the Poetry virtualenv as the Python interpreter, so that I never have to manually select the right Python.
+7. As a developer, I want Cursor to auto-detect the uv virtualenv (`.venv`) as the Python interpreter, so that I never have to manually select the right Python.
 8. As a developer, I want linting and formatting (Ruff) configured out of the box, so that code quality is enforced from day one.
 9. As a developer, I want pytest available, so that I can run tests inside the container.
 10. As a developer, I want Jupyter notebook support in Cursor, so that I can work with the existing `.ipynb` files in `notebooks/`.
@@ -55,9 +55,9 @@ Installed on top of the base image via `apt-get`:
 
 ### Python tooling
 
-- **Poetry** installed via `pipx` (already available in the MS base image).
-- `poetry config virtualenvs.in-project true` so `.venv` lives inside the workspace.
-- `poetry install` runs as `postCreateCommand` to auto-install all dependencies on container creation.
+- **uv** installed via the official install script (already available in the MS base image).
+- `uv sync --group dev` so `.venv` lives inside the workspace.
+- `uv sync` runs as `postCreateCommand` to auto-install all dependencies on container creation.
 - **pytest** and **ruff** added as dev dependencies in `pyproject.toml`.
 
 ### Cursor / VS Code customizations
@@ -74,7 +74,7 @@ Installed on top of the base image via `apt-get`:
 
 | Setting | Value | Reason |
 |---|---|---|
-| `python.defaultInterpreterPath` | `${workspaceFolder}/.venv/bin/python` | Auto-select the Poetry venv |
+| `python.defaultInterpreterPath` | `${workspaceFolder}/.venv/bin/python` | Auto-select the uv venv |
 | `python.terminal.activateEnvironment` | `true` | Auto-activate venv in terminals |
 
 ### Port forwarding
@@ -102,7 +102,7 @@ Installed on top of the base image via `apt-get`:
 
 This is an infrastructure/tooling PRD, not a feature module. There is no application logic to unit-test. Validation is manual:
 
-- **Smoke test:** build the container locally (`Dev Containers: Rebuild Container` in Cursor), verify Python version, Poetry venv, installed tools (`docker --version`, `aws --version`, `gh --version`, `make --version`, `jq --version`, `rg --version`), and that `pytest` and `ruff` are importable.
+- **Smoke test:** build the container locally (`Dev Containers: Rebuild Container` in Cursor), verify Python version, uv venv, installed tools (`docker --version`, `aws --version`, `gh --version`, `make --version`, `jq --version`, `rg --version`), and that `pytest` and `ruff` are importable.
 - **EC2 test:** spin up an EC2 instance, install Docker, clone the repo, open via Cursor SSH, verify the same smoke checks pass.
 - **Extension test:** confirm Cursor shows the correct Python interpreter and that Ruff linting is active on `.py` files.
 

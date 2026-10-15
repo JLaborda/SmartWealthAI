@@ -71,7 +71,7 @@ feat(universe): filter banks via SIC codes
 
 fix(scores): exclude rows with EV <= 0 from EY rank
 
-build: bump pandas in poetry lockfile
+build: bump pandas in uv lockfile
 ```
 
 ## Merge / revert (do not rewrite)

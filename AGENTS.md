@@ -51,25 +51,26 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Runtime
 
-- **Python:** 3.11+ (`requires-python = "^3.11"` in `pyproject.toml`)
-- **Dependencies:** Poetry
+- **Python:** 3.11+ (`requires-python = ">=3.11,<4.0"` in root `pyproject.toml`)
+- **Dependencies:** uv workspace (`uv sync --frozen --group dev` / `make install`); members `credit` + `investing` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)). CI and `make install` use `--frozen` so installs match `uv.lock`.
 
 ```bash
-poetry env use python3.11
-poetry install
-poetry run pytest
+uv sync --frozen --group dev
+uv run pytest
 ```
 
 ### MLflow (demo pipeline runs)
 
-`mlflow-skinny` is a Poetry dependency (`poetry install` is enough for logging). No local MLflow UI server is required for #61.
+`mlflow-skinny` is a uv dependency (`uv sync` is enough for logging). No local MLflow UI server is required for #61.
 
 ```bash
-export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
-export MLFLOW_ALLOW_FILE_STORE=true                 # required for file:// with MLflow 3.14+ (set automatically by score-universe)
+# Usually do NOT export — code defaults to file://$(pwd)/mlruns.
+# When you do export, expand pwd on the current machine (never hardcode /workspaces/...):
+export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+export MLFLOW_ALLOW_FILE_STORE=true   # required for file:// with MLflow 3.14+ (set automatically by score-universe)
 ```
 
-Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)).
+Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)). After switching Dev Container ↔ Mac host, if MLflow hits a read-only `/workspaces` path: first `unset MLFLOW_TRACKING_URI` (or set it to `file://$(pwd)/mlruns`), and confirm the tracking URI points at a writable path under the repo (or your intended store). Prefer correcting the URI over deleting. Only if local `mlruns/` is clearly corrupted or still points at an unusable absolute `/workspaces` artifact location — and you accept losing those local runs — then remove or recreate that directory.
 
 To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING_URI` to that server **before** `score-universe` and use a shared artifact store (e.g. S3). Local `mlruns/` are not visible to a remote server unless you log there at run time.
 
@@ -83,7 +84,7 @@ Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never com
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run download-simfin
+uv run download-simfin
 ```
 
 Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-data-lake.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
@@ -92,7 +93,7 @@ Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-d
 
 ```bash
 export SEC_IDENTITY="Your Name your@email.com"
-poetry run download-fundamentals --universe dow30
+uv run download-fundamentals --universe dow30
 ```
 
 Guide: [`investing/docs/guides/download-fundamentals.md`](investing/docs/guides/download-fundamentals.md).

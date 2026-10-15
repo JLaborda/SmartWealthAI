@@ -7,7 +7,7 @@ Small, reviewable datasets that seed the data lake. The lake mirror lives under 
 | `universes/dow30.csv` | Dow Jones 30 constituents + SEC CIKs | Hand-edited / PR review |
 | `universes/*.csv` | Future presets (S&P 500, Russell 3000, …) | Hand-edited or import scripts |
 | `sp500_constituents.csv` | [fja05680/sp500](https://github.com/fja05680/sp500) | `scripts/import_sp500_reference.py` |
-| `simfin_industry_exclusions.csv` | SimFin `industries` bulk | `poetry run generate-simfin-industry-exclusions` |
+| `simfin_industry_exclusions.csv` | SimFin `industries` bulk | `uv run generate-simfin-industry-exclusions` |
 | `ticker_mapping.csv` | Manual / broker overrides | Hand-edited |
 | `ticker_cik_overrides.csv` | Delisted / renamed tickers → CIK | Hand-edited |
 
@@ -17,4 +17,4 @@ Download presets for `download-fundamentals` live under [`universes/`](universes
 Each file lists `ticker,cik` pairs. The `dow30` preset is the initial pilot universe for
 the fundamentals download spike.
 
-Run `poetry run python scripts/import_sp500_reference.py` to refresh the S&P 500 snapshot.
+Run `uv run python scripts/import_sp500_reference.py` to refresh the S&P 500 snapshot.
