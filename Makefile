@@ -1,7 +1,7 @@
 .PHONY: install lint test download-fundamentals format platform-tf-check
 
 install:
-	uv sync --group dev
+	uv sync --frozen --group dev
 
 lint:
 	uv run ruff check .

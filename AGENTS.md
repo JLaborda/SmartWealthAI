@@ -52,10 +52,10 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 ## Runtime
 
 - **Python:** 3.11+ (`requires-python = ">=3.11,<4.0"` in root `pyproject.toml`)
-- **Dependencies:** uv workspace (`uv sync --group dev` / `make install`); members `credit` + `investing` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md))
+- **Dependencies:** uv workspace (`uv sync --frozen --group dev` / `make install`); members `credit` + `investing` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)). CI and `make install` use `--frozen` so installs match `uv.lock`.
 
 ```bash
-uv sync --group dev
+uv sync --frozen --group dev
 uv run pytest
 ```
 
