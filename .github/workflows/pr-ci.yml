@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,20 +26,51 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies (full workspace)
         run: make install
 
       - name: Lint
         run: make lint
 
-      - name: Test with coverage
-        # Match [tool.coverage.run]: both packages + branch=true (mixing CLI
-        # statement-only --cov with pyproject branch data fails combine).
-        run: uv run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing --cov-report=xml
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        domain: [credit, investing]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install ${{ matrix.domain }}-only
+        run: make install-${{ matrix.domain }}
+
+      - name: Assert cross-domain deps absent
+        run: |
+          if [ "${{ matrix.domain }}" = "credit" ]; then
+            ! uv run python -c "import yfinance" \
+              || { echo "FAIL: yfinance must not install with credit-only sync"; exit 1; }
+            uv run python -c "import credit"
+            uv run credit-css --help
+          else
+            ! uv run python -c "import xgboost" \
+              || { echo "FAIL: xgboost must not install with investing-only sync"; exit 1; }
+            uv run python -c "import investing"
+            uv run score-universe --help
+          fi
+
+      - name: Test ${{ matrix.domain }} with coverage
+        run: make test-${{ matrix.domain }} COV_ARGS='--cov-report=xml'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
+          flags: ${{ matrix.domain }}
           fail_ci_if_error: false
