@@ -16,12 +16,14 @@ lint:
 test:
 	uv run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
 
+# uv run without --package re-syncs the full workspace (root depends on both
+# members). Keep --package so credit-only / investing-only envs stay lean.
 # Optional: make test-credit COV_ARGS='--cov-report=xml' (CI)
 test-credit:
-	uv run pytest credit/tests --cov=credit --cov-branch --cov-report=term-missing $(COV_ARGS)
+	uv run --frozen --package credit --group dev pytest credit/tests --cov=credit --cov-branch --cov-report=term-missing $(COV_ARGS)
 
 test-investing:
-	uv run pytest investing/tests --cov=investing --cov-branch --cov-report=term-missing $(COV_ARGS)
+	uv run --frozen --package investing --group dev pytest investing/tests --cov=investing --cov-branch --cov-report=term-missing $(COV_ARGS)
 
 # Requires SEC_IDENTITY in the environment. See investing/docs/guides/download-fundamentals.md
 download-fundamentals:

@@ -212,6 +212,7 @@ One uv workspace at repo root: `credit` is a second installable package
 ```bash
 uv sync --frozen --package credit --group dev   # or: make install-credit
 make test-credit
+# After sync: uv run --no-sync … (bare uv run re-syncs both workspace members)
 ```
 
 Docker images still `COPY investing/pyproject.toml` for workspace lock resolution

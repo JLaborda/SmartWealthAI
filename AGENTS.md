@@ -62,8 +62,10 @@ uv run pytest                  # or: make test / make lint
 # One domain only (credit has no yfinance; investing has no xgboost)
 uv sync --frozen --package credit --group dev      # or: make install-credit
 uv sync --frozen --package investing --group dev   # or: make install-investing
-make test-credit    # pytest credit/tests
+make test-credit    # pytest credit/tests (keeps --package; bare uv run would re-sync both)
 make test-investing # pytest investing/tests
+# After a domain-only sync, use `uv run --no-sync …` or `uv run --package <domain> …`
+# so a plain `uv run` does not reinstall the other member.
 ```
 
 ### MLflow (demo pipeline runs)

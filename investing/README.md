@@ -16,6 +16,7 @@ From the repo root (uv). Full monorepo: `uv sync --frozen --group dev` (or `make
 ```bash
 uv sync --frozen --package investing --group dev   # or: make install-investing
 make test-investing
+# After sync: uv run --no-sync … (bare uv run re-syncs both workspace members)
 ```
 
 ```bash

@@ -50,18 +50,20 @@ jobs:
       - name: Install ${{ matrix.domain }}-only
         run: make install-${{ matrix.domain }}
 
+      # Bare `uv run` re-syncs the full workspace (root depends on both members).
+      # Use --no-sync after --package sync, or uv run --package, for isolation.
       - name: Assert cross-domain deps absent
         run: |
           if [ "${{ matrix.domain }}" = "credit" ]; then
-            ! uv run python -c "import yfinance" \
+            ! uv run --no-sync python -c "import yfinance" \
               || { echo "FAIL: yfinance must not install with credit-only sync"; exit 1; }
-            uv run python -c "import credit"
-            uv run credit-css --help
+            uv run --no-sync python -c "import credit"
+            uv run --no-sync credit-css --help
           else
-            ! uv run python -c "import xgboost" \
+            ! uv run --no-sync python -c "import xgboost" \
               || { echo "FAIL: xgboost must not install with investing-only sync"; exit 1; }
-            uv run python -c "import investing"
-            uv run score-universe --help
+            uv run --no-sync python -c "import investing"
+            uv run --no-sync score-universe --help
           fi
 
       - name: Test ${{ matrix.domain }} with coverage
