@@ -70,7 +70,7 @@ export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
 export MLFLOW_ALLOW_FILE_STORE=true   # required for file:// with MLflow 3.14+ (set automatically by score-universe)
 ```
 
-Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)). After switching between Dev Container and Mac host, `unset MLFLOW_TRACKING_URI` and `rm -rf mlruns` if local logging hits a read-only `/workspaces` path.
+Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)). After switching Dev Container ↔ Mac host, if MLflow hits a read-only `/workspaces` path: first `unset MLFLOW_TRACKING_URI` (or set it to `file://$(pwd)/mlruns`), and confirm the tracking URI points at a writable path under the repo (or your intended store). Prefer correcting the URI over deleting. Only if local `mlruns/` is clearly corrupted or still points at an unusable absolute `/workspaces` artifact location — and you accept losing those local runs — then remove or recreate that directory.
 
 To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING_URI` to that server **before** `score-universe` and use a shared artifact store (e.g. S3). Local `mlruns/` are not visible to a remote server unless you log there at run time.
 
