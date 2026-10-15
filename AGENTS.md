@@ -52,11 +52,20 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 ## Runtime
 
 - **Python:** 3.11+ (`requires-python = ">=3.11,<4.0"` in root `pyproject.toml`)
-- **Dependencies:** uv workspace (`uv sync --frozen --group dev` / `make install`); members `credit` + `investing` ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)). CI and `make install` use `--frozen` so installs match `uv.lock`.
+- **Dependencies:** uv workspace; members `credit` + `investing` with **lean per-domain deps** ([#183](https://github.com/JLaborda/SmartWealthAI/issues/183), [ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)). Shared libs (`pandas`, `click`, `mlflow-skinny`) are listed in both members. CI and Make use `--frozen` so installs match `uv.lock`.
 
 ```bash
-uv sync --frozen --group dev
-uv run pytest
+# Full monorepo (both domains)
+uv sync --frozen --group dev   # or: make install
+uv run pytest                  # or: make test / make lint
+
+# One domain only (credit has no yfinance; investing has no xgboost)
+uv sync --frozen --package credit --group dev      # or: make install-credit
+uv sync --frozen --package investing --group dev   # or: make install-investing
+make test-credit    # pytest credit/tests (keeps --package; bare uv run would re-sync both)
+make test-investing # pytest investing/tests
+# After a domain-only sync, use `uv run --no-sync …` or `uv run --package <domain> …`
+# so a plain `uv run` does not reinstall the other member.
 ```
 
 ### MLflow (demo pipeline runs)

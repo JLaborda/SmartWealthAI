@@ -206,18 +206,29 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 ## Packaging
 
 One uv workspace at repo root: `credit` is a second installable package
-(`credit/src/credit`) beside investing — `uv sync` is enough.
-
-CLI (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/143); mart stage [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)):
+(`credit/src/credit`) beside investing. Full monorepo: `uv sync --frozen --group dev`
+(or `make install`). **Credit-only** (no investing deps such as yfinance):
 
 ```bash
-uv run credit-css --help
-uv run credit-css build-application-mart \
+uv sync --frozen --package credit --group dev   # or: make install-credit
+make test-credit
+# After a domain-only sync, keep --no-sync (or --package credit) so bare uv run
+# does not re-sync both workspace members.
+```
+
+Docker images still `COPY investing/pyproject.toml` for workspace lock resolution
+([#188](https://github.com/JLaborda/SmartWealthAI/issues/188)); that does not install investing packages.
+
+CLI after credit-only sync (package scaffold [#143](https://github.com/JLaborda/SmartWealthAI/issues/143); mart stage [#144](https://github.com/JLaborda/SmartWealthAI/issues/144)):
+
+```bash
+uv run --no-sync credit-css --help
+uv run --no-sync credit-css build-application-mart \
   --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart
-uv run credit-css fit --help
-uv run credit-css score --help
-uv run python -m credit build-application-mart --help
+uv run --no-sync credit-css fit --help
+uv run --no-sync credit-css score --help
+uv run --no-sync python -m credit build-application-mart --help
 ```
 
 Hermetic CI uses fixtures under `credit/tests/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.

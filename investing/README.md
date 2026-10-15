@@ -10,12 +10,20 @@ Ingest SimFin fundamentals → point-in-time curated lake → universe (US minus
 
 ## How to run
 
-From the repo root (uv):
+From the repo root (uv). Full monorepo: `uv sync --frozen --group dev` (or `make install`).
+**Investing-only** (no credit deps such as xgboost):
+
+```bash
+uv sync --frozen --package investing --group dev   # or: make install-investing
+make test-investing
+# After a domain-only sync, keep --no-sync (or --package investing) so bare uv run
+# does not re-sync both workspace members.
+```
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-uv run run-demo-pipeline --run-date 2026-06-18
-uv run run-dashboard --data-dir data --run-date 2026-06-18
+uv run --no-sync run-demo-pipeline --run-date 2026-06-18
+uv run --no-sync run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 ### Operator notes
