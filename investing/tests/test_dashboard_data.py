@@ -49,7 +49,9 @@ def scored_lake(tmp_path: Path) -> Path:
         ]
     )
     run_price_ingest(data_dir=root, run_date=RUN_DATE, snapshot_date=SNAPSHOT_DATE)
-    score_universe(root, run_date=RUN_DATE, portfolio_size=3)
+    # Dashboard fixtures do not need MLflow; skip avoids reusing a poisoned cwd ./mlruns
+    # (e.g. Dev Container absolute file:///workspaces/... artifact_location on Mac).
+    score_universe(root, run_date=RUN_DATE, portfolio_size=3, skip_mlflow=True)
     return root
 
 

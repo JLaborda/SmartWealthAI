@@ -64,11 +64,13 @@ uv run pytest
 `mlflow-skinny` is a uv dependency (`uv sync` is enough for logging). No local MLflow UI server is required for #61.
 
 ```bash
-export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
-export MLFLOW_ALLOW_FILE_STORE=true                 # required for file:// with MLflow 3.14+ (set automatically by score-universe)
+# Usually do NOT export — code defaults to file://$(pwd)/mlruns.
+# When you do export, expand pwd on the current machine (never hardcode /workspaces/...):
+export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+export MLFLOW_ALLOW_FILE_STORE=true   # required for file:// with MLflow 3.14+ (set automatically by score-universe)
 ```
 
-Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)).
+Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)). After switching between Dev Container and Mac host, `unset MLFLOW_TRACKING_URI` and `rm -rf mlruns` if local logging hits a read-only `/workspaces` path.
 
 To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING_URI` to that server **before** `score-universe` and use a shared artifact store (e.g. S3). Local `mlruns/` are not visible to a remote server unless you log there at run time.
 
