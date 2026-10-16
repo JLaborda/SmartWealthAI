@@ -9,23 +9,26 @@ SmartWealthAI is a **portfolio monorepo** for finance engineering: **investing**
 
 ## Current phase
 
-- **Investing:** June 30 demo slice **delivered** ([`demo-slice.md`](../../investing/docs/demo-slice.md)). Code and specs under `investing/` (`investing/src/investing/`, `investing/docs/`, `investing/CONTEXT.md`).
-- **Credit:** **Active** — specs and new code under `credit/` ([`credit/CONTEXT.md`](../../credit/CONTEXT.md), `credit/docs/`).
+- **Investing:** June 30 demo slice **delivered** ([`specs/006-june-demo-slice/spec.md`](../../specs/006-june-demo-slice/spec.md)). Code under `investing/` (`investing/src/investing/`, `investing/CONTEXT.md`).
+- **Credit:** **Active** — code under `credit/` ([`credit/CONTEXT.md`](../../credit/CONTEXT.md)); feature specs under [`specs/`](../../specs/README.md).
 - **Phase 2 Quantitative Value:** **cancelled** for active execution ([ADR-0003](../../docs/adr/0003-phase2-qv-cancelled.md)). Prefer updating specs over writing investing QV code.
 
 ## Canonical documentation
 
+- Feature specs (Spec Kit): `specs/<###-slug>/` — index `specs/README.md`
+- Spec Kit tooling / constitution: `.specify/`
 - Portfolio map: `CONTEXT-MAP.md`
 - Investing glossary: `investing/CONTEXT.md`
 - Credit glossary: `credit/CONTEXT.md`
 - Domain READMEs: `investing/README.md`, `credit/README.md`
 - ADRs: `docs/adr/`
-- Investing demo slice: `investing/docs/demo-slice.md`
+- Investing demo slice: `specs/006-june-demo-slice/spec.md`
 - Investing architecture (frozen vision): `investing/docs/architecture/architecture.md`
-- Investing features: `investing/docs/features/*.md`
-- Credit features: `credit/docs/`
+- Operator guides: `investing/docs/guides/`, `credit/docs/guides/`
 - Requirements (historical): `investing/docs/requirements/requirements.md`
 - Backlog: `investing/docs/backlog/backlog.md`
+
+Former `investing/docs/features/*` and `credit/docs/features/*` paths are redirect stubs only.
 
 ## Not canonical
 
@@ -33,4 +36,4 @@ Do not use root `notebooks/` as reference architecture. Domain packages live und
 
 ## Code changes
 
-Investing implementation changes must trace to a feature spec under `investing/docs/features/` or the demo slice. Credit changes must trace to specs under `credit/docs/` (create the spec first). Read `CONTEXT-MAP.md` and the matching domain CONTEXT before proposing design or code.
+Implementation changes must trace to a Spec Kit feature under `specs/` (create or Living Spec edit first). Read `CONTEXT-MAP.md` and the matching domain CONTEXT before proposing design or code.

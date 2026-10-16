@@ -1,6 +1,6 @@
 # Guide: serve CSS scores with FastAPI
 
-Loads the same `pipeline.joblib` produced by `credit-css fit` (WOE/IV binner + XGBoost + score scaling). Spec: [`../features/css-chapter5-mart-and-scoring.md`](../features/css-chapter5-mart-and-scoring.md).
+Loads the same `pipeline.joblib` produced by `credit-css fit` (WOE/IV binner + XGBoost + score scaling). Spec: [`../../../specs/013-css-chapter5-mart-and-scoring/spec.md`](../../../specs/013-css-chapter5-mart-and-scoring/spec.md).
 
 ## Prerequisites
 
@@ -70,7 +70,7 @@ docker run --rm -p 8000:8000 \
 
 ## Docker (bake-image demo — no volume)
 
-Hermetic fit into gitignored `credit/demo_artifact/`, then an image that embeds `pipeline.joblib` (for local smoke and later Fargate). Spec: [`../features/aws-fargate-serve-demo.md`](../features/aws-fargate-serve-demo.md) (#173).
+Hermetic fit into gitignored `credit/demo_artifact/`, then an image that embeds `pipeline.joblib` (for local smoke and later Fargate). Spec: [`../../../specs/015-aws-fargate-serve-demo/spec.md`](../../../specs/015-aws-fargate-serve-demo/spec.md) (#173).
 
 ```bash
 ./platform/scripts/prepare-serve-demo-artifact.sh

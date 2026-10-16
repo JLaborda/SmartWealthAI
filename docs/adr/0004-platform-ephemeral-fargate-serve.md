@@ -21,7 +21,7 @@ status: accepted
 
 **Consequences:**
 
-- Spec: [`credit/docs/features/aws-fargate-serve-demo.md`](../../credit/docs/features/aws-fargate-serve-demo.md)
+- Spec: [`specs/015-aws-fargate-serve-demo/spec.md`](../../specs/015-aws-fargate-serve-demo/spec.md)
 - Do not add AWS terms to [`credit/CONTEXT.md`](../../credit/CONTEXT.md)
 - Future CD/OIDC, ALB/TLS, API keys, and S3 artifact stores are **new** issues — they do not revive investing M2 tickets as written
 - Friday MUST rehearsal stays local ([`friday-demo.md`](../../credit/docs/guides/friday-demo.md)); this ADR covers the stretch cloud path only

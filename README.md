@@ -31,7 +31,7 @@ uv run run-demo-pipeline --run-date 2026-06-18
 uv run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
-See [`investing/README.md`](investing/) and [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
+See [`investing/README.md`](investing/) and [`specs/006-june-demo-slice/spec.md`](specs/006-june-demo-slice/spec.md).
 
 ### Tech stack (investing)
 

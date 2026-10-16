@@ -1,6 +1,6 @@
 # Download SimFin bulk fundamentals and prices (demo)
 
-Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`etl-data-lake.md`](../features/etl-data-lake.md).
+Operator guide for the **SimFin bulk connector** on the June 30 demo path. Canonical spec: [`specs/001-etl-data-lake/spec.md`](../../../specs/001-etl-data-lake/spec.md).
 
 ## Prerequisites
 

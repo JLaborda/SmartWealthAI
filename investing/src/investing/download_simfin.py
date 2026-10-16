@@ -1,7 +1,7 @@
 """CLI to download SimFin bulk US fundamentals into the raw data lake.
 
 Orchestrates the demo SimFin connector documented in
-``investing/docs/features/etl-data-lake.md``. Downloads ``companies``, ``industries``,
+``specs/001-etl-data-lake/spec.md``. Downloads ``companies``, ``industries``,
 ``income`` (TTM), ``balance`` (quarterly), ``cashflow`` (TTM), and ``shareprices``
 (latest) for ``market=us``.
 

@@ -1,6 +1,6 @@
 # SmartWealthAI documentation
 
-Portfolio monorepo: domain map and relationships live in [`CONTEXT-MAP.md`](../CONTEXT-MAP.md). This root `docs/` tree holds **cross-cutting ADRs**. Investing specs live under [`investing/docs/`](../investing/docs/); credit specs under [`credit/docs/`](../credit/docs/). Notion is used only for task tracking (see [AGENTS.md](../AGENTS.md)).
+Portfolio monorepo: domain map and relationships live in [`CONTEXT-MAP.md`](../CONTEXT-MAP.md). This root `docs/` tree holds **cross-cutting ADRs**. **Feature specs** live under [`specs/`](../specs/README.md) (Spec Kit). Domain glossaries, architecture vision, and operator guides remain under `investing/docs/` and `credit/docs/`. Notion is used only for task tracking (see [AGENTS.md](../AGENTS.md)).
 
 ## Ubiquitous language
 
@@ -15,19 +15,26 @@ Extend glossaries with `/grill-with-docs`; agent consumption rules are in [`.cur
 ## Layout
 
 ```text
+specs/                           # Spec Kit feature delivery (canonical)
+  README.md
+  <###-slug>/spec.md
+
+.specify/                        # Spec Kit tooling, constitution, assessments, bugs
+
 docs/
   adr/                           # Architecture Decision Records (why, not how)
 
-investing/docs/                  # Investing Magic Formula specs (moved from docs/mvp/)
-  demo-slice.md
+investing/docs/                  # Glossaries live in CONTEXT; here: architecture, guides, historical
   architecture/architecture.md
-  features/
   guides/
   prds/
   requirements/
   backlog/
+  features/                      # redirect stubs → specs/
 
-credit/docs/                     # Credit / CSS feature specs
+credit/docs/                     # Guides + feature redirect stubs → specs/
+  guides/
+  features/
 ```
 
 Domain READMEs: [`investing/`](../investing/), [`credit/`](../credit/).
@@ -48,10 +55,10 @@ Short notes on hard-to-reverse choices. See [`docs/adr/`](adr/).
 
 | Doc | Role |
 | --- | --- |
-| [demo-slice.md](../investing/docs/demo-slice.md) | June 30 delivery (delivered) |
+| [june-demo-slice](../specs/006-june-demo-slice/spec.md) | June 30 delivery (delivered) |
 | [architecture.md](../investing/docs/architecture/architecture.md) | Frozen historical vision (ADR-0003) |
 | [phase2/prd.md](../investing/docs/prds/phase2/prd.md) | **Cancelled** — QV funnel ([ADR-0003](adr/0003-phase2-qv-cancelled.md)) |
 
 ## Notion
 
-Link each task to a spec path under `investing/docs/features/` or `credit/docs/`.
+Link each task to a Spec Kit path under `specs/<###-slug>/spec.md`.

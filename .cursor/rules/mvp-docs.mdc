@@ -1,16 +1,18 @@
 ---
-description: Investing Markdown spec structure and editing conventions
-globs: investing/docs/**
+description: Spec and domain doc editing conventions
+globs: specs/**/*.md,investing/docs/**
 alwaysApply: false
 ---
 
-# Investing documentation conventions
+# Documentation conventions
 
-When creating or editing specs under `investing/docs/`:
+## Feature specs (`specs/**/spec.md`)
 
-## Feature specs
+Canonical feature delivery specs live under Spec Kit. Index: `specs/README.md`.
 
-Follow the structure used in existing features (e.g. `investing/docs/features/cheap-stocks.md`):
+When **actively changing** a feature (Living Spec), you may align sections toward the Spec Kit template (`.specify/templates/spec-template.md`). Do **not** rewrite historical bodies to the template unless that feature is being changed.
+
+Legacy-shaped specs (Objective / MVP scope / Acceptance criteria) are valid at rest:
 
 - Objective
 - MVP scope / Out of MVP scope
@@ -19,17 +21,17 @@ Follow the structure used in existing features (e.g. `investing/docs/features/ch
 - Acceptance criteria
 - Risks
 
-Add **Implementation status** when coding starts: `planned` | `in_progress` | `done`.
+Keep **Implementation status**: `planned` | `in_progress` | `done` (or equivalent).
 
-## Architecture spec
+New features: create via `/speckit-specify` (next number after the index).
+
+## Investing non-feature docs (`investing/docs/`)
+
+Architecture, guides, PRDs, requirements, backlog stay here — not under `specs/`.
 
 - Record closed decisions in tables (see "Decisions made so far" in `investing/docs/architecture/architecture.md`).
-- Cross-link feature files from the module table.
+- Cross-link Spec Kit feature paths (`specs/<###-slug>/spec.md`) from the architecture module table.
 - Do not contradict a closed architecture decision without updating the architecture doc first.
-
-## Cross-links
-
-Link related feature specs and point to shared definitions (e.g. shared `EBIT` between quality and cheapness modules).
 
 ## Language
 

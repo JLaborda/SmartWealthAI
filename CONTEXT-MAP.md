@@ -8,8 +8,9 @@ Top-level folders are **products/domains**, not technical layers:
 
 | Path | Domain |
 | --- | --- |
-| `investing/` | Value investing / Magic Formula — code, specs, dashboard, and tests live here (`investing/src/investing/`, `investing/docs/`, `investing/apps/dashboard/`, `investing/tests/`) |
-| `credit/` | Credit scoring / scorecard — **active**; code and specs under `credit/` (`credit/docs/`, `credit/tests/`) |
+| `investing/` | Value investing / Magic Formula — code, dashboard, and tests (`investing/src/investing/`, `investing/docs/` for architecture/guides, `investing/apps/dashboard/`, `investing/tests/`) |
+| `credit/` | Credit scoring / scorecard — **active**; code and guides under `credit/` (`credit/docs/guides/`, `credit/tests/`) |
+| `specs/` | **Feature specs** (Spec Kit delivery) for all domains — see [`specs/README.md`](specs/README.md) |
 | `fraud/` | Fraud detection (future — create when that module starts) |
 | `platform/` | Shared infra (Terraform, AWS, shared API) — **only after** domain demos work locally |
 
@@ -32,7 +33,7 @@ Do **not** put shared `ingest/`, `benchmarks/`, or `serving/` at the repo root a
 
 ## Delivery sequencing (credit)
 
-Feature specs land under [`credit/docs/`](credit/docs/) (index: [`credit/docs/README.md`](credit/docs/README.md)). Investing specs live under [`investing/docs/`](investing/docs/).
+Feature specs (all domains) live under [`specs/`](specs/README.md) (Spec Kit). Credit operator guides: [`credit/docs/`](credit/docs/) (index: [`credit/docs/README.md`](credit/docs/README.md)). Investing architecture/guides: [`investing/docs/`](investing/docs/).
 
 1. **Book content first** (local), chapter order: ch.5 scratch → ch.6 OptBinning/monitoring/explainability.
 2. **Chapter 5 delivery:** target **C** in **two PRs** — **PR1 = mart** (load/clean/validate); **PR2 = WOE/IV + XGBoost + probability → credit score (**book scaling params**; refine later) + CLI (**AUC + KS**); **rank-only** (cutoff/profit trade-off later)**. Chapter 6 is a later cut. Train/holdout: **time-based when a decision/application date exists, else stratified random** (document the limitation); fit WOE/model on develop only.

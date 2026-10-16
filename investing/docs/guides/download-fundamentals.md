@@ -1,11 +1,11 @@
 # Guide: Download fundamentals (local spike — frozen)
 
-> **Status:** This guide documents the **frozen SEC ETL spike** ([ADR-0001](../../../docs/adr/0001-simfin-fundamentals-mvp.md)). The June 30 demo pipeline uses **SimFin** instead — see [`demo-slice.md`](../demo-slice.md) and [`etl-data-lake.md`](../features/etl-data-lake.md). Do not delete this spike; resuming it under investing “phase 2” is **not scheduled** ([ADR-0003](../../../docs/adr/0003-phase2-qv-cancelled.md)).
+> **Status:** This guide documents the **frozen SEC ETL spike** ([ADR-0001](../../../docs/adr/0001-simfin-fundamentals-mvp.md)). The June 30 demo pipeline uses **SimFin** instead — see [`specs/006-june-demo-slice/spec.md`](../../../specs/006-june-demo-slice/spec.md) and [`specs/001-etl-data-lake/spec.md`](../../../specs/001-etl-data-lake/spec.md). Do not delete this spike; resuming it under investing “phase 2” is **not scheduled** ([ADR-0003](../../../docs/adr/0003-phase2-qv-cancelled.md)).
 
 Operator guide for the first ETL vertical slice: download raw SEC `companyfacts` and
 standardized annual statements from `edgartools` for a parameterized universe.
 
-**Canonical spec:** [`../features/etl-data-lake.md`](../features/etl-data-lake.md) (section
+**Canonical spec:** [`specs/001-etl-data-lake/spec.md`](../../../specs/001-etl-data-lake/spec.md) (section
 *Fundamentals download spike*).
 
 ## Prerequisites

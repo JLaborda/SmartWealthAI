@@ -2,7 +2,7 @@
 
 **Ephemeral demo environment only — not production.** Create → curl fixtures → destroy. No ALB, no TLS, no auth, no S3 lake, no GitHub CD.
 
-Spec: [`../../credit/docs/features/aws-fargate-serve-demo.md`](../../credit/docs/features/aws-fargate-serve-demo.md) · ADR: [`../../docs/adr/0004-platform-ephemeral-fargate-serve.md`](../../docs/adr/0004-platform-ephemeral-fargate-serve.md) · Friday MUST stays local: [`../../credit/docs/guides/friday-demo.md`](../../credit/docs/guides/friday-demo.md)
+Spec: [`../../specs/015-aws-fargate-serve-demo/spec.md`](../../specs/015-aws-fargate-serve-demo/spec.md) · ADR: [`../../docs/adr/0004-platform-ephemeral-fargate-serve.md`](../../docs/adr/0004-platform-ephemeral-fargate-serve.md) · Friday MUST stays local: [`../../credit/docs/guides/friday-demo.md`](../../credit/docs/guides/friday-demo.md)
 
 ## Prerequisites
 

@@ -37,14 +37,14 @@ make test
 - **Frozen SEC spike:** [`docs/guides/download-fundamentals.md`](docs/guides/download-fundamentals.md)
 - More: [`AGENTS.md`](../AGENTS.md)
 
-Docs: [`docs/demo-slice.md`](docs/demo-slice.md) · Glossary: [`CONTEXT.md`](CONTEXT.md) · Map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md)
+Docs: [`specs/006-june-demo-slice/spec.md`](../specs/006-june-demo-slice/spec.md) · Glossary: [`CONTEXT.md`](CONTEXT.md) · Map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Feature index: [`specs/README.md`](../specs/README.md)
 
 ## Layout
 
 ```text
 investing/
   CONTEXT.md              # ubiquitous language
-  docs/                   # demo slice, architecture, features, guides
+  docs/                   # architecture, guides, historical (features → stubs)
   src/investing/          # Python package (formerly smartwealthai)
   apps/dashboard/         # Streamlit demo UI
   tests/                  # hermetic investing tests + lake fixtures

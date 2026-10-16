@@ -1,7 +1,7 @@
 """CLI to download raw SEC companyfacts and edgartools statements for a universe.
 
 Orchestrates the fundamentals download spike documented in
-``investing/docs/features/etl-data-lake.md``. For each ``(ticker, cik)`` in the universe:
+``specs/001-etl-data-lake/spec.md``. For each ``(ticker, cik)`` in the universe:
 
 1. SEC REST — verbatim ``companyfacts`` JSON.
 2. edgartools — annual income, balance, and cash-flow statements as parquet.
