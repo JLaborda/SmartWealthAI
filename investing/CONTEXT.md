@@ -1,6 +1,6 @@
 # Equity screening
 
-Ubiquitous language for the quantitative value-investing / Magic Formula module. This is one context in a portfolio monorepo — see [`CONTEXT-MAP.md`](../CONTEXT-MAP.md). Canonical formulas and acceptance criteria live in `investing/docs/`; this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
+Ubiquitous language for the quantitative value-investing / Magic Formula module. This is one context in a portfolio monorepo — see [`CONTEXT-MAP.md`](../CONTEXT-MAP.md). Canonical formulas and acceptance criteria live under [`specs/`](../specs/README.md); this file is the concise vocabulary agents and humans share. Extend via `/grill-with-docs` when terms are resolved.
 
 ## Language
 
@@ -149,7 +149,7 @@ Terminology reminders:
 - “Cheap” means high **EY**, not low P/E—use **EY rank** in issues and code names.
 - “Quality” means high **ROC**, not ESG or subjective moat—use **ROC rank**.
 - “Value trap” in specs means negative EBIT routed to **review queue**, not a separate score.
-- MVP specs in `investing/docs/` remain canonical until an ADR or architecture decision supersedes them; update `investing/CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
+- MVP feature specs under `specs/` are canonical; update `investing/CONTEXT.md` when `/grill-with-docs` resolves a term conflict.
 
 ## Sources
 

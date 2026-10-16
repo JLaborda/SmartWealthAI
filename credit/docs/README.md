@@ -5,7 +5,7 @@
 [`014-psi-data-drift`](../../specs/014-psi-data-drift/spec.md),
 [`015-aws-fargate-serve-demo`](../../specs/015-aws-fargate-serve-demo/spec.md)).
 
-This tree keeps **operator guides** and redirect stubs under `features/` (do not edit stubs as canon).
+This tree keeps **operator guides** under `guides/`. The `features/` directory holds former feature-document **redirect stubs** only — do not edit them as canonical specifications (use `specs/` instead).
 
 ## Layout
 
