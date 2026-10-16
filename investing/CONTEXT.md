@@ -29,7 +29,7 @@ Backtesting only companies that still exist today, overstating returns. Mitigate
 _Avoid_: living-universe backtest
 
 **Universe**:
-Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Deferred (historical):** historical S&P 500 constituents including delisted names — **not scheduled** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md)). Spec: `docs/features/universe-construction.md`.
+Investable tickers for a run date. **June 30 demo:** all SimFin US companies minus banks/insurers/utilities (`IndustryId` exclusions + bank/insurance sanity check). **Deferred (historical):** historical S&P 500 constituents including delisted names — **not scheduled** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md)). Spec: `specs/002-universe-construction/spec.md`.
 _Avoid_: watchlist, portfolio, benchmark index today
 
 **Industry classification**:
@@ -45,7 +45,7 @@ A company removed entirely from ranking (not a score penalty). Permanent loss an
 _Avoid_: penalize, down-rank, soft filter
 
 **Permanent loss filter**:
-Hard exclusion for fraud or bankruptcy/distress risk before any score. Spec: `docs/features/permanent-loss-filter.md`.
+Hard exclusion for fraud or bankruptcy/distress risk before any score. Spec: `specs/007-permanent-loss-filter/spec.md`.
 _Avoid_: risk score, stop-loss, drawdown rule
 
 **Review queue**:
@@ -61,7 +61,7 @@ Income and cash-flow statements use SimFin **TTM**; balance sheet uses the lates
 _Avoid_: mixing balance-sheet TTM into ROC denominators, using annual income for ranking between rebalance dates
 
 **Return on capital (ROC)**:
-`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `docs/features/high-quality-stocks.md`.
+`EBIT / (Net Working Capital + Net Fixed Assets)`. Quality factor; higher is better; cross-sectional **ROC rank** (1 = best). Spec: `specs/003-high-quality-stocks/spec.md`.
 _Avoid_: ROE, ROIC (unless explicitly that metric)
 
 **Net working capital (NWC)**:
@@ -69,7 +69,7 @@ _Avoid_: ROE, ROIC (unless explicitly that metric)
 _Avoid_: total working capital without the excess-cash adjustment
 
 **Earnings yield (EY)**:
-`EBIT / Enterprise Value`. Cheapness factor; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `docs/features/cheap-stocks.md`.
+`EBIT / Enterprise Value`. Cheapness factor; higher is cheaper; cross-sectional **EY rank** (1 = cheapest). Spec: `specs/004-cheap-stocks/spec.md`.
 _Avoid_: dividend yield, earnings/price without EV
 
 **Enterprise value (EV)**:
@@ -105,7 +105,7 @@ Simulated orders only; no real capital in the MVP.
 _Avoid_: live trading, shadow trading with real broker
 
 **Sell-watch**:
-Daily monitor of model holdings for quality drop, fraud/bankruptcy, overvaluation, or opportunity cost; emits signals, no auto-execution. Spec: `docs/features/sell-watch.md`.
+Daily monitor of model holdings for quality drop, fraud/bankruptcy, overvaluation, or opportunity cost; emits signals, no auto-execution. Spec: `specs/009-sell-watch/spec.md`.
 _Avoid_: stop-loss, trailing stop (deferred)
 
 **Sell signal**:
@@ -113,7 +113,7 @@ Recommendation to exit a holding; requires explicit user confirmation before ord
 _Avoid_: auto-sell, trim (deferred state)
 
 **Walk-forward backtest**:
-Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `docs/features/backtesting.md`. **Deferred / not scheduled** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md)); demo slice stops at ranked model portfolio + dashboard.
+Rolling train/validation windows (3–5 years) over 20+ years of PIT data; annual rebalance. Spec: `specs/008-backtesting/spec.md`. **Deferred / not scheduled** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md)); demo slice stops at ranked model portfolio + dashboard.
 _Avoid_: single in-sample fit, peeking at hold-out (when backtest ships)
 
 **Block bootstrap**:
@@ -138,7 +138,7 @@ _Avoid_: ad-hoc snapshot without run id
 
 ## Flagged ambiguities
 
-Resolved scope cuts (see ADRs and [`docs/demo-slice.md`](docs/demo-slice.md)):
+Resolved scope cuts (see ADRs and [`specs/006-june-demo-slice/spec.md`](../specs/006-june-demo-slice/spec.md)):
 
 - **June 30 demo MVP:** SimFin bulk US → raw → normalizer → **universe (US market)** → ROC/EY → combined rank → top-30 EW model portfolio → Streamlit dashboard. No permanent loss filter, backtest, sell-watch, or paper trading in this slice.
 - SEC ETL spike (`sec_client`, `edgartools_client`, `download-fundamentals`) is **frozen** in repo; demo pipeline uses SimFin bulk for fundamentals and run-date prices (`shareprices/latest`).

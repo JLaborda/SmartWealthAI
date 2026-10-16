@@ -27,7 +27,7 @@ Create a Notion page with:
 
 In Agent mode, after MCP auth:
 
-- Ask to create tasks on **`Cursor Agent Tasks`** from e.g. `investing/docs/features/universe-construction.md`, or
+- Ask to create tasks on **`Cursor Agent Tasks`** from e.g. `specs/002-universe-construction/spec.md`, or
 - Ask to use **spec-to-implementation** (point the agent at the Git spec path; specs live in this repo, not in Notion).
 
 ## Task discipline
@@ -35,5 +35,5 @@ In Agent mode, after MCP auth:
 | Step | Where |
 | --- | --- |
 | Change MVP decision | Update Git spec first |
-| Track work | Notion task with `investing/docs/features/...` path |
+| Track work | Notion task with `specs/<###-slug>/spec.md` path |
 | Finish work | Update Git spec (status + acceptance criteria), then mark Notion done |

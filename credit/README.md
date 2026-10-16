@@ -2,7 +2,7 @@
 
 **Domain:** application credit scoring (default risk ranking at origination).
 
-**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib); **local PSI** — `credit-css psi` → `psi_report.md` / `.json`. Terraform stretch: [`docs/features/aws-fargate-serve-demo.md`](docs/features/aws-fargate-serve-demo.md). Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`docs/`](docs/)
+**Status:** book path done; competition raw (#151) + competition mart (#152) done; AMEX categoricals fixed ([#157](https://github.com/JLaborda/SmartWealthAI/issues/157)); **scratch scoring + thin MLOps (#145/#161)** — `fit` → `pipeline.joblib` → `score` / Docker batch; **FastAPI serving** — `POST /score` + `POST /drivers` (same joblib); **local PSI** — `credit-css psi` → `psi_report.md` / `.json`. Terraform stretch: [`specs/015-aws-fargate-serve-demo/spec.md`](../specs/015-aws-fargate-serve-demo/spec.md). Competition EDA ([#153](https://github.com/JLaborda/SmartWealthAI/issues/153)) remains parallel. Elliot Taehun Kim (2026), *Financial AI in Practice*, chapters 5–6, local-first. Glossary: [`CONTEXT.md`](CONTEXT.md) · Portfolio map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Specs: [`specs/`](../specs/README.md)
 
 ## What it will do
 
@@ -188,7 +188,7 @@ uv run credit-css psi \
   --synthetic-drift
 ```
 
-Optional `--reference` / `--recent` override the default batches; `--stable-threshold` / `--severe-threshold` override 0.10 / 0.25. Demo script: [`docs/guides/friday-demo.md`](docs/guides/friday-demo.md). Spec: [`docs/features/psi-data-drift.md`](docs/features/psi-data-drift.md).
+Optional `--reference` / `--recent` override the default batches; `--stable-threshold` / `--severe-threshold` override 0.10 / 0.25. Demo script: [`docs/guides/friday-demo.md`](docs/guides/friday-demo.md). Spec: [`specs/014-psi-data-drift/spec.md`](../specs/014-psi-data-drift/spec.md).
 
 ## Delivery cuts
 
@@ -200,7 +200,7 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 | **Serving** | FastAPI `POST /score` + `POST /drivers` + `credit/Dockerfile.serve` |
 | **PSI** | Local `credit-css psi` → Markdown + JSON threshold report (stable + `--synthetic-drift`) |
 | Later | Chapter 6 scorecard / SHAP; interactive drift UI |
-| Stretch | Ephemeral Fargate CSS serve ([`docs/features/aws-fargate-serve-demo.md`](docs/features/aws-fargate-serve-demo.md), ADR-0004) |
+| Stretch | Ephemeral Fargate CSS serve ([`specs/015-aws-fargate-serve-demo/spec.md`](../specs/015-aws-fargate-serve-demo/spec.md), ADR-0004) |
 | Later | Approve/decline cutoff (profit/risk); broader `platform/` (CD/OIDC) |
 
 ## Packaging
@@ -233,7 +233,7 @@ uv run --no-sync python -m credit build-application-mart --help
 
 Hermetic CI uses fixtures under `credit/tests/fixtures/` (including `scoring_mart/` for #145). The mart README sidecar documents **target** → **bad**/**good** and the develop/holdout policy.
 
-Feature spec: [`docs/features/css-chapter5-mart-and-scoring.md`](docs/features/css-chapter5-mart-and-scoring.md)
+Feature spec: [`specs/013-css-chapter5-mart-and-scoring/spec.md`](../specs/013-css-chapter5-mart-and-scoring/spec.md)
 (parent [#142](https://github.com/JLaborda/SmartWealthAI/issues/142)).
 Orchestration is **CLI + stages** (not Airflow locally).
 

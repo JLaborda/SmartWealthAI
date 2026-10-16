@@ -8,7 +8,7 @@ Originally written as a portfolio showcase of MLOps on a quantitative value inve
 
 ## June 30 demo slice (delivered)
 
-The **first shippable vertical** is narrower than the full vision below. See [`demo-slice.md`](../demo-slice.md) and [ADR-0002](../../../docs/adr/0002-june-demo-scope-cut.md): SimFin ETL → US-market universe → ROC/EY → top-30 equal-weight portfolio → Streamlit dashboard. Modules labeled “phase 2” in this document were planned extensions; **Phase 2 QV as an active execution track is cancelled** ([ADR-0003](../../../docs/adr/0003-phase2-qv-cancelled.md)). The architecture text below is retained as **frozen reference**, not a live north star.
+The **first shippable vertical** is narrower than the full vision below. See [`specs/006-june-demo-slice/spec.md`](../../../specs/006-june-demo-slice/spec.md) and [ADR-0002](../../../docs/adr/0002-june-demo-scope-cut.md): SimFin ETL → US-market universe → ROC/EY → top-30 equal-weight portfolio → Streamlit dashboard. Modules labeled “phase 2” in this document were planned extensions; **Phase 2 QV as an active execution track is cancelled** ([ADR-0003](../../../docs/adr/0003-phase2-qv-cancelled.md)). The architecture text below is retained as **frozen reference**, not a live north star.
 
 ## MVP vision
 
@@ -173,22 +173,22 @@ flowchart LR
 
 | Module | Spec | Main responsibility |
 | --- | --- | --- |
-| ETL + Data Lake | [../features/etl-data-lake.md](../features/etl-data-lake.md) | Download, version, validate, and store financial data with point-in-time guarantees and incremental refresh. |
-| Universe construction | [../features/universe-construction.md](../features/universe-construction.md) | **Demo:** SimFin US minus banks / insurers / utilities. **Phase 2:** historical S&P 500 (incl. delisted), common-stock filters, share-class dedup. |
-| Permanent loss filter | [../features/permanent-loss-filter.md](../features/permanent-loss-filter.md) | Hard-exclude companies with fraud or bankruptcy risk; include the Enron / Lehman / WorldCom regression test. |
-| High-quality stocks | [../features/high-quality-stocks.md](../features/high-quality-stocks.md) | Score quality starting from Greenblatt's ROC. |
-| Cheap stocks | [../features/cheap-stocks.md](../features/cheap-stocks.md) | Score valuation starting from Earnings Yield. |
-| Corroborative signals | [../features/corroborative-signals.md](../features/corroborative-signals.md) | Buybacks, insider activity, and other confirming signals. |
-| Unstructured financial data | [../features/unstructured-financial-data.md](../features/unstructured-financial-data.md) | Extract useful information from filings, transcripts, and news. |
-| Backtesting + crisis report | [../features/backtesting.md](../features/backtesting.md) | Walk-forward backtest (3-5y windows) over 20+ years, Monte Carlo, benchmarks (S&P 500 CW/EW, Russell 3000, Magic Formula), crisis drawdown report. |
-| Sell-watch / vigilance | [../features/sell-watch.md](../features/sell-watch.md) | Daily monitor of model portfolio for quality drop, fraud/bankruptcy, overvaluation, and opportunity cost. Emits signals (no auto-execution). |
-| Portfolio evolution | [../features/portfolio-evolution.md](../features/portfolio-evolution.md) | Track the model portfolio and the user's personal portfolio over time and compare against configurable benchmarks. |
-| Broker execution | [../features/broker-execution.md](../features/broker-execution.md) | Convert confirmed decisions into paper trading orders only. |
-| Dashboard + reporting | [../features/dashboard-reporting.md](../features/dashboard-reporting.md) | Surface every input, score, decision, and explanation. Functional-first for the MVP. |
+| ETL + Data Lake | [specs/001-etl-data-lake](../../../specs/001-etl-data-lake/spec.md) | Download, version, validate, and store financial data with point-in-time guarantees and incremental refresh. |
+| Universe construction | [specs/002-universe-construction](../../../specs/002-universe-construction/spec.md) | **Demo:** SimFin US minus banks / insurers / utilities. **Phase 2:** historical S&P 500 (incl. delisted), common-stock filters, share-class dedup. |
+| Permanent loss filter | [specs/007-permanent-loss-filter](../../../specs/007-permanent-loss-filter/spec.md) | Hard-exclude companies with fraud or bankruptcy risk; include the Enron / Lehman / WorldCom regression test. |
+| High-quality stocks | [specs/003-high-quality-stocks](../../../specs/003-high-quality-stocks/spec.md) | Score quality starting from Greenblatt's ROC. |
+| Cheap stocks | [specs/004-cheap-stocks](../../../specs/004-cheap-stocks/spec.md) | Score valuation starting from Earnings Yield. |
+| Corroborative signals | [specs/011-corroborative-signals](../../../specs/011-corroborative-signals/spec.md) | Buybacks, insider activity, and other confirming signals. |
+| Unstructured financial data | [specs/012-unstructured-financial-data](../../../specs/012-unstructured-financial-data/spec.md) | Extract useful information from filings, transcripts, and news. |
+| Backtesting + crisis report | [specs/008-backtesting](../../../specs/008-backtesting/spec.md) | Walk-forward backtest (3-5y windows) over 20+ years, Monte Carlo, benchmarks (S&P 500 CW/EW, Russell 3000, Magic Formula), crisis drawdown report. |
+| Sell-watch / vigilance | [specs/009-sell-watch](../../../specs/009-sell-watch/spec.md) | Daily monitor of model portfolio for quality drop, fraud/bankruptcy, overvaluation, and opportunity cost. Emits signals (no auto-execution). |
+| Portfolio evolution | *(no Spec Kit folder yet)* | Track the model portfolio and the user's personal portfolio over time and compare against configurable benchmarks. |
+| Broker execution | [specs/010-broker-execution](../../../specs/010-broker-execution/spec.md) | Convert confirmed decisions into paper trading orders only. |
+| Dashboard + reporting | [specs/005-dashboard-reporting](../../../specs/005-dashboard-reporting/spec.md) | Surface every input, score, decision, and explanation. Functional-first for the MVP. |
 
 ## Functional flow — June 30 demo slice
 
-See [`demo-slice.md`](../demo-slice.md). Steps not listed here are **phase 2**.
+See [`specs/006-june-demo-slice/spec.md`](../../../specs/006-june-demo-slice/spec.md). Steps not listed here are **phase 2**.
 
 1. Pipeline run for a `run_date`; secrets from env / AWS Secrets Manager (`SIMFIN_API_KEY`, etc.).
 2. Bulk-download SimFin US datasets if older than `refresh_days`; store verbatim under `raw/simfin/`.
@@ -229,7 +229,7 @@ These items are now closed for the MVP. They can be reopened in later iterations
 
 | Area | Decision |
 | --- | --- |
-| **June demo** | See [`demo-slice.md`](../demo-slice.md). SimFin → US universe → ROC/EY → top 30 EW → dashboard. |
+| **June demo** | See [`specs/006-june-demo-slice/spec.md`](../../../specs/006-june-demo-slice/spec.md). SimFin → US universe → ROC/EY → top 30 EW → dashboard. |
 | Markets | US only. Other markets deferred. |
 | Universe (demo) | All SimFin US companies minus banks/insurers/utilities. |
 | Universe (full MVP) | S&P 500 historical constituents (incl. delisted). Phase 2. |
@@ -484,7 +484,7 @@ Order proposed for refining the feature specs (each spec follows the same templa
 
 ## Architecture acceptance criteria
 
-- Every module has its own spec under `investing/docs/features/`.
+- Every module has its own Spec Kit spec under `specs/<###-slug>/` (see `specs/README.md`).
 - Every spec includes objective, scope, inputs, outputs, flow, Mermaid diagram, open questions, and acceptance criteria.
 - The architecture can run the pipeline end to end without a live broker.
 - The architecture separates raw data, normalized data, point-in-time queries, scoring, portfolio construction, monitoring, backtesting, and orders.

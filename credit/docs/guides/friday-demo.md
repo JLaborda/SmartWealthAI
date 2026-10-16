@@ -4,7 +4,7 @@
 
 **Story:** public demo data → WOE+XGB `pipeline.joblib` (MLflow AUC/KS) → FastAPI score + risk drivers → same curls via serving Docker → local PSI report. Application credit risk ranking — not investing, not fraud, not a bureau score.
 
-Glossary: [`../../CONTEXT.md`](../../CONTEXT.md) · Specs: [`../features/css-chapter5-mart-and-scoring.md`](../features/css-chapter5-mart-and-scoring.md), [`../features/psi-data-drift.md`](../features/psi-data-drift.md) · API detail: [`serve-fastapi.md`](serve-fastapi.md)
+Glossary: [`../../CONTEXT.md`](../../CONTEXT.md) · Specs: [`../../../specs/013-css-chapter5-mart-and-scoring/spec.md`](../../../specs/013-css-chapter5-mart-and-scoring/spec.md), [`../../../specs/014-psi-data-drift/spec.md`](../../../specs/014-psi-data-drift/spec.md) · API detail: [`serve-fastapi.md`](serve-fastapi.md)
 
 ## 1. Fit → metrics → joblib
 
@@ -118,4 +118,4 @@ Copies the recent (holdout) batch, shift/scales 1–2 top-IV features (fixed see
 - Rank-only (no approve/decline cutoff).
 - Drivers = gain × |WOE|; SHAP = stretch.
 - PSI v1 = local Markdown + JSON file report — not an interactive drift dashboard.
-- AWS public URL / Terraform up-down = stretch, not MUST — see [`../features/aws-fargate-serve-demo.md`](../features/aws-fargate-serve-demo.md) (ADR-0004) and operator [`../../../platform/docs/ephemeral-css-serve-demo.md`](../../../platform/docs/ephemeral-css-serve-demo.md) (`demo-up` / `demo-down`).
+- AWS public URL / Terraform up-down = stretch, not MUST — see [`../../../specs/015-aws-fargate-serve-demo/spec.md`](../../../specs/015-aws-fargate-serve-demo/spec.md) (ADR-0004) and operator [`../../../platform/docs/ephemeral-css-serve-demo.md`](../../../platform/docs/ephemeral-css-serve-demo.md) (`demo-up` / `demo-down`).

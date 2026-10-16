@@ -8,7 +8,7 @@ status: accepted
 
 **Why:** Portfolio focus moved to a multi-domain layout with **credit CSS** next ([`CONTEXT-MAP.md`](../../CONTEXT-MAP.md)). Continuing QV as the investing “north star” contradicts the manager-facing roadmap and splits execution capacity.
 
-**What stays delivered:** The June 30 **Magic Formula** demo slice (SimFin → ROC/EY → top-30 EW model portfolio → Streamlit + MLflow) remains the investing delivery ([ADR-0002](0002-june-demo-scope-cut.md), [`demo-slice.md`](../../investing/docs/demo-slice.md)).
+**What stays delivered:** The June 30 **Magic Formula** demo slice (SimFin → ROC/EY → top-30 EW model portfolio → Streamlit + MLflow) remains the investing delivery ([ADR-0002](0002-june-demo-scope-cut.md), [`specs/006-june-demo-slice/spec.md`](../../specs/006-june-demo-slice/spec.md)).
 
 **Where cancelled work lives:** Branch `archive/phase2-qv` and historical docs under `investing/docs/` (architecture vision, Phase 2 PRD, deferred feature specs). Those documents are **frozen reference**, not a live implementation plan.
 

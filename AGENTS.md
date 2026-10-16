@@ -8,11 +8,11 @@ SmartWealthAI is a **portfolio monorepo** (investing + credit; fraud later). See
 
 | Domain | Status |
 | --- | --- |
-| **Investing** (Magic Formula demo) | **Delivered** (v0.1.0). Code and specs under `investing/` (`investing/src/investing/`, `investing/docs/`, `investing/CONTEXT.md`). |
-| **Credit** (CSS) | **Active next.** Specs and new code under `credit/` (`credit/docs/`, `credit/CONTEXT.md`). |
+| **Investing** (Magic Formula demo) | **Delivered** (v0.1.0). Code under `investing/` (`investing/src/investing/`, `investing/CONTEXT.md`). Feature specs under [`specs/`](specs/README.md). |
+| **Credit** (CSS) | **Active next.** Code under `credit/` (`credit/CONTEXT.md`, guides under `credit/docs/guides/`). Feature specs under [`specs/`](specs/README.md). |
 | **Phase 2 Quantitative Value** | **Cancelled** for active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). |
 
-Investing changes must align with a feature spec in `investing/docs/features/` and [`investing/docs/architecture/architecture.md`](investing/docs/architecture/architecture.md) (frozen historical vision — not a live QV north star). Credit changes align with specs under `credit/docs/`.
+Feature work must align with a Spec Kit spec under `specs/<###-slug>/` and domain constraints (`investing/CONTEXT.md` / `credit/CONTEXT.md`, frozen [`investing/docs/architecture/architecture.md`](investing/docs/architecture/architecture.md) for investing). See [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
 
 Do not treat root `notebooks/` as canonical architecture. Domain code lives under `investing/src/investing/` and `credit/src/credit/`.
 
@@ -20,19 +20,22 @@ Do not treat root `notebooks/` as canonical architecture. Domain code lives unde
 
 | Path | Purpose |
 | --- | --- |
+| `specs/` | **Feature specs** (Spec Kit delivery: `spec.md`, plans/tasks when present) — index [`specs/README.md`](specs/README.md) |
+| `.specify/` | Spec Kit tooling, constitution, assessments, bugs |
 | `CONTEXT-MAP.md` | Portfolio domain map, relationships, delivery sequencing |
 | `investing/CONTEXT.md` | Investing ubiquitous language |
 | `credit/CONTEXT.md` | Credit / CSS ubiquitous language |
 | `investing/README.md` | Investing domain entry (manager-facing) |
 | `credit/README.md` | Credit domain entry (manager-facing) |
-| `credit/docs/` | Credit feature specs (when present) |
+| `credit/docs/guides/` | Credit operator guides |
 | `docs/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
-| `investing/docs/demo-slice.md` | Investing June 30 demo slice (delivered) |
+| `specs/006-june-demo-slice/spec.md` | Investing June 30 demo slice (delivered) |
 | `investing/docs/architecture/architecture.md` | Investing MVP vision (frozen; see ADR-0003) |
-| `investing/docs/features/*.md` | Investing per-module specs |
 | `investing/docs/requirements/requirements.md` | Sprint 0 spike (historical) |
 | `investing/docs/backlog/backlog.md` | Informal ideas mapped to investing features |
-| `docs/README.md` | Index of root `docs/` (ADRs) and pointers to domain docs |
+| `docs/README.md` | Index of root `docs/` (ADRs) and pointers |
+
+Former paths under `investing/docs/features/` and `credit/docs/features/` are redirect stubs only.
 
 See also `.cursor/rules/*.mdc` for persistent agent guidance.
 
@@ -42,12 +45,14 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Spec-driven workflow
 
-1. Identify the feature spec: investing → `investing/docs/features/<feature>.md`; credit → `credit/docs/` (when present).
-2. Read the matching architecture/context: investing → `investing/docs/architecture/architecture.md` + `investing/CONTEXT.md`; credit → `credit/CONTEXT.md` + `CONTEXT-MAP.md`.
-3. Resolve open questions in the spec; record decisions in the spec or ADR.
-4. Implement only what the spec allows for the current phase.
-5. After implementation, update the feature spec (implementation status, acceptance criteria, links to code when it exists).
-6. **Credit mart schema changes:** if a stage creates, drops, or renames mart columns or changes grain (raw → application), do not rely on green tests alone — say the transform in the PR/agent summary, update the mart README sidecar + `credit/data/README.md` in the same change, and open/update a GitHub issue plus a line in the credit feature spec **before** merge. See [`credit/docs/features/css-chapter5-mart-and-scoring.md`](credit/docs/features/css-chapter5-mart-and-scoring.md).
+1. **New features:** `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (artifacts under `specs/<###-slug>/`). Optional assess first: `/speckit-assess-*` under `.specify/assessments/`.
+2. **Existing features (Living Spec):** edit that folder’s `spec.md` in place; align plan/tasks when resuming delivery. Do not invent a new number unless scope is a new product slice.
+3. Read domain constraints: investing → `investing/docs/architecture/architecture.md` + `investing/CONTEXT.md`; credit → `credit/CONTEXT.md` + `CONTEXT-MAP.md`.
+4. Resolve open questions in the spec; record decisions in the spec or ADR.
+5. Implement only what the spec allows for the current phase.
+6. After implementation, update the owning `spec.md` (implementation status, acceptance criteria, links to code).
+7. Small bugs / typos / CI one-liners: bug extension or lightweight path — not a full SDD loop.
+8. **Credit mart schema changes:** if a stage creates, drops, or renames mart columns or changes grain (raw → application), do not rely on green tests alone — say the transform in the PR/agent summary, update the mart README sidecar + `credit/data/README.md` in the same change, and open/update a GitHub issue plus a line in [`specs/013-css-chapter5-mart-and-scoring/spec.md`](specs/013-css-chapter5-mart-and-scoring/spec.md) **before** merge.
 
 ## Runtime
 
@@ -96,7 +101,7 @@ export SIMFIN_API_KEY="<from user secrets>"
 uv run download-simfin
 ```
 
-Spec: [`investing/docs/features/etl-data-lake.md`](investing/docs/features/etl-data-lake.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`investing/docs/demo-slice.md`](investing/docs/demo-slice.md).
+Spec: [`specs/001-etl-data-lake/spec.md`](specs/001-etl-data-lake/spec.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`specs/006-june-demo-slice/spec.md`](specs/006-june-demo-slice/spec.md).
 
 ### Fundamentals — SEC spike (frozen)
 
@@ -117,7 +122,7 @@ Guide: [`investing/docs/guides/download-fundamentals.md`](investing/docs/guides/
 
 ## Notion (task tracking)
 
-Git specs are canonical (`investing/docs/` for investing; `credit/docs/` for credit). Notion tracks execution tasks only. Setup: [`investing/docs/NOTION_SETUP.md`](investing/docs/NOTION_SETUP.md).
+Git specs under `specs/` are canonical for features. Notion tracks execution tasks only. Setup: [`investing/docs/NOTION_SETUP.md`](investing/docs/NOTION_SETUP.md).
 
 ### Default task board
 
@@ -129,7 +134,7 @@ Git specs are canonical (`investing/docs/` for investing; `credit/docs/` for cre
 
 Agents must use the Notion MCP server (authenticated in **Cursor → Settings → MCP**) to find and update this board. Search the workspace for `Cursor Agent Tasks` before creating or editing tasks. Do not ask the user to commit a Notion URL to the repository.
 
-Each task should reference a spec path (e.g. `investing/docs/features/universe-construction.md` or `credit/docs/…`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
+Each task should reference a spec path (e.g. `specs/002-universe-construction/spec.md`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
 
 **Skills (after MCP auth):** `spec-to-implementation`, `create-task`, `tasks-build`, `tasks-explain-diff`. For `tasks-build`, the user supplies a single task URL in chat (not in this file).
 
@@ -149,4 +154,4 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 ### Domain docs
 
-Portfolio map: `CONTEXT-MAP.md`. Investing glossary: `investing/CONTEXT.md`. Credit glossary: `credit/CONTEXT.md`. ADRs in `docs/adr/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).
+Portfolio map: `CONTEXT-MAP.md`. Investing glossary: `investing/CONTEXT.md`. Credit glossary: `credit/CONTEXT.md`. Feature index: `specs/README.md`. ADRs in `docs/adr/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).

@@ -42,8 +42,8 @@ def main(ctx: click.Context) -> None:
             "Credit Scoring System (CSS) CLI.\n"
             "Stages: build-application-mart, build-competition-mart, "
             "stage-competition-extract, convert-amex-extract, fit, score, psi\n"
-            "See credit/docs/features/css-chapter5-mart-and-scoring.md "
-            "and credit/docs/features/psi-data-drift.md."
+            "See specs/013-css-chapter5-mart-and-scoring/spec.md "
+            "and specs/014-psi-data-drift/spec.md."
         )
 
 

@@ -16,8 +16,8 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`CONTEXT-MAP.md`** — domains, relationships, delivery sequencing, Sources.
 - **Domain glossary** — investing: `investing/CONTEXT.md`; credit: `credit/CONTEXT.md`.
 - **`docs/adr/`** — architectural decision records for cross-cutting choices (including ADR-0003 Phase 2 QV cancelled).
-- **Investing:** `investing/docs/architecture/architecture.md` (frozen historical vision) and `investing/docs/features/<feature>.md` when changing investing.
-- **Credit:** `credit/docs/` feature specs when present; `credit/README.md` for domain entry.
+- **Investing:** `investing/docs/architecture/architecture.md` (frozen historical vision) and `specs/<###-slug>/spec.md` when changing investing.
+- **Credit:** `specs/<###-slug>/spec.md` for feature work; `credit/README.md` for domain entry; guides under `credit/docs/guides/`.
 
 If a CONTEXT file or `docs/adr/` does not exist yet, **proceed silently**. Do not flag their absence or suggest creating them upfront.
 
@@ -31,7 +31,7 @@ Do not treat root `notebooks/` as canonical architecture for new domains; see `A
 ├── investing/
 │   ├── CONTEXT.md             ← investing ubiquitous language
 │   ├── README.md
-│   ├── docs/                  ← investing demo specs
+│   ├── docs/                  ← architecture, guides, historical
 │   ├── src/investing/         ← investing package
 │   ├── apps/dashboard/
 │   └── tests/
