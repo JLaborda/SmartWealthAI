@@ -1,6 +1,6 @@
 # Notion setup for SmartWealthAI
 
-Git specs under `investing/docs/` stay canonical. Notion tracks tasks only.
+Git feature specs under `specs/` are canonical (index: [`specs/README.md`](../../specs/README.md)). Notion tracks tasks only.
 
 ## Default board
 
@@ -16,7 +16,7 @@ Create a Notion page with:
 
 - Link to this repository
 - Link to [architecture.md](architecture/architecture.md) on GitHub
-- List of [feature specs](features/)
+- List of [feature specs](../../specs/README.md)
 
 ## 3. Connect Cursor
 
