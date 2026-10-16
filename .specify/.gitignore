@@ -12,3 +12,6 @@ extensions/*/local-config.yml
 # Execution consent is stored separately in the user's local trust registry.
 integrations/packages/
 integrations/packages.json
+
+# Bug assess/fix/test reports (optional to commit; force-add when you want them in a PR).
+bugs/
