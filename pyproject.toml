@@ -1,6 +1,6 @@
 [project]
 name = "smartwealthai"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI-driven financial screener and portfolio manager"
 authors = [
     { name = "Jorge Laborda", email = "jdlsicilia@gmail.com" }

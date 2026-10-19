@@ -5,6 +5,55 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-19
+
+Portfolio release: Credit CSS demo slice + Spec Kit living canon + uv workspace monorepo (promote of `develop` via [#195](https://github.com/JLaborda/SmartWealthAI/pull/195)).
+
+### Added
+
+- **Credit CSS** — application mart (book sample + AMEX / Home Credit competition paths), competition EDA, WOE/IV + XGBoost scratch scoring (`credit-css fit` / `score`), FastAPI `POST /score` + `POST /drivers`, local PSI CLI (`credit-css psi`), `credit-css doctor` readiness, Friday demo rehearsal guide, bake-image path and ephemeral Fargate CSS serve stretch under `platform/`.
+- **Spec Kit** — living feature canon under `specs/`, constitution **1.1.0** (`.specify/memory/constitution.md`), Spec Kit agent skills.
+- **Monorepo packaging** — Magic Formula relocated under `investing/`; Poetry → **uv workspace** ([ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)); lean `credit` / `investing` domain deps; domain CI matrix (`make test-credit` / `make test-investing`).
+- **Platform** — ephemeral Fargate CSS serve demo (Terraform + bake/serve path; stretch beyond local Friday demo).
+
+### Fixed
+
+- **Application mart labels** — retain custom non-numeric / non-integral `--bad-value` / `--good-value` labels instead of coercing them to NaN ([#196](https://github.com/JLaborda/SmartWealthAI/pull/196)).
+
+### Changed
+
+- Root install path is **uv** (`uv sync`), not Poetry; investing CLIs remain available via `uv run` from the workspace.
+
+### Requirements
+
+- Python 3.11+, [uv](https://docs.astral.sh/uv/).
+- Investing demo: `SIMFIN_API_KEY` for live SimFin download.
+- Credit demo: Git LFS for book sample (`git lfs pull --include="credit/data/*"`); optional competition raw extracts under gitignored `data/credit/raw/`.
+
+### Quickstart
+
+```bash
+uv sync
+# Investing
+export SIMFIN_API_KEY="<your key>"
+uv run run-demo-pipeline --run-date 2026-06-18
+# Credit (hermetic fixture path)
+uv run credit-css doctor
+uv run credit-css build-application-mart \
+  --source credit/tests/fixtures/application_source/applications.csv \
+  --output-dir data/credit/application_mart
+```
+
+See [credit/docs/guides/friday-demo.md](credit/docs/guides/friday-demo.md) for the full Credit CSS rehearsal.
+
+### Known gaps
+
+- Credit chapter 6 OptBinning scorecard, production monitoring, and deeper explainability.
+- Investing phase-2 paths (permanent loss filter, backtesting, sell-watch, paper trading) remain deferred.
+- Platform: full AWS cutover / orchestrator choice still open beyond the ephemeral Fargate demo.
+
+[0.2.0]: https://github.com/JLaborda/SmartWealthAI/releases/tag/v0.2.0
+
 ## [0.1.0] - 2026-06-30
 
 First public release: the **June 30 demo slice** — a runnable Greenblatt-style Magic Formula pipeline on SimFin US data.
@@ -23,16 +72,16 @@ First public release: the **June 30 demo slice** — a runnable Greenblatt-style
 
 ### Requirements
 
-- Python 3.11+, uv.
+- Python 3.11+, Poetry.
 - `SIMFIN_API_KEY` for live data download (see [download-simfin guide](docs/mvp/guides/download-simfin.md)).
 
 ### Quickstart
 
 ```bash
-uv sync
+poetry install
 export SIMFIN_API_KEY="<your key>"
-uv run run-demo-pipeline --run-date 2026-06-18
-uv run run-dashboard --data-dir data --run-date 2026-06-18
+poetry run run-demo-pipeline --run-date 2026-06-18
+poetry run run-dashboard --data-dir data --run-date 2026-06-18
 ```
 
 ### Known gaps (phase 2)
