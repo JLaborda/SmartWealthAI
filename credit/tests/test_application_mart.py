@@ -363,6 +363,53 @@ def test_cli_parses_non_numeric_and_float_label_values(tmp_path: Path) -> None:
     assert len(mart) == 0
 
 
+def test_build_application_mart_keeps_non_numeric_class_labels(tmp_path: Path) -> None:
+    """String class names that match bad/good are retained, not dropped as missing."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "labels.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1,Y\n2,N\n3,\n4,maybe\n",
+        encoding="utf-8",
+    )
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        bad_value="Y",
+        good_value="N",
+    )
+    mart = pd.read_parquet(result.mart_path)
+    rejects = pd.read_parquet(tmp_path / "out" / "rejects.parquet")
+
+    assert result.bad_value == "Y"
+    assert result.good_value == "N"
+    assert result.retained_rows == 2
+    assert set(mart["TARGET"]) == {"Y", "N"}
+    assert result.rejected_rows == 2
+    assert set(rejects["reject_reason"]) == {"missing_target"}
+
+
+def test_build_application_mart_keeps_non_integral_numeric_labels(tmp_path: Path) -> None:
+    """Non-integral class values stay themselves instead of being truncated to int."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "float_labels.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1,1.5\n2,2.5\n",
+        encoding="utf-8",
+    )
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        bad_value=2.5,
+        good_value=1.5,
+    )
+    mart = pd.read_parquet(result.mart_path)
+
+    assert result.retained_rows == 2
+    assert set(mart["TARGET"]) == {1.5, 2.5}
+
+
 def test_build_application_mart_preserves_non_numeric_object_ids(tmp_path: Path) -> None:
     """Non-numeric object application ids are kept when float coercion fails."""
     from credit.application_mart import build_application_mart
