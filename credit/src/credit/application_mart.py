@@ -152,12 +152,20 @@ def _partition_rows(
     dup_id = ids.duplicated(keep="first") & ~missing_id
 
     target_num = pd.to_numeric(work[target_column], errors="coerce")
-    missing_target = target_num.isna() & ~missing_id & ~dup_id
     allowed = {bad_value, good_value}
+    # String class names (for example Y/N) are not missing just because they are non-numeric.
+    allowed_text = {
+        label
+        for label in (_non_numeric_text(bad_value), _non_numeric_text(good_value))
+        if label is not None
+    }
+    text_match = work[target_column].map(lambda v: _matches_text_label(v, allowed_text))
+    missing_target = target_num.isna() & ~text_match & ~missing_id & ~dup_id
     invalid_target = (
         ~missing_id
         & ~dup_id
         & ~missing_target
+        & ~text_match
         & ~target_num.map(lambda v: v in allowed if pd.notna(v) else False)
     )
 
@@ -176,11 +184,32 @@ def _partition_rows(
         retained[application_id_column] = retained[application_id_column].map(
             _normalize_application_id
         )
-        retained[target_column] = pd.to_numeric(retained[target_column], errors="coerce").astype(
-            int
-        )
+        numeric_target = pd.to_numeric(retained[target_column], errors="coerce")
+        # Integral 0/1 targets stay int. Other numeric labels (1.5) must not be truncated.
+        if numeric_target.notna().all():
+            integral = numeric_target.map(lambda v: float(v).is_integer()).all()
+            retained[target_column] = numeric_target.astype(int) if integral else numeric_target
 
     return retained.reset_index(drop=True), rejects.reset_index(drop=True)
+
+
+def _matches_text_label(value: object, allowed_text: set[str]) -> bool:
+    """True when value is a non-numeric string in the configured class names."""
+    token = _non_numeric_text(value)
+    return token is not None and token in allowed_text
+
+
+def _non_numeric_text(value: object) -> str | None:
+    """Return a text class token, or None when the value is numeric or missing."""
+    if not isinstance(value, str):
+        return None
+    try:
+        float(value)
+    except ValueError:
+        return value
+    except OverflowError:
+        return None
+    return None
 
 
 def _is_blank_id(app_id: object) -> bool:

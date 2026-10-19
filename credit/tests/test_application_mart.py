@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "application_source"
 SOURCE_CSV = FIXTURES / "applications.csv"
@@ -361,6 +362,71 @@ def test_cli_parses_non_numeric_and_float_label_values(tmp_path: Path) -> None:
     # Numeric 0/1 targets do not match these label tokens → all rejected
     mart = pd.read_parquet(output_dir / "application_mart.parquet")
     assert len(mart) == 0
+
+
+def test_build_application_mart_keeps_non_numeric_class_labels(tmp_path: Path) -> None:
+    """String class names that match bad/good are retained, not dropped as missing."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "labels.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1,Y\n2,N\n3,\n4,maybe\n",
+        encoding="utf-8",
+    )
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        bad_value="Y",
+        good_value="N",
+    )
+    mart = pd.read_parquet(result.mart_path)
+    rejects = pd.read_parquet(tmp_path / "out" / "rejects.parquet")
+
+    assert result.bad_value == "Y"
+    assert result.good_value == "N"
+    assert result.retained_rows == 2
+    assert set(mart["TARGET"]) == {"Y", "N"}
+    assert result.rejected_rows == 2
+    assert set(rejects["reject_reason"]) == {"missing_target"}
+
+
+def test_build_application_mart_keeps_non_integral_numeric_labels(tmp_path: Path) -> None:
+    """Non-integral class values stay themselves instead of being truncated to int."""
+    from credit.application_mart import build_application_mart
+
+    source = tmp_path / "float_labels.csv"
+    source.write_text(
+        "SK_ID_CURR,TARGET\n1,1.5\n2,2.5\n",
+        encoding="utf-8",
+    )
+    result = build_application_mart(
+        source,
+        tmp_path / "out",
+        bad_value=2.5,
+        good_value=1.5,
+    )
+    mart = pd.read_parquet(result.mart_path)
+
+    assert result.retained_rows == 2
+    assert set(mart["TARGET"]) == {1.5, 2.5}
+
+
+def test_non_numeric_text_rejects_numeric_string_and_overflow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Numeric strings and float OverflowError are not treated as text class labels."""
+    from credit import application_mart as mart
+
+    assert mart._non_numeric_text("1.5") is None
+    assert mart._matches_text_label("1.5", {"Y", "N"}) is False
+
+    # CPython 3.12 float() returns inf for huge literals; force OverflowError for the branch.
+    def _raise_overflow(_value: object, /) -> float:
+        raise OverflowError
+
+    monkeypatch.setattr("builtins.float", _raise_overflow)
+    assert mart._non_numeric_text("OVERFLOW") is None
+    assert mart._matches_text_label("OVERFLOW", {"OVERFLOW"}) is False
 
 
 def test_build_application_mart_preserves_non_numeric_object_ids(tmp_path: Path) -> None:
