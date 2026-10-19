@@ -64,9 +64,7 @@ def test_doctor_does_not_leak_artifact_env_value_or_path() -> None:
     result = CliRunner().invoke(main, ["doctor"], env=env, catch_exceptions=False)
     assert result.exit_code == 0, result.output
     assert _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_set:") == "yes"
-    assert (
-        _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_file_exists:") == "no"
-    )
+    assert _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_file_exists:") == "no"
     assert _SECRET_MARKER not in result.output
     assert _SECRET_PATH not in result.output
     assert _SECRET_MARKER not in (result.stderr or "")
@@ -79,6 +77,11 @@ def test_doctor_unset_artifact_reports_no_booleans(
     result = CliRunner().invoke(main, ["doctor"], catch_exceptions=False)
     assert result.exit_code == 0, result.output
     assert _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_set:") == "no"
-    assert (
-        _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_file_exists:") == "no"
-    )
+    assert _line_value(result.output, "env_CREDIT_PIPELINE_ARTIFACT_file_exists:") == "no"
+
+
+def test_line_value_raises_when_label_missing() -> None:
+    """The label parser fails closed when a required contract line is absent."""
+    output = "package_version: 0.1.0\nnot_a_label\n"
+    with pytest.raises(AssertionError, match=r"missing label 'cwd:'"):
+        _line_value(output, "cwd:")

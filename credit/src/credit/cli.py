@@ -40,10 +40,7 @@ _CSS_STAGES = (
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"]},
     invoke_without_command=True,
-    help=(
-        "Credit Scoring System (CSS) CLI. "
-        f"Stages: {_CSS_STAGES}."
-    ),
+    help=(f"Credit Scoring System (CSS) CLI. Stages: {_CSS_STAGES}."),
 )
 @click.version_option(__version__, prog_name="credit-css")
 @click.pass_context
@@ -494,6 +491,4 @@ def doctor_cmd() -> None:
     click.echo(f"path_credit_data: {_yes_no(credit_data_ok)}")
     click.echo(f"path_competition_raw: {_yes_no(competition_raw_ok)}")
     click.echo(f"env_CREDIT_PIPELINE_ARTIFACT_set: {_yes_no(artifact_set)}")
-    click.echo(
-        f"env_CREDIT_PIPELINE_ARTIFACT_file_exists: {_yes_no(artifact_file_exists)}"
-    )
+    click.echo(f"env_CREDIT_PIPELINE_ARTIFACT_file_exists: {_yes_no(artifact_file_exists)}")
