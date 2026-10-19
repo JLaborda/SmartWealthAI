@@ -1,0 +1,12 @@
+# Coverage gates after omitting */tests/* from measurement (src-only baseline).
+coverage:
+  status:
+    project:
+      default:
+        # Compare to base; allow small drops from rebaseline / noise.
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        # New/changed coverable lines must stay fully covered.
+        target: 100%
