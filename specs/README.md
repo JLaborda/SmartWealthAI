@@ -28,5 +28,6 @@ operator guides, ADRs, historical PRDs/requirements/backlog.
 | 013 | [css-chapter5-mart-and-scoring](013-css-chapter5-mart-and-scoring/spec.md) | credit | active | `credit/docs/features/css-chapter5-mart-and-scoring.md` |
 | 014 | [psi-data-drift](014-psi-data-drift/spec.md) | credit | active | `credit/docs/features/psi-data-drift.md` |
 | 015 | [aws-fargate-serve-demo](015-aws-fargate-serve-demo/spec.md) | credit | active | `credit/docs/features/aws-fargate-serve-demo.md` |
+| 016 | [credit-css-doctor](016-credit-css-doctor/spec.md) | credit | done | — (assess: `.specify/assessments/credit-css-doctor/`) |
 
-Next new Spec Kit feature continues at **016**.
+Next new Spec Kit feature continues at **017**.

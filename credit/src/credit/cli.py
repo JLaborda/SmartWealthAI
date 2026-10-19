@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 from typing import cast
 
@@ -23,15 +25,22 @@ from credit.scoring_pipeline import (
     score_applications,
 )
 
+# Closed checklist for ``doctor`` (specs/016-credit-css-doctor) — string literal
+# only; do not import credit.api (FastAPI stack).
+_DOCTOR_ARTIFACT_ENV = "CREDIT_PIPELINE_ARTIFACT"
+_DOCTOR_PATH_CREDIT_DATA = Path("credit") / "data"
+_DOCTOR_PATH_COMPETITION_RAW = Path("data") / "credit" / "raw"
+
+_CSS_STAGES = (
+    "build-application-mart, build-competition-mart, "
+    "stage-competition-extract, convert-amex-extract, fit, score, psi, doctor"
+)
+
 
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"]},
     invoke_without_command=True,
-    help=(
-        "Credit Scoring System (CSS) CLI. "
-        "Stages: build-application-mart, build-competition-mart, "
-        "stage-competition-extract, convert-amex-extract, fit, score, psi."
-    ),
+    help=(f"Credit Scoring System (CSS) CLI. Stages: {_CSS_STAGES}."),
 )
 @click.version_option(__version__, prog_name="credit-css")
 @click.pass_context
@@ -40,10 +49,10 @@ def main(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None:
         click.echo(
             "Credit Scoring System (CSS) CLI.\n"
-            "Stages: build-application-mart, build-competition-mart, "
-            "stage-competition-extract, convert-amex-extract, fit, score, psi\n"
-            "See specs/013-css-chapter5-mart-and-scoring/spec.md "
-            "and specs/014-psi-data-drift/spec.md."
+            f"Stages: {_CSS_STAGES}\n"
+            "See specs/013-css-chapter5-mart-and-scoring/spec.md, "
+            "specs/014-psi-data-drift/spec.md, "
+            "and specs/016-credit-css-doctor/spec.md."
         )
 
 
@@ -456,3 +465,30 @@ def psi_cmd(
         f"(+ psi_report.json); overall={report.overall_label}; "
         f"columns={len(report.columns)}; synthetic_drift={report.synthetic_drift}."
     )
+
+
+def _yes_no(flag: bool) -> str:
+    return "yes" if flag else "no"
+
+
+@main.command("doctor")
+def doctor_cmd() -> None:
+    """Local readiness / diagnostics snapshot (booleans only; no secrets)."""
+    cwd = Path.cwd()
+    credit_data_ok = (cwd / _DOCTOR_PATH_CREDIT_DATA).is_dir()
+    competition_raw_ok = (cwd / _DOCTOR_PATH_COMPETITION_RAW).is_dir()
+
+    raw = os.environ.get(_DOCTOR_ARTIFACT_ENV)
+    artifact_set = raw is not None and str(raw).strip() != ""
+    artifact_file_exists = False
+    if artifact_set:
+        # Existence only — never echo raw or resolved path.
+        artifact_file_exists = Path(str(raw).strip()).expanduser().is_file()
+
+    click.echo(f"package_version: {__version__}")
+    click.echo(f"python_version: {sys.version.split()[0]}")
+    click.echo(f"cwd: {cwd}")
+    click.echo(f"path_credit_data: {_yes_no(credit_data_ok)}")
+    click.echo(f"path_competition_raw: {_yes_no(competition_raw_ok)}")
+    click.echo(f"env_CREDIT_PIPELINE_ARTIFACT_set: {_yes_no(artifact_set)}")
+    click.echo(f"env_CREDIT_PIPELINE_ARTIFACT_file_exists: {_yes_no(artifact_file_exists)}")
