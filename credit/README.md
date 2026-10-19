@@ -199,6 +199,7 @@ Optional `--reference` / `--recent` override the default batches; `--stable-thre
 | **PR2 / #145** | WOE/IV + XGBoost + book probability→score scaling + rank-only CLI (AUC + KS) + `pipeline.joblib` + MLflow + Docker batch score |
 | **Serving** | FastAPI `POST /score` + `POST /drivers` + `credit/Dockerfile.serve` |
 | **PSI** | Local `credit-css psi` → Markdown + JSON threshold report (stable + `--synthetic-drift`) |
+| **Doctor** | Local `credit-css doctor` → readiness snapshot (version / paths / env booleans; no secrets) ([#191](https://github.com/JLaborda/SmartWealthAI/issues/191), [`specs/016-credit-css-doctor/spec.md`](../specs/016-credit-css-doctor/spec.md)) |
 | Later | Chapter 6 scorecard / SHAP; interactive drift UI |
 | Stretch | Ephemeral Fargate CSS serve ([`specs/015-aws-fargate-serve-demo/spec.md`](../specs/015-aws-fargate-serve-demo/spec.md), ADR-0004) |
 | Later | Approve/decline cutoff (profit/risk); broader `platform/` (CD/OIDC) |
@@ -223,6 +224,7 @@ CLI after credit-only sync (package scaffold [#143](https://github.com/JLaborda/
 
 ```bash
 uv run --no-sync credit-css --help
+uv run --no-sync credit-css doctor
 uv run --no-sync credit-css build-application-mart \
   --source credit/tests/fixtures/application_source/applications.csv \
   --output-dir data/credit/application_mart

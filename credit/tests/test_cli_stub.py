@@ -38,8 +38,10 @@ def test_credit_module_default_run_lists_css_stages(tmp_path: Path) -> None:
     assert "Credit Scoring System" in result.stdout
     assert "build-application-mart" in result.stdout
     assert "build-competition-mart" in result.stdout
+    assert "doctor" in result.stdout
     assert "specs/013-css-chapter5-mart-and-scoring/spec.md" in result.stdout
     assert "specs/014-psi-data-drift/spec.md" in result.stdout
+    assert "specs/016-credit-css-doctor/spec.md" in result.stdout
 
 
 def test_credit_cli_main_is_importable() -> None:
@@ -58,6 +60,7 @@ def test_credit_cli_default_invocation_lists_competition_mart_stage() -> None:
     result = CliRunner().invoke(main, [])
     assert result.exit_code == 0, result.output
     assert "build-competition-mart" in result.output
+    assert "doctor" in result.output
 
 
 def test_credit_package_exposes_version(tmp_path: Path) -> None:
