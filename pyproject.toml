@@ -51,7 +51,9 @@ select = ["E", "F", "I", "UP", "B"]
 source = ["investing", "credit"]
 branch = true
 # Frozen SEC ETL spike (phase 2) — excluded from demo coverage metrics.
+# Test trees are measured by pytest but must not enter Codecov patch/project %.
 omit = [
+    "*/tests/*",
     "investing/src/investing/sec_client.py",
     "investing/src/investing/edgartools_client.py",
     "investing/src/investing/download_fundamentals.py",

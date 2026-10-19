@@ -421,14 +421,10 @@ def test_non_numeric_text_rejects_numeric_string_and_overflow(
     assert mart._matches_text_label("1.5", {"Y", "N"}) is False
 
     # CPython 3.12 float() returns inf for huge literals; force OverflowError for the branch.
-    real_float = float
+    def _raise_overflow(_value: object, /) -> float:
+        raise OverflowError
 
-    def float_maybe_overflow(value: object, /) -> float:
-        if value == "OVERFLOW":
-            raise OverflowError
-        return real_float(value)  # type: ignore[arg-type]
-
-    monkeypatch.setattr("builtins.float", float_maybe_overflow)
+    monkeypatch.setattr("builtins.float", _raise_overflow)
     assert mart._non_numeric_text("OVERFLOW") is None
     assert mart._matches_text_label("OVERFLOW", {"OVERFLOW"}) is False
 
