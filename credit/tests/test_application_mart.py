@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "application_source"
 SOURCE_CSV = FIXTURES / "applications.csv"
@@ -408,6 +409,28 @@ def test_build_application_mart_keeps_non_integral_numeric_labels(tmp_path: Path
 
     assert result.retained_rows == 2
     assert set(mart["TARGET"]) == {1.5, 2.5}
+
+
+def test_non_numeric_text_rejects_numeric_string_and_overflow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Numeric strings and float OverflowError are not treated as text class labels."""
+    from credit import application_mart as mart
+
+    assert mart._non_numeric_text("1.5") is None
+    assert mart._matches_text_label("1.5", {"Y", "N"}) is False
+
+    # CPython 3.12 float() returns inf for huge literals; force OverflowError for the branch.
+    real_float = float
+
+    def float_maybe_overflow(value: object, /) -> float:
+        if value == "OVERFLOW":
+            raise OverflowError
+        return real_float(value)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("builtins.float", float_maybe_overflow)
+    assert mart._non_numeric_text("OVERFLOW") is None
+    assert mart._matches_text_label("OVERFLOW", {"OVERFLOW"}) is False
 
 
 def test_build_application_mart_preserves_non_numeric_object_ids(tmp_path: Path) -> None:
