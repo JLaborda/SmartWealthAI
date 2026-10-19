@@ -1,6 +1,6 @@
 [project]
 name = "investing"
-version = "0.1.0"
+version = "0.2.0"
 description = "Magic Formula / quantitative value screening on US equities"
 requires-python = ">=3.11,<4.0"
 # Shared with credit (duplicated until a shared/ member is justified): pandas, click, mlflow-skinny.

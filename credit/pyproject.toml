@@ -1,6 +1,6 @@
 [project]
 name = "credit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Credit Scoring System (CSS) — application default-risk ranking"
 requires-python = ">=3.11,<4.0"
 # Shared with investing (duplicated until a shared/ member is justified): pandas, click, mlflow-skinny.
