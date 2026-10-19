@@ -1,16 +1,18 @@
 ---
-description: MVP Markdown spec structure and editing conventions
-globs: docs/**
+description: Spec and domain doc editing conventions
+globs: specs/**/*.md,investing/docs/**
 alwaysApply: false
 ---
 
-# MVP documentation conventions
+# Documentation conventions
 
-When creating or editing specs under `docs/mvp/`:
+## Feature specs (`specs/**/spec.md`)
 
-## Feature specs
+Canonical feature delivery specs live under Spec Kit. Index: `specs/README.md`.
 
-Follow the structure used in existing features (e.g. `docs/mvp/features/cheap-stocks.md`):
+When **actively changing** a feature (Living Spec), you may align sections toward the Spec Kit template (`.specify/templates/spec-template.md`). Do **not** rewrite historical bodies to the template unless that feature is being changed.
+
+Legacy-shaped specs (Objective / MVP scope / Acceptance criteria) are valid at rest:
 
 - Objective
 - MVP scope / Out of MVP scope
@@ -19,17 +21,17 @@ Follow the structure used in existing features (e.g. `docs/mvp/features/cheap-st
 - Acceptance criteria
 - Risks
 
-Add **Implementation status** when coding starts: `planned` | `in_progress` | `done`.
+Keep **Implementation status**: `planned` | `in_progress` | `done` (or equivalent).
 
-## Architecture spec
+New features: create via `/speckit-specify` (next number after the index).
 
-- Record closed decisions in tables (see "Decisions made so far" in `docs/mvp/architecture/architecture.md`).
-- Cross-link feature files from the module table.
+## Investing non-feature docs (`investing/docs/`)
+
+Architecture, guides, PRDs, requirements, backlog stay here — not under `specs/`.
+
+- Record closed decisions in tables (see "Decisions made so far" in `investing/docs/architecture/architecture.md`).
+- Cross-link Spec Kit feature paths (`specs/<###-slug>/spec.md`) from the architecture module table.
 - Do not contradict a closed architecture decision without updating the architecture doc first.
-
-## Cross-links
-
-Link related feature specs and point to shared definitions (e.g. shared `EBIT` between quality and cheapness modules).
 
 ## Language
 

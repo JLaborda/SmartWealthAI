@@ -1,0 +1,43 @@
+[project]
+name = "investing"
+version = "0.1.0"
+description = "Magic Formula / quantitative value screening on US equities"
+requires-python = ">=3.11,<4.0"
+# Shared with credit (duplicated until a shared/ member is justified): pandas, click, mlflow-skinny.
+dependencies = [
+    "pandas>=3.0.1,<4.0.0",
+    "click>=8.1.0,<9.0.0",
+    "mlflow-skinny==3.14.0",
+    "yfinance>=1.2.0,<2.0.0",
+    "edgartools>=5.35.1,<6.0.0",
+    "simfin>=1.0.2,<2.0.0",
+    "streamlit>=1.58.0,<2.0.0",
+    "requests>=2.34.0,<3.0.0",
+]
+
+[project.scripts]
+download-fundamentals = "investing.download_fundamentals:main"
+download-simfin = "investing.download_simfin:main"
+normalize-simfin = "investing.normalize_simfin:main"
+build-universe = "investing.build_universe:main"
+download-prices = "investing.download_prices:main"
+compute-metrics = "investing.compute_metrics:main"
+run-demo-pipeline = "investing.run_demo_pipeline:main"
+score-universe = "investing.score_universe:main"
+run-dashboard = "investing.run_dashboard:main"
+generate-simfin-industry-exclusions = "investing.generate_simfin_industry_exclusions:main"
+
+[dependency-groups]
+# Required for `uv sync --package investing --group dev` (uv does not inherit root groups).
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "ruff>=0.15.14,<0.16.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/investing"]

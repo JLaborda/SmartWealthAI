@@ -4,22 +4,38 @@ Instructions for AI agents working in the SmartWealthAI repository.
 
 ## Project phase
 
-SmartWealthAI is in **MVP planning and spec refinement**, with a **June 30, 2026 demo slice** as the current delivery target. Architecture and features are defined in Markdown under `docs/mvp/`. Implementation work must align with a feature spec in `docs/mvp/features/` and respect cross-cutting rules in `docs/mvp/architecture/architecture.md`.
+SmartWealthAI is a **portfolio monorepo** (investing + credit; fraud later). See [`CONTEXT-MAP.md`](CONTEXT-MAP.md).
 
-Do not treat `src/` or `notebooks/` as canonical architecture; they are legacy exploration and out of scope for planning context.
+| Domain | Status |
+| --- | --- |
+| **Investing** (Magic Formula demo) | **Delivered** (v0.1.0). Code under `investing/` (`investing/src/investing/`, `investing/CONTEXT.md`). Feature specs under [`specs/`](specs/README.md). |
+| **Credit** (CSS) | **Active next.** Code under `credit/` (`credit/CONTEXT.md`, guides under `credit/docs/guides/`). Feature specs under [`specs/`](specs/README.md). |
+| **Phase 2 Quantitative Value** | **Cancelled** for active execution ([ADR-0003](docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). |
+
+Feature work must align with a Spec Kit spec under `specs/<###-slug>/` and domain constraints (`investing/CONTEXT.md` / `credit/CONTEXT.md`, frozen [`investing/docs/architecture/architecture.md`](investing/docs/architecture/architecture.md) for investing). See [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+
+Do not treat root `notebooks/` as canonical architecture. Domain code lives under `investing/src/investing/` and `credit/src/credit/`.
 
 ## Documentation map (source of truth)
 
 | Path | Purpose |
 | --- | --- |
-| `CONTEXT.md` | Ubiquitous language (domain terms; extend via `/grill-with-docs`) |
+| `specs/` | **Feature specs** (Spec Kit delivery: `spec.md`, plans/tasks when present) — index [`specs/README.md`](specs/README.md) |
+| `.specify/` | Spec Kit tooling, constitution, assessments, bugs |
+| `CONTEXT-MAP.md` | Portfolio domain map, relationships, delivery sequencing |
+| `investing/CONTEXT.md` | Investing ubiquitous language |
+| `credit/CONTEXT.md` | Credit / CSS ubiquitous language |
+| `investing/README.md` | Investing domain entry (manager-facing) |
+| `credit/README.md` | Credit domain entry (manager-facing) |
+| `credit/docs/guides/` | Credit operator guides |
 | `docs/adr/*.md` | Architecture Decision Records (hard-to-reverse choices) |
-| `docs/mvp/demo-slice.md` | June 30 delivery target (narrow vertical slice) |
-| `docs/mvp/architecture/architecture.md` | MVP vision, principles, module table, closed decisions |
-| `docs/mvp/features/*.md` | Per-module specs (scope, acceptance criteria, diagrams) |
-| `docs/mvp/requirements/requirements.md` | Sprint 0 spike (superseded by MVP specs; historical reference) |
-| `docs/mvp/backlog/backlog.md` | Informal product ideas mapped to MVP features |
-| `docs/README.md` | Index of the docs tree |
+| `specs/006-june-demo-slice/spec.md` | Investing June 30 demo slice (delivered) |
+| `investing/docs/architecture/architecture.md` | Investing MVP vision (frozen; see ADR-0003) |
+| `investing/docs/requirements/requirements.md` | Sprint 0 spike (historical) |
+| `investing/docs/backlog/backlog.md` | Informal ideas mapped to investing features |
+| `docs/README.md` | Index of root `docs/` (ADRs) and pointers |
+
+Former paths under `investing/docs/features/` and `credit/docs/features/` are redirect stubs only.
 
 See also `.cursor/rules/*.mdc` for persistent agent guidance.
 
@@ -29,33 +45,46 @@ Write all code, comments, docstrings, documentation, commits, and PR text in **E
 
 ## Spec-driven workflow
 
-1. Identify the feature spec (e.g. `docs/mvp/features/cheap-stocks.md`).
-2. Read `docs/mvp/architecture/architecture.md` for constraints (point-in-time data, exclusions, MLflow, paper trading, etc.).
-3. Resolve open questions in the spec; record decisions in the spec or architecture doc.
-4. Implement only what the spec allows for the current phase.
-5. After implementation, update the feature spec (implementation status, acceptance criteria, links to code when it exists).
+1. **New features:** `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (artifacts under `specs/<###-slug>/`). Optional assess first: `/speckit-assess-*` under `.specify/assessments/`.
+2. **Existing features (Living Spec):** edit that folder’s `spec.md` in place; align plan/tasks when resuming delivery. Do not invent a new number unless scope is a new product slice.
+3. Read domain constraints: investing → `investing/docs/architecture/architecture.md` + `investing/CONTEXT.md`; credit → `credit/CONTEXT.md` + `CONTEXT-MAP.md`.
+4. Resolve open questions in the spec; record decisions in the spec or ADR.
+5. Implement only what the spec allows for the current phase.
+6. After implementation, update the owning `spec.md` (implementation status, acceptance criteria, links to code).
+7. Small bugs / typos / CI one-liners: bug extension or lightweight path — not a full SDD loop.
+8. **Credit mart schema changes:** if a stage creates, drops, or renames mart columns or changes grain (raw → application), do not rely on green tests alone — say the transform in the PR/agent summary, update the mart README sidecar + `credit/data/README.md` in the same change, and open/update a GitHub issue plus a line in [`specs/013-css-chapter5-mart-and-scoring/spec.md`](specs/013-css-chapter5-mart-and-scoring/spec.md) **before** merge.
 
 ## Runtime
 
-- **Python:** 3.11+ (`requires-python = "^3.11"` in `pyproject.toml`)
-- **Dependencies:** Poetry
+- **Python:** 3.11+ (`requires-python = ">=3.11,<4.0"` in root `pyproject.toml`)
+- **Dependencies:** uv workspace; members `credit` + `investing` with **lean per-domain deps** ([#183](https://github.com/JLaborda/SmartWealthAI/issues/183), [ADR-0005](docs/adr/0005-poetry-to-uv-workspace.md)). Shared libs (`pandas`, `click`, `mlflow-skinny`) are listed in both members. CI and Make use `--frozen` so installs match `uv.lock`.
 
 ```bash
-poetry env use python3.11
-poetry install
-poetry run pytest
+# Full monorepo (both domains)
+uv sync --frozen --group dev   # or: make install
+uv run pytest                  # or: make test / make lint
+
+# One domain only (credit has no yfinance; investing has no xgboost)
+uv sync --frozen --package credit --group dev      # or: make install-credit
+uv sync --frozen --package investing --group dev   # or: make install-investing
+make test-credit    # pytest credit/tests (keeps --package; bare uv run would re-sync both)
+make test-investing # pytest investing/tests
+# After a domain-only sync, use `uv run --no-sync …` or `uv run --package <domain> …`
+# so a plain `uv run` does not reinstall the other member.
 ```
 
 ### MLflow (demo pipeline runs)
 
-`mlflow-skinny` is a Poetry dependency (`poetry install` is enough for logging). No local MLflow UI server is required for #61.
+`mlflow-skinny` is a uv dependency (`uv sync` is enough for logging). No local MLflow UI server is required for #61.
 
 ```bash
-export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"   # default if unset
-export MLFLOW_ALLOW_FILE_STORE=true                 # required for file:// with MLflow 3.14+ (set automatically by score-universe)
+# Usually do NOT export — code defaults to file://$(pwd)/mlruns.
+# When you do export, expand pwd on the current machine (never hardcode /workspaces/...):
+export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+export MLFLOW_ALLOW_FILE_STORE=true   # required for file:// with MLflow 3.14+ (set automatically by score-universe)
 ```
 
-Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)).
+Logged by `score-universe` after ranking/portfolio construction ([#61](https://github.com/JLaborda/SmartWealthAI/issues/61)). After switching Dev Container ↔ Mac host, if MLflow hits a read-only `/workspaces` path: first `unset MLFLOW_TRACKING_URI` (or set it to `file://$(pwd)/mlruns`), and confirm the tracking URI points at a writable path under the repo (or your intended store). Prefer correcting the URI over deleting. Only if local `mlruns/` is clearly corrupted or still points at an unusable absolute `/workspaces` artifact location — and you accept losing those local runs — then remove or recreate that directory.
 
 To view runs on a remote tracking server (e.g. EC2 Docker), set `MLFLOW_TRACKING_URI` to that server **before** `score-universe` and use a shared artifact store (e.g. S3). Local `mlruns/` are not visible to a remote server unless you log there at run time.
 
@@ -69,19 +98,19 @@ Active pipeline for the June 30 demo slice. Requires `SIMFIN_API_KEY` (never com
 
 ```bash
 export SIMFIN_API_KEY="<from user secrets>"
-poetry run download-simfin
+uv run download-simfin
 ```
 
-Spec: [`docs/mvp/features/etl-data-lake.md`](docs/mvp/features/etl-data-lake.md). Operator guide: [`docs/mvp/guides/download-simfin.md`](docs/mvp/guides/download-simfin.md). Delivery target: [`docs/mvp/demo-slice.md`](docs/mvp/demo-slice.md).
+Spec: [`specs/001-etl-data-lake/spec.md`](specs/001-etl-data-lake/spec.md). Operator guide: [`investing/docs/guides/download-simfin.md`](investing/docs/guides/download-simfin.md). Delivery target: [`specs/006-june-demo-slice/spec.md`](specs/006-june-demo-slice/spec.md).
 
-### Fundamentals — SEC spike (frozen, phase 2)
+### Fundamentals — SEC spike (frozen)
 
 ```bash
 export SEC_IDENTITY="Your Name your@email.com"
-poetry run download-fundamentals --universe dow30
+uv run download-fundamentals --universe dow30
 ```
 
-Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fundamentals.md).
+Guide: [`investing/docs/guides/download-fundamentals.md`](investing/docs/guides/download-fundamentals.md).
 
 ## Gotchas
 
@@ -93,7 +122,7 @@ Guide: [`docs/mvp/guides/download-fundamentals.md`](docs/mvp/guides/download-fun
 
 ## Notion (task tracking)
 
-Git specs in `docs/mvp/` are canonical. Notion tracks execution tasks only. Setup: [`docs/mvp/NOTION_SETUP.md`](docs/mvp/NOTION_SETUP.md).
+Git specs under `specs/` are canonical for features. Notion tracks execution tasks only. Setup: [`investing/docs/NOTION_SETUP.md`](investing/docs/NOTION_SETUP.md).
 
 ### Default task board
 
@@ -105,7 +134,7 @@ Git specs in `docs/mvp/` are canonical. Notion tracks execution tasks only. Setu
 
 Agents must use the Notion MCP server (authenticated in **Cursor → Settings → MCP**) to find and update this board. Search the workspace for `Cursor Agent Tasks` before creating or editing tasks. Do not ask the user to commit a Notion URL to the repository.
 
-Each task should reference a spec path (e.g. `docs/mvp/features/universe-construction.md`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
+Each task should reference a spec path (e.g. `specs/002-universe-construction/spec.md`) and copy acceptance criteria from that spec. When a task completes, update the Git spec first, then mark the Notion task done.
 
 **Skills (after MCP auth):** `spec-to-implementation`, `create-task`, `tasks-build`, `tasks-explain-diff`. For `tasks-build`, the user supplies a single task URL in chat (not in this file).
 
@@ -117,7 +146,7 @@ Matt Pocock engineering skills ([`mattpocock/skills`](https://github.com/mattpoc
 
 ### Issue tracker
 
-GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. MVP specs in `docs/mvp/` remain canonical; Notion is optional for execution only. See [`.cursor/rules/issue-tracker.md`](.cursor/rules/issue-tracker.md).
+GitHub Issues on `JLaborda/SmartWealthAI` via the `gh` CLI. Specs in Git remain canonical; Notion is optional for execution only. See [`.cursor/rules/issue-tracker.md`](.cursor/rules/issue-tracker.md).
 
 ### Triage labels
 
@@ -125,4 +154,4 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root; MVP specs in `docs/mvp/` during planning. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).
+Portfolio map: `CONTEXT-MAP.md`. Investing glossary: `investing/CONTEXT.md`. Credit glossary: `credit/CONTEXT.md`. Feature index: `specs/README.md`. ADRs in `docs/adr/`. See [`.cursor/rules/domain.md`](.cursor/rules/domain.md).

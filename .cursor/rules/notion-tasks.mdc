@@ -5,19 +5,19 @@ alwaysApply: true
 
 # Notion task tracking
 
-**Git specs in `docs/mvp/` are canonical.** Notion is for tasks and status only.
+**Git feature specs are canonical** under `specs/<###-slug>/`. Notion is for tasks and status only. Portfolio map: [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md). Index: [`specs/README.md`](../../specs/README.md).
 
 ## Task fields
 
 Each Notion task should include:
 
-- **Title:** e.g. `Feature: Cheap Stocks — implement EY rank`
-- **Spec path:** `docs/mvp/features/<feature>.md`
+- **Title:** e.g. `Feature: Cheap Stocks — implement EY rank` or `Credit: Application mart — EY-style WOE shortlist`
+- **Spec path:** e.g. `specs/004-cheap-stocks/spec.md` or `specs/013-css-chapter5-mart-and-scoring/spec.md`
 - **Notes:** copy acceptance criteria from the spec
 
 ## Sync discipline
 
-1. Change MVP decisions in the Git spec first.
+1. Change decisions in the Git `spec.md` first.
 2. Then create or update Notion tasks.
 3. On completion: update the Git spec (implementation status, acceptance criteria), then mark the Notion task done.
 

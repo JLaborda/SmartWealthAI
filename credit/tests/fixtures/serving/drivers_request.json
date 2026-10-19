@@ -1,0 +1,11 @@
+{
+  "application_id": "c001",
+  "features": {
+    "P_2_last": 0.95,
+    "D_48_last": 0.05,
+    "B_38_last": 2.0,
+    "B_30_last": 0.0,
+    "B_2_last": 0.9
+  },
+  "top_k": 3
+}

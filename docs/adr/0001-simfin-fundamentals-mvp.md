@@ -4,7 +4,7 @@ status: accepted
 
 # SimFin as MVP fundamentals source (SEC ETL deferred)
 
-For the June 30 demo and the near-term MVP pipeline, US fundamentals and **run-date share prices** come from **SimFin** (free tier, bulk download via the `simfin` Python package), not SEC EDGAR. Demo prices use SimFin bulk `shareprices/latest` joined to the universe by ticker. The existing SEC spike (`sec_client`, `edgartools_client`, `download-fundamentals`) stays in the repo **frozen** for phase 2; `yfinance` remains a possible fallback for phase 2 backtests and personal NAV, not the demo pipeline.
+For the June 30 demo and the near-term MVP pipeline, US fundamentals and **run-date share prices** come from **SimFin** (free tier, bulk download via the `simfin` Python package), not SEC EDGAR. Demo prices use SimFin bulk `shareprices/latest` joined to the universe by ticker. The existing SEC spike (`sec_client`, `edgartools_client`, `download-fundamentals`) stays in the repo **frozen**; resuming it under a “phase 2” investing track is **not scheduled** ([ADR-0003](0003-phase2-qv-cancelled.md)). `yfinance` remains a possible fallback for historical backtests and personal NAV if that work is ever revived, not the demo pipeline.
 
 **Why:** SEC ETL complexity and rate limits were blocking progress on the scoring pipeline. SimFin provides standardized income, balance, and cash-flow statements with `Publish Date` / `Restated Date` for point-in-time queries, ~20 years of US history on the free tier, and a separate industry taxonomy—enough to ship a Magic Formula demo by end of June.
 

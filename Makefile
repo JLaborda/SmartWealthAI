@@ -1,19 +1,38 @@
-.PHONY: install lint test download-fundamentals
+.PHONY: install install-credit install-investing lint test test-credit test-investing download-fundamentals format platform-tf-check
 
 install:
-	poetry install --with dev
+	uv sync --frozen --group dev
+
+install-credit:
+	uv sync --frozen --package credit --group dev
+
+install-investing:
+	uv sync --frozen --package investing --group dev
 
 lint:
-	poetry run ruff check .
-	poetry run ruff format --check .
+	uv run ruff check .
+	uv run ruff format --check .
 
 test:
-	poetry run pytest --cov=smartwealthai --cov-report=term-missing
+	uv run pytest --cov=investing --cov=credit --cov-branch --cov-report=term-missing
 
-# Requires SEC_IDENTITY in the environment. See docs/mvp/guides/download-fundamentals.md
+# uv run without --package re-syncs the full workspace (root depends on both
+# members). Keep --package so credit-only / investing-only envs stay lean.
+# Optional: make test-credit COV_ARGS='--cov-report=xml' (CI)
+test-credit:
+	uv run --frozen --package credit --group dev pytest credit/tests --cov=credit --cov-branch --cov-report=term-missing $(COV_ARGS)
+
+test-investing:
+	uv run --frozen --package investing --group dev pytest investing/tests --cov=investing --cov-branch --cov-report=term-missing $(COV_ARGS)
+
+# Requires SEC_IDENTITY in the environment. See investing/docs/guides/download-fundamentals.md
 download-fundamentals:
-	poetry run download-fundamentals --universe dow30
+	uv run download-fundamentals --universe dow30
 
 # formatting command
 format:
-	poetry run ruff format .
+	uv run ruff format .
+
+# Terraform fmt + validate for credit CSS serve demo (no apply; no AWS creds required).
+platform-tf-check:
+	cd platform/terraform/credit-css-serve-demo && terraform fmt -check -recursive && terraform init -backend=false -input=false && terraform validate

@@ -1,0 +1,60 @@
+# Investing
+
+**Domain:** quantitative value / Magic Formula screening on US equities.
+
+**Status:** June 30 demo slice **delivered** (v0.1.0). Layout mirrors `credit/`: package `investing`, specs under `docs/`, dashboard under `apps/dashboard/`, tests under `tests/`.
+
+## What it does
+
+Ingest SimFin fundamentals → point-in-time curated lake → universe (US minus banks/insurers/utilities) → ROC + Earnings Yield ranks → combined rank → top-30 equal-weight **model portfolio** → Streamlit dashboard + MLflow run logging.
+
+## How to run
+
+From the repo root (uv). Full monorepo: `uv sync --frozen --group dev` (or `make install`).
+**Investing-only** (no credit deps such as xgboost):
+
+```bash
+uv sync --frozen --package investing --group dev   # or: make install-investing
+make test-investing
+# After a domain-only sync, keep --no-sync (or --package investing) so bare uv run
+# does not re-sync both workspace members.
+```
+
+```bash
+export SIMFIN_API_KEY="<from user secrets>"
+uv run --no-sync run-demo-pipeline --run-date 2026-06-18
+uv run --no-sync run-dashboard --data-dir data --run-date 2026-06-18
+```
+
+### Operator notes
+
+```bash
+make test
+# or: uv run pytest
+```
+
+- **Active fundamentals path:** [`docs/guides/download-simfin.md`](docs/guides/download-simfin.md)
+- **Frozen SEC spike:** [`docs/guides/download-fundamentals.md`](docs/guides/download-fundamentals.md)
+- More: [`AGENTS.md`](../AGENTS.md)
+
+Docs: [`specs/006-june-demo-slice/spec.md`](../specs/006-june-demo-slice/spec.md) · Glossary: [`CONTEXT.md`](CONTEXT.md) · Map: [`CONTEXT-MAP.md`](../CONTEXT-MAP.md) · Feature index: [`specs/README.md`](../specs/README.md)
+
+## Layout
+
+```text
+investing/
+  CONTEXT.md              # ubiquitous language
+  docs/                   # architecture, guides, historical (features → stubs)
+  src/investing/          # Python package (formerly smartwealthai)
+  apps/dashboard/         # Streamlit demo UI
+  tests/                  # hermetic investing tests + lake fixtures
+```
+
+## Not in active roadmap
+
+Phase 2 Quantitative Value (forensics, FS-Score, full backtest, sell-watch as production path) is **cancelled for execution** ([ADR-0003](../docs/adr/0003-phase2-qv-cancelled.md); branch `archive/phase2-qv`). Cloud patterns may return later under `platform/`, shared with other domains.
+
+## Sources
+
+1. **Joel Greenblatt (2010)** — *The Little Book That Still Beats the Market*
+2. **Wesley R. Gray & Tobias E. Carlisle (2012)** — *Quantitative Value* (provenance for cancelled Phase 2 QV)
