@@ -46,6 +46,10 @@ See [`investing/README.md`](investing/) and [`specs/006-june-demo-slice/spec.md`
 
 Application **CSS**: public demo data → application mart → WOE/IV + XGBoost → FastAPI `/score` + `/drivers` → PSI + `credit-css doctor`. Specs and code under [`credit/`](credit/); living Spec Kit: [`specs/013-css-chapter5-mart-and-scoring/`](specs/013-css-chapter5-mart-and-scoring/spec.md).
 
+![Credit CSS module architecture: demo data through mart, WOE/XGBoost scoring, FastAPI serve, and PSI monitoring](docs/images/smartwealthai-credit-architecture.png)
+
+*Credit module architecture corresponding to portfolio v0.2.0 (commit [`5e916033`](https://github.com/JLaborda/SmartWealthAI/commit/5e916033)).*
+
 ### Quickstart (credit demo)
 
 ```bash
